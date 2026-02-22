@@ -13,7 +13,8 @@ import {
     Sparkles,
     User,
     Users,
-    Banknote
+    Banknote,
+    FileText
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/hooks/useOrganization';
@@ -28,6 +29,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     const menuItems = [
         { name: 'Overview', icon: <LayoutDashboard className="w-5 h-5" />, path: '/dashboard', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'Programs', icon: <Calendar className="w-5 h-5" />, path: '/dashboard/programs', roles: ['system_admin', 'program_admin', 'facilitator'] },
+        { name: 'Assignments', icon: <FileText className="w-5 h-5" />, path: '/dashboard/assignments', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'Enrollments', icon: <Users className="w-5 h-5" />, path: '/dashboard/enrollments', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'Payments', icon: <Banknote className="w-5 h-5" />, path: '/dashboard/payments', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'Analytics', icon: <TrendingUp className="w-5 h-5" />, path: '/dashboard/analytics', roles: ['system_admin', 'program_admin'] },

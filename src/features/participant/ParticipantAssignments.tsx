@@ -34,10 +34,9 @@ export function ParticipantAssignments({ programId }: { programId: string }) {
         setLoading(true);
         try {
             const [asgData, subData] = await Promise.all([
-                assignmentService.getAssignments(organization!.id),
+                assignmentService.getAssignmentsByProgram(programId),
                 assignmentService.getParticipantSubmissions(user!.id, organization!.id)
             ]);
-            // In a real app, filter asgData by programId if not already done by service
             setAssignments(asgData || []);
             setSubmissions(subData || []);
         } catch (err) {
@@ -83,10 +82,10 @@ export function ParticipantAssignments({ programId }: { programId: string }) {
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                 <div className="flex items-start gap-4">
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shadow-2xl ${submission
-                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                            : isOverdue
-                                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                                                : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
+                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                        : isOverdue
+                                            ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                                            : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
                                         }`}>
                                         <FileText className="w-6 h-6" />
                                     </div>
@@ -115,9 +114,18 @@ export function ParticipantAssignments({ programId }: { programId: string }) {
                                                 }`}>
                                                 {submission.status === 'graded' ? 'Evaluated' : 'Handed In'}
                                             </span>
-                                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
-                                                Submitted {new Date(submission.submitted_at).toLocaleDateString()}
-                                            </p>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-8 text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white bg-white/5 border border-white/5 px-4"
+                                                onClick={() => {
+                                                    setSelectedAssignment(assignment);
+                                                    setSubmissionText(submission.submission_text);
+                                                    setIsSubmitModalOpen(true);
+                                                }}
+                                            >
+                                                View My Work
+                                            </Button>
                                         </div>
                                     ) : (
                                         <Button
@@ -157,7 +165,9 @@ export function ParticipantAssignments({ programId }: { programId: string }) {
                     >
                         <div className="flex justify-between items-center mb-8">
                             <div>
-                                <h3 className="text-xl font-black text-white uppercase tracking-tight">Hand In Task</h3>
+                                <h3 className="text-xl font-black text-white uppercase tracking-tight">
+                                    {getSubmissionForAssignment(selectedAssignment.id) ? 'My Submission' : 'Hand In Task'}
+                                </h3>
                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{selectedAssignment.name}</p>
                             </div>
                             <button onClick={() => setIsSubmitModalOpen(false)} className="text-slate-500 hover:text-white transition-colors">
@@ -173,17 +183,32 @@ export function ParticipantAssignments({ programId }: { programId: string }) {
                                     value={submissionText}
                                     onChange={e => setSubmissionText(e.target.value)}
                                     required
+                                    disabled={!!getSubmissionForAssignment(selectedAssignment.id)}
                                 />
                             </div>
-                            <div className="bg-indigo-500/5 p-4 rounded-2xl border border-indigo-500/10 flex items-start gap-3">
-                                <AlertCircle className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                                <p className="text-[9px] text-indigo-300 font-bold uppercase tracking-widest leading-relaxed">
-                                    Submitting this task marks it as complete. You can update your submission until the due date or until it is graded.
-                                </p>
-                            </div>
-                            <Button type="submit" variant="premium" className="w-full h-14 uppercase font-black tracking-widest">
-                                <CheckCircle className="w-4 h-4 mr-2" /> Confirm Submission
-                            </Button>
+                            {!getSubmissionForAssignment(selectedAssignment.id) ? (
+                                <>
+                                    <div className="bg-indigo-500/5 p-4 rounded-2xl border border-indigo-500/10 flex items-start gap-3">
+                                        <AlertCircle className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                                        <p className="text-[9px] text-indigo-300 font-bold uppercase tracking-widest leading-relaxed">
+                                            Submitting this task marks it as complete. You can update your submission until the due date or until it is graded.
+                                        </p>
+                                    </div>
+                                    <Button type="submit" variant="premium" className="w-full h-14 uppercase font-black tracking-widest">
+                                        <CheckCircle className="w-4 h-4 mr-2" /> Confirm Submission
+                                    </Button>
+                                </>
+                            ) : (
+                                <div className="bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/10 flex items-start gap-3">
+                                    <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest">Submission Finalized</p>
+                                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mt-1">
+                                            Submitted on {new Date(getSubmissionForAssignment(selectedAssignment.id).submitted_at).toLocaleString()}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </form>
                     </motion.div>
                 </div>

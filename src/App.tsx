@@ -17,6 +17,7 @@ import { RewardsCenter } from '@/features/dashboard/RewardsCenter';
 import { CertificateDesigner } from '@/features/dashboard/CertificateDesigner';
 import { AnalyticsDashboard } from '@/features/dashboard/AnalyticsDashboard';
 import { SettingsPage } from '@/features/dashboard/SettingsPage';
+import { AssignmentsOverview } from '@/features/dashboard/AssignmentsOverview';
 import { OrgLandingPage } from '@/features/public/OrgLandingPage';
 import { ParticipantRegister } from '@/features/public/ParticipantRegister';
 import { AcceptInvite } from '@/features/auth/AcceptInvite';
@@ -26,6 +27,7 @@ import { ParticipantDashboard } from '@/features/participant/ParticipantDashboar
 import { ProgramBrowser } from '@/features/participant/ProgramBrowser';
 import { ParticipantProfile } from '@/features/participant/ParticipantProfile';
 import { ParticipantQR } from '@/features/participant/ParticipantQR';
+import { ParticipantAssignmentsPage } from '@/features/participant/ParticipantAssignmentsPage';
 import { ParticipantProgramView } from '@/features/participant/ParticipantProgramView';
 import { ProgramDetails } from '@/features/programs/ProgramDetails';
 
@@ -60,6 +62,13 @@ function App() {
                             <DashboardLayout>
                                 <CreateProgram />
                             </DashboardLayout>
+                        } />
+                        <Route path="/dashboard/assignments" element={
+                            <RequireRole roles={['system_admin', 'program_admin', 'facilitator']}>
+                                <DashboardLayout>
+                                    <AssignmentsOverview />
+                                </DashboardLayout>
+                            </RequireRole>
                         } />
                         <Route path="/dashboard/programs/:programId/sessions" element={
                             <DashboardLayout>
@@ -137,6 +146,11 @@ function App() {
                         <Route path="/portal/:orgSlug/dashboard/qr" element={
                             <ParticipantLayout>
                                 <ParticipantQR />
+                            </ParticipantLayout>
+                        } />
+                        <Route path="/portal/:orgSlug/dashboard/assignments" element={
+                            <ParticipantLayout>
+                                <ParticipantAssignmentsPage />
                             </ParticipantLayout>
                         } />
                         <Route path="/portal/:orgSlug/dashboard/program/:programId" element={

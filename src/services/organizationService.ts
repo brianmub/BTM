@@ -4,8 +4,6 @@ export const organizationService = {
     async updateOrganization(id: string, updates: {
         name?: string;
         contact_email?: string;
-        primary_color?: string;
-        secondary_color?: string;
     }) {
         const { data, error } = await supabase
             .from('organizations')

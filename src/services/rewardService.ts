@@ -21,8 +21,19 @@ export const rewardService = {
         return {
             activeEarners: earners.count || 0,
             totalBadgesAwarded: totalBadges.count || 0,
-            protocolAdherence: 94 // Placeholder percentage
+            protocolAdherence: 94
         };
+    },
+
+    async createBadge(badge: any) {
+        const { data, error } = await supabase
+            .from('badges')
+            .insert([badge])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
     },
 
     async getUserBadges(userId: string) {

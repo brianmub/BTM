@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { assignmentService } from '@/services/assignmentService';
 import { useOrganization } from '@/hooks/useOrganization';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/services/supabase';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
@@ -19,14 +21,18 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function AssignmentManager({ programId }: { programId: string }) {
+    const { user } = useAuth();
     const { organization } = useOrganization();
     const [assignments, setAssignments] = useState<any[]>([]);
+    const [sessions, setSessions] = useState<any[]>([]);
     const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
     const [submissions, setSubmissions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isGradingModalOpen, setIsGradingModalOpen] = useState(false);
     const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
+    const [viewMode, setViewMode] = useState<'individual' | 'global'>('individual');
+    const [allSubmissions, setAllSubmissions] = useState<any[]>([]);
 
     // New Assignment Form State
     const [newAssignment, setNewAssignment] = useState({
@@ -38,15 +44,72 @@ export function AssignmentManager({ programId }: { programId: string }) {
     });
 
     useEffect(() => {
-        if (organization) fetchAssignments();
+        if (organization) {
+            fetchAssignments();
+            fetchSessions();
+            fetchAllSubmissions();
+        }
     }, [organization, programId]);
+
+    const fetchAllSubmissions = async () => {
+        try {
+            // This is a bit heavy but ensures admin sees "everything"
+            const { data } = await supabase
+                .from('assignment_submissions')
+                .select(`
+                    *,
+                    users (first_name, surname),
+                    assignments (name, session_id)
+                `)
+                .eq('organization_id', organization!.id);
+
+            // Filter by program sessions
+            const { data: sessionData } = await supabase
+                .from('sessions')
+                .select('id')
+                .eq('program_id', programId);
+            const sessionIds = sessionData?.map(s => s.id) || [];
+
+            const filtered = data?.filter(sub => sessionIds.includes(sub.assignments.session_id)) || [];
+            setAllSubmissions(filtered);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchSessions = async () => {
+        try {
+            const { data } = await supabase
+                .from('sessions')
+                .select('*')
+                .eq('program_id', programId)
+                .order('sort_order', { ascending: true });
+            setSessions(data || []);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const fetchAssignments = async () => {
         setLoading(true);
         try {
+            // Get all sessions for this program first to filter assignments
+            const { data: sessionData } = await supabase
+                .from('sessions')
+                .select('id')
+                .eq('program_id', programId);
+
+            const sessionIds = sessionData?.map(s => s.id) || [];
+
+            if (sessionIds.length === 0) {
+                setAssignments([]);
+                return;
+            }
+
             const data = await assignmentService.getAssignments(organization!.id);
-            // Filter by program if needed (assuming assignments are linked to sessions which are linked to programs)
-            setAssignments(data || []);
+            // Filter by program's sessions
+            const filtered = data?.filter(asg => sessionIds.includes(asg.session_id)) || [];
+            setAssignments(filtered);
         } catch (err) {
             console.error(err);
         } finally {
@@ -83,6 +146,7 @@ export function AssignmentManager({ programId }: { programId: string }) {
             await assignmentService.gradeSubmission(selectedSubmission.id, gradeData);
             setIsGradingModalOpen(false);
             if (selectedAssignment) fetchSubmissions(selectedAssignment.id);
+            fetchAllSubmissions();
         } catch (err) {
             console.error(err);
         }
@@ -101,116 +165,186 @@ export function AssignmentManager({ programId }: { programId: string }) {
                     <h4 className="text-sm font-black text-white uppercase tracking-tight">Assignment Matrix</h4>
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Deploy tasks and evaluate participant performance</p>
                 </div>
-                <Button
-                    variant="premium"
-                    size="sm"
-                    className="h-10 text-[10px] font-black uppercase tracking-widest"
-                    onClick={() => setIsCreateModalOpen(true)}
-                >
-                    <Plus className="w-3 h-3 mr-2" /> New Assignment
-                </Button>
+                <div className="flex gap-4">
+                    <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 mr-4">
+                        <button
+                            onClick={() => setViewMode('individual')}
+                            className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${viewMode === 'individual' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                        >
+                            By Task
+                        </button>
+                        <button
+                            onClick={() => setViewMode('global')}
+                            className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${viewMode === 'global' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                        >
+                            Everything
+                        </button>
+                    </div>
+                    <Button
+                        variant="premium"
+                        size="sm"
+                        className="h-10 text-[10px] font-black uppercase tracking-widest"
+                        onClick={() => setIsCreateModalOpen(true)}
+                    >
+                        <Plus className="w-3 h-3 mr-2" /> New Assignment
+                    </Button>
+                </div>
             </div>
 
             <div className="grid lg:grid-cols-2 gap-8">
-                {/* Assignment List */}
-                <div className="space-y-4">
-                    {assignments.map((assignment) => (
-                        <Card
-                            key={assignment.id}
-                            className={`p-6 bg-slate-900/40 border-white/5 hover:border-indigo-500/30 transition-all cursor-pointer group ${selectedAssignment?.id === assignment.id ? 'border-indigo-500/50 bg-indigo-500/5' : ''}`}
-                            onClick={() => {
-                                setSelectedAssignment(assignment);
-                                fetchSubmissions(assignment.id);
-                            }}
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 transition-colors border border-white/5">
-                                        <FileText className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <h5 className="text-sm font-black text-white uppercase tracking-tight">{assignment.name}</h5>
-                                        <div className="flex items-center gap-3 mt-1">
-                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center">
-                                                <Calendar className="w-3 h-3 mr-1 text-pink-400" /> {new Date(assignment.due_date).toLocaleDateString()}
-                                            </span>
-                                            {assignment.sessions?.name && (
-                                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
-                                                    {assignment.sessions.name}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <ChevronRight className={`w-4 h-4 text-slate-700 transition-transform ${selectedAssignment?.id === assignment.id ? 'rotate-90 text-indigo-400' : ''}`} />
-                            </div>
-                        </Card>
-                    ))}
-                </div>
-
-                {/* Submissions View */}
-                <div className="space-y-4">
-                    <AnimatePresence mode="wait">
-                        {selectedAssignment ? (
-                            <motion.div
-                                key={selectedAssignment.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="space-y-4"
-                            >
-                                <div className="flex items-center justify-between px-2">
-                                    <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Submissions ({submissions.length})</h5>
-                                </div>
-                                {submissions.length > 0 ? submissions.map((sub) => (
-                                    <Card key={sub.id} className="p-4 bg-slate-900/40 border-white/5 flex items-center justify-between group">
+                {viewMode === 'individual' ? (
+                    <>
+                        {/* Assignment List */}
+                        <div className="space-y-4">
+                            {assignments.map((assignment) => (
+                                <Card
+                                    key={assignment.id}
+                                    className={`p-6 bg-slate-900/40 border-white/5 hover:border-indigo-500/30 transition-all cursor-pointer group ${selectedAssignment?.id === assignment.id ? 'border-indigo-500/50 bg-indigo-500/5' : ''}`}
+                                    onClick={() => {
+                                        setSelectedAssignment(assignment);
+                                        fetchSubmissions(assignment.id);
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-black text-indigo-400">
-                                                {sub.users.first_name[0]}{sub.users.surname[0]}
+                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 transition-colors border border-white/5">
+                                                <FileText className="w-5 h-5" />
                                             </div>
                                             <div>
-                                                <p className="text-xs font-black text-white uppercase">{sub.users.first_name} {sub.users.surname}</p>
-                                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
-                                                    {new Date(sub.submitted_at).toLocaleString()}
-                                                </p>
+                                                <h5 className="text-sm font-black text-white uppercase tracking-tight">{assignment.name}</h5>
+                                                <div className="flex items-center gap-3 mt-1">
+                                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center">
+                                                        <Calendar className="w-3 h-3 mr-1 text-pink-400" /> {new Date(assignment.due_date).toLocaleDateString()}
+                                                    </span>
+                                                    {assignment.sessions?.name && (
+                                                        <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+                                                            {assignment.sessions.name}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            {sub.status === 'graded' ? (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{sub.score}/{selectedAssignment.max_score}</span>
-                                                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                                                </div>
-                                            ) : (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-8 text-[9px] font-black uppercase tracking-widest border-white/5 bg-white/5 hover:bg-white/10"
-                                                    onClick={() => {
-                                                        setSelectedSubmission(sub);
-                                                        setIsGradingModalOpen(true);
-                                                    }}
-                                                >
-                                                    Grade Task
-                                                </Button>
-                                            )}
+                                        <ChevronRight className={`w-4 h-4 text-slate-700 transition-transform ${selectedAssignment?.id === assignment.id ? 'rotate-90 text-indigo-400' : ''}`} />
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+
+                        {/* Submissions View */}
+                        <div className="space-y-4">
+                            <AnimatePresence mode="wait">
+                                {selectedAssignment ? (
+                                    <motion.div
+                                        key={selectedAssignment.id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="space-y-4"
+                                    >
+                                        <div className="flex items-center justify-between px-2">
+                                            <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Submissions ({submissions.length})</h5>
                                         </div>
-                                    </Card>
-                                )) : (
-                                    <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
-                                        <Clock className="w-8 h-8 text-slate-700 mx-auto mb-4" />
-                                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Awaiting intake...</p>
+                                        {submissions.length > 0 ? submissions.map((sub) => (
+                                            <Card key={sub.id} className="p-4 bg-slate-900/40 border-white/5 flex items-center justify-between group">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-black text-indigo-400">
+                                                        {sub.users.first_name[0]}{sub.users.surname[0]}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-black text-white uppercase">{sub.users.first_name} {sub.users.surname}</p>
+                                                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                                                            {new Date(sub.submitted_at).toLocaleString()}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    {sub.status === 'graded' ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{sub.score}/{selectedAssignment.max_score}</span>
+                                                            <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                                        </div>
+                                                    ) : (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-8 text-[9px] font-black uppercase tracking-widest border-white/5 bg-white/5 hover:bg-white/10"
+                                                            onClick={() => {
+                                                                setSelectedSubmission(sub);
+                                                                setIsGradingModalOpen(true);
+                                                            }}
+                                                        >
+                                                            Grade Task
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </Card>
+                                        )) : (
+                                            <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                                <Clock className="w-8 h-8 text-slate-700 mx-auto mb-4" />
+                                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Awaiting intake...</p>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-white/5 rounded-3xl border border-dashed border-white/5">
+                                        <FileText className="w-12 h-12 text-slate-700 mb-4" />
+                                        <h3 className="text-sm font-black text-slate-400 uppercase tracking-tight">Select an assignment</h3>
+                                        <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest mt-1">Review submissions and provide critical feedback</p>
                                     </div>
                                 )}
-                            </motion.div>
-                        ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-white/5 rounded-3xl border border-dashed border-white/5">
-                                <FileText className="w-12 h-12 text-slate-700 mb-4" />
-                                <h3 className="text-sm font-black text-slate-400 uppercase tracking-tight">Select an assignment</h3>
-                                <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest mt-1">Review submissions and provide critical feedback</p>
-                            </div>
-                        )}
-                    </AnimatePresence>
-                </div>
+                            </AnimatePresence>
+                        </div>
+                    </>
+                ) : (
+                    <div className="col-span-full space-y-4">
+                        <div className="grid gap-4">
+                            {allSubmissions.length > 0 ? allSubmissions.map((sub) => (
+                                <Card key={sub.id} className="p-6 bg-slate-900/40 border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6 group">
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-indigo-400 border border-white/5 group-hover:border-indigo-500/30 transition-all">
+                                            <User className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <p className="text-sm font-black text-white uppercase tracking-tight">{sub.users.first_name} {sub.users.surname}</p>
+                                                <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
+                                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{sub.assignments.name}</p>
+                                            </div>
+                                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
+                                                Submitted {new Date(sub.submitted_at).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        {sub.status === 'graded' ? (
+                                            <div className="flex items-center gap-3 bg-emerald-500/5 px-4 py-2 rounded-xl border border-emerald-500/10">
+                                                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Graded: {sub.score} Pts</span>
+                                            </div>
+                                        ) : (
+                                            <Button
+                                                variant="premium"
+                                                size="sm"
+                                                className="h-10 text-[10px] font-black uppercase tracking-widest px-6"
+                                                onClick={() => {
+                                                    setSelectedSubmission(sub);
+                                                    setSelectedAssignment(sub.assignments);
+                                                    setIsGradingModalOpen(true);
+                                                }}
+                                            >
+                                                Evaluate Now
+                                            </Button>
+                                        )}
+                                    </div>
+                                </Card>
+                            )) : (
+                                <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                    <FileText className="w-10 h-10 text-slate-700 mx-auto mb-4" />
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">No program-wide submissions found.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Create Assignment Modal */}
@@ -306,7 +440,7 @@ export function AssignmentManager({ programId }: { programId: string }) {
                             handleGradeSubmission({
                                 score: parseInt(formData.get('score') as string),
                                 feedback: formData.get('feedback') as string,
-                                graded_by: organization!.id // Should be user.id usually, but org works for now or admin id
+                                graded_by: user!.id
                             });
                         }} className="space-y-6">
                             <div className="space-y-2">

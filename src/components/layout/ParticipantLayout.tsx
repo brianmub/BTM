@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import { Home, Compass, User, RefreshCw } from 'lucide-react';
+import { Home, Compass, User, RefreshCw, FileText } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/hooks/useOrganization';
 import { cn } from '@/components/ui/Button';
@@ -16,6 +16,7 @@ export function ParticipantLayout({ children }: { children: React.ReactNode }) {
     const navItems = [
         { name: 'Home', icon: <Home className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard` },
         { name: 'Discover', icon: <Compass className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard/browse` },
+        { name: 'Tasks', icon: <FileText className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard/assignments` },
         { name: 'Profile', icon: <User className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard/profile` },
     ];
 

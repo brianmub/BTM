@@ -10,8 +10,8 @@ interface PublicLayoutProps {
 export function PublicLayout({ children, showFooter = true }: PublicLayoutProps) {
     const { organization } = useOrganization();
 
-    const primaryColor = organization?.primary_color || '#6366f1';
-    const secondaryColor = organization?.secondary_color || '#ec4899';
+    const primaryColor = '#6366f1';
+    const secondaryColor = '#ec4899';
 
     return (
         <div className="min-h-screen bg-slate-950 text-white selection:bg-indigo-500/30 font-sans relative overflow-x-hidden">

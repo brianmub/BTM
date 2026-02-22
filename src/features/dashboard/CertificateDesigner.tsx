@@ -56,20 +56,6 @@ export function CertificateDesigner() {
                                 </div>
                                 <span className="text-xs text-gray-400 font-bold italic">Inter Bold</span>
                             </button>
-
-                            <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200">
-                                <div className="flex items-center gap-3">
-                                    <ImageIcon className="w-5 h-5 text-primary" />
-                                    <span className="text-sm font-bold text-gray-900">Branding & Logo</span>
-                                </div>
-                            </button>
-
-                            <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200">
-                                <div className="flex items-center gap-3">
-                                    <Palette className="w-5 h-5 text-primary" />
-                                    <span className="text-sm font-bold text-gray-900">Color Palette</span>
-                                </div>
-                            </button>
                         </div>
                     </Card>
 

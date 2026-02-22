@@ -129,7 +129,6 @@ export function AnalyticsDashboard() {
 
             <div className="grid md:grid-cols-4 gap-8">
                 {[
-                    { label: 'Universal Points Allocation', value: '24,850', change: '+12% Expansion', up: true, color: 'indigo' },
                     { label: 'Avg. Attendance', value: avgAttendance, change: 'Computed', up: true, color: 'pink' },
                     { label: 'New Enrolments', value: newEnrollments, change: 'Live', up: true, color: 'emerald' },
                     { label: 'Active Matrix', value: stats.programs, change: 'Optimal', up: true, color: 'amber' },

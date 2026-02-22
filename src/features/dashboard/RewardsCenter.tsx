@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Trophy, Star, Shield, Zap, Plus, Search, Filter, MoreVertical, Award, Sparkles, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { rewardService } from '@/services/rewardService';
 import { useOrganization } from '@/hooks/useOrganization';
 
@@ -14,6 +14,15 @@ export function RewardsCenter() {
     const [stats, setStats] = useState({ activeEarners: 0, totalBadgesAwarded: 0, protocolAdherence: 0 });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isForgeModalOpen, setIsForgeModalOpen] = useState(false);
+    const [isForging, setIsForging] = useState(false);
+    const [newBadge, setNewBadge] = useState({
+        name: '',
+        description: '',
+        badge_type: 'engagement',
+        points_benefit: 10,
+        icon_url: ''
+    });
 
     useEffect(() => {
         if (orgLoading) return;
@@ -38,6 +47,25 @@ export function RewardsCenter() {
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleForgeBadge = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            setIsForging(true);
+            await rewardService.createBadge({
+                ...newBadge,
+                organization_id: organization!.id,
+                sort_order: badges.length
+            });
+            setIsForgeModalOpen(false);
+            setNewBadge({ name: '', description: '', badge_type: 'engagement', points_benefit: 10, icon_url: '' });
+            fetchBadges();
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsForging(false);
         }
     };
 
@@ -73,27 +101,13 @@ export function RewardsCenter() {
                     <Button variant="outline" className="h-14 px-8 bg-white/5 border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white" onClick={() => navigate('/dashboard/rewards/certificates')}>
                         <Award className="w-4 h-4 mr-3" /> Digital Certificates
                     </Button>
-                    <Button variant="premium" className="h-14 px-8 font-black uppercase tracking-widest text-xs">
+                    <Button variant="premium" className="h-14 px-8 font-black uppercase tracking-widest text-xs" onClick={() => setIsForgeModalOpen(true)}>
                         <Plus className="w-4 h-4 mr-3" /> Forge New Badge
                     </Button>
                 </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-10">
-                <Card className="bg-indigo-600 text-white border-none overflow-hidden relative p-10 shadow-2xl shadow-indigo-500/20 group">
-                    <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                        <Trophy className="w-40 h-40" />
-                    </div>
-                    <div className="relative z-10">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 mb-3">Universal Points Allocation</p>
-                        <h3 className="text-5xl font-black tracking-tighter">24,850</h3>
-                        <div className="mt-8 flex items-center">
-                            <div className="px-3 py-1 bg-white/20 rounded-lg text-[9px] font-black uppercase tracking-widest border border-white/20">
-                                +12% Expansion
-                            </div>
-                        </div>
-                    </div>
-                </Card>
+            <div className="grid md:grid-cols-2 gap-10">
 
                 <Card className="flex flex-col justify-center p-10 bg-slate-900/40 border-white/5">
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Active Badge Earners</p>
@@ -211,6 +225,84 @@ export function RewardsCenter() {
                     </div>
                 )}
             </div>
+
+            {/* Forge Badge Modal */}
+            <AnimatePresence>
+                {isForgeModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="bg-slate-900 border border-white/10 rounded-[40px] w-full max-w-lg p-10 shadow-[0_0_100px_rgba(99,102,241,0.2)]"
+                        >
+                            <div className="flex justify-between items-center mb-10">
+                                <div>
+                                    <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Forge Milestone</h3>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Configure a new rewards protocol</p>
+                                </div>
+                                <Button variant="ghost" className="text-slate-500 hover:text-white" onClick={() => setIsForgeModalOpen(false)}>
+                                    <Plus className="w-6 h-6 rotate-45" />
+                                </Button>
+                            </div>
+
+                            <form onSubmit={handleForgeBadge} className="space-y-8">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Badge Designation</label>
+                                    <input
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-sm font-bold focus:border-indigo-500/50 focus:bg-white/10 outline-none transition-all"
+                                        placeholder="e.g. Master Intercessor"
+                                        value={newBadge.name}
+                                        onChange={e => setNewBadge({ ...newBadge, name: e.target.value })}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Protocol Description</label>
+                                    <textarea
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-sm font-bold focus:border-indigo-500/50 focus:bg-white/10 outline-none h-24 resize-none transition-all"
+                                        placeholder="Define the criteria for attainment..."
+                                        value={newBadge.description}
+                                        onChange={e => setNewBadge({ ...newBadge, description: e.target.value })}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Classification</label>
+                                        <select
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-sm font-bold focus:border-indigo-500/50 focus:bg-white/10 outline-none appearance-none cursor-pointer"
+                                            value={newBadge.badge_type}
+                                            onChange={e => setNewBadge({ ...newBadge, badge_type: e.target.value })}
+                                        >
+                                            <option value="engagement">Engagement</option>
+                                            <option value="attendance">Attendance</option>
+                                            <option value="assignment">Academic</option>
+                                            <option value="service">Service</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Incentive Yield</label>
+                                        <input
+                                            type="number"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-sm font-bold focus:border-indigo-500/50 focus:bg-white/10 outline-none transition-all"
+                                            value={newBadge.points_benefit}
+                                            onChange={e => setNewBadge({ ...newBadge, points_benefit: parseInt(e.target.value) })}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <Button type="submit" variant="premium" className="w-full h-16 text-xs font-black uppercase tracking-[0.2em]" disabled={isForging}>
+                                    {isForging ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Activate Protocol'}
+                                </Button>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

@@ -19,6 +19,31 @@ export const assignmentService = {
         return data;
     },
 
+    async getAssignmentsByProgram(programId: string) {
+        // First get sessions for this program
+        const { data: sessions, error: sError } = await supabase
+            .from('sessions')
+            .select('id')
+            .eq('program_id', programId);
+
+        if (sError) throw sError;
+        const sessionIds = sessions?.map(s => s.id) || [];
+
+        if (sessionIds.length === 0) return [];
+
+        const { data, error } = await supabase
+            .from('assignments')
+            .select(`
+                *,
+                sessions (name)
+            `)
+            .in('session_id', sessionIds)
+            .order('due_date', { ascending: true });
+
+        if (error) throw error;
+        return data;
+    },
+
     async createAssignment(assignment: any) {
         const { data, error } = await supabase
             .from('assignments')

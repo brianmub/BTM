@@ -15,6 +15,7 @@ export function ParticipantDashboard() {
     const navigate = useNavigate();
 
     const [enrollments, setEnrollments] = useState<any[]>([]);
+    const [badges, setBadges] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -36,6 +37,13 @@ export function ParticipantDashboard() {
 
             if (error) throw error;
             setEnrollments(enrollmentData || []);
+
+            // Fetch User Badges
+            const { data: badgeData } = await supabase
+                .from('user_badges')
+                .select('*', { count: 'exact' })
+                .eq('user_id', currentProfile?.id);
+            setBadges(badgeData || []);
         } catch (err) {
             console.error('Error fetching dashboard data:', err);
         } finally {
@@ -65,7 +73,7 @@ export function ParticipantDashboard() {
             <div className="grid grid-cols-2 gap-4">
                 <GlassBox className="p-4 bg-indigo-500/10 border-indigo-500/20">
                     <Award className="w-6 h-6 text-indigo-400 mb-2" />
-                    <div className="text-2xl font-black text-white">0</div>
+                    <div className="text-2xl font-black text-white">{badges.length}</div>
                     <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Badges Earned</div>
                 </GlassBox>
                 <GlassBox className="p-4 bg-pink-500/10 border-pink-500/20">
