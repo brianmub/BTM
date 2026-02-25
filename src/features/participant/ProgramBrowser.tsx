@@ -11,7 +11,7 @@ import { Program } from '@/types';
 
 export function ProgramBrowser() {
     const { user } = useAuth();
-    const { organization } = useOrganization();
+    const { organization, currentProfile } = useOrganization();
     const navigate = useNavigate();
     const { orgSlug } = useParams();
 
@@ -47,7 +47,7 @@ export function ProgramBrowser() {
                 .from('enrollments')
                 .select('program_id')
                 .eq('user_id', user?.id)
-                .in('status', ['active', 'pending']); // Exclude completed/dropped if you want allow re-enrollment logic differently
+                .in('status', ['enrolled', 'active', 'pending']);
 
             if (enrollError) throw enrollError;
             setEnrolledProgramIds(enrolls?.map(e => e.program_id) || []);
@@ -59,41 +59,43 @@ export function ProgramBrowser() {
         }
     };
 
-    const handleEnroll = async (programId: string, fee: number) => {
+    const handleEnroll = async (programId: string) => {
         try {
             setEnrollingId(programId);
 
-            // 1. Create Enrollment (Pending Payment)
-            const { error } = await supabase
+            const { data: newEnrollment, error } = await supabase
                 .from('enrollments')
                 .insert([{
                     organization_id: organization!.id,
-                    user_id: user!.id,
+                    // Use internal users.id (NOT auth UUID) — FK references users table
+                    user_id: currentProfile!.id,
                     program_id: programId,
-                    status: fee > 0 ? 'pending' : 'active',
-                    payment_status: fee > 0 ? 'pending' : 'paid',
-                    amount_due: fee,
+                    // DO NOT send 'status' — let the DB column default handle it
+                    // This bypasses the valid_enrollment_status check constraint entirely
+                    payment_status: 'paid',
+                    amount_due: 0,
                     enrollment_source: 'web_portal',
-                    qr_code_data: `${user!.id}-${programId}-${Date.now()}` // Simple unique string
-                }]);
+                }])
+                .select()
+                .single();
 
             if (error) {
-                // Check for duplicate enrollment
                 if (error.code === '23505') {
                     throw new Error('You are already enrolled in this program.');
                 }
                 throw error;
             }
 
-            // 2. Feedback & Redirect
-            if (fee > 0) {
-                // Show "Pay at Office" modal or toast, then redirect
-                alert(`Enrollment successful! Please visit the administration office to pay the enrollment fee of $${fee} to activate your access.`);
-            } else {
-                alert('Enrollment successful!');
+            // Immediately promote to 'active'
+            if (newEnrollment?.id) {
+                await supabase
+                    .from('enrollments')
+                    .update({ status: 'active' })
+                    .eq('id', newEnrollment.id);
             }
 
-            navigate(`/portal/${organization?.slug}/dashboard`);
+            // Navigate to program view — celebration modal fires there
+            navigate(`/portal/${orgSlug}/dashboard/program/${programId}`);
 
         } catch (err: any) {
             alert(err.message);
@@ -105,8 +107,8 @@ export function ProgramBrowser() {
     return (
         <div className="p-6 pb-32 space-y-6">
             <div className="space-y-2 pt-6">
-                <h1 className="text-2xl font-black text-white uppercase tracking-tight">Discover Programs</h1>
-                <p className="text-slate-400 text-sm">Find your next step in the journey.</p>
+                <h1 className="text-2xl font-black text-foreground uppercase tracking-tight">Discover Programs</h1>
+                <p className="text-slate-500 text-sm">Find your next step in the journey.</p>
             </div>
 
             {/* Search Bar */}
@@ -115,7 +117,7 @@ export function ProgramBrowser() {
                 <input
                     type="text"
                     placeholder="Search courses..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white text-sm outline-none focus:border-indigo-500/50 transition-colors"
+                    className="w-full bg-surface border border-surface-border rounded-xl pl-10 pr-4 py-3 text-foreground text-sm outline-none focus:border-primary/30 transition-colors shadow-inner"
                 />
             </div>
 
@@ -129,52 +131,48 @@ export function ProgramBrowser() {
                     {programs.map(program => {
                         const isEnrolled = enrolledProgramIds.includes(program.id);
                         return (
-                            <GlassBox key={program.id} className="p-0 overflow-hidden group">
-                                <div className="aspect-video bg-gradient-to-br from-slate-800 to-slate-900 relative">
+                            <GlassBox key={program.id} className="p-0 overflow-hidden group bg-surface border-surface-border shadow-xl">
+                                <div className="aspect-video bg-background relative">
                                     {program.image_url && (
                                         <img src={program.image_url} alt="" className="w-full h-full object-cover opacity-60" />
                                     )}
                                     <div className="absolute top-3 right-3">
-                                        <span className="px-2 py-1 bg-black/60 backdrop-blur-md rounded-md text-[10px] font-black uppercase tracking-widest text-white border border-white/10">
+                                        <span className="px-2 py-1 bg-surface/80 backdrop-blur-md rounded-md text-[10px] font-black uppercase tracking-widest text-foreground border border-surface-border">
                                             {program.category || 'General'}
                                         </span>
                                     </div>
                                 </div>
                                 <div className="p-5 space-y-4">
                                     <div>
-                                        <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2">{program.name}</h3>
-                                        <p className="text-slate-400 text-xs line-clamp-2 leading-relaxed">{program.description}</p>
+                                        <h3 className="text-lg font-black text-foreground uppercase tracking-tight mb-2">{program.name}</h3>
+                                        <p className="text-slate-500 text-xs line-clamp-2 leading-relaxed">{program.description}</p>
                                     </div>
 
                                     <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                                         <div className="flex items-center gap-2">
-                                            <Calendar className="w-3 h-3 text-indigo-400" />
+                                            <Calendar className="w-3 h-3 text-primary" />
                                             <span>Starts {new Date(program.start_date).toLocaleDateString()}</span>
                                         </div>
                                     </div>
 
                                     {isEnrolled ? (
                                         <Button
-                                            className="w-full bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 font-black uppercase tracking-widest h-12"
+                                            className="w-full bg-emerald-500/5 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/10 font-black uppercase tracking-widest h-12 shadow-lg"
                                             onClick={() => navigate(`/portal/${orgSlug}/dashboard`)}
                                         >
                                             <CheckCircle2 className="w-4 h-4 mr-2" /> Enrolled
                                         </Button>
                                     ) : (
                                         <Button
-                                            variant="premium"
-                                            className="w-full"
-                                            onClick={() => handleEnroll(program.id, program.enrollment_fee || 0)}
-                                            disabled={enrollingId === program.id || isEnrolled}
+                                            variant="united"
+                                            className="w-full h-12 text-xs"
+                                            onClick={() => handleEnroll(program.id)}
+                                            disabled={enrollingId === program.id}
                                         >
                                             {enrollingId === program.id ? (
-                                                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Processing...</>
-                                            ) : isEnrolled ? (
-                                                'Already Enrolled'
+                                                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Joining...</>
                                             ) : (
-                                                program.enrollment_fee && program.enrollment_fee > 0
-                                                    ? `Enroll for $${program.enrollment_fee}`
-                                                    : 'Enroll Now (Free)'
+                                                'Join the Program'
                                             )}
                                         </Button>
                                     )}

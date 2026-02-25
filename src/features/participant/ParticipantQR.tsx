@@ -85,21 +85,21 @@ export function ParticipantQR() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 p-6 space-y-8">
+        <div className="min-h-screen bg-background p-6 space-y-8">
             <div className="flex items-center gap-4">
                 <button
                     onClick={() => navigate(`/portal/${orgSlug}/dashboard`)}
-                    className="p-2 bg-white/5 rounded-xl text-slate-400 hover:text-white transition-colors"
+                    className="p-2 bg-surface rounded-xl text-slate-400 hover:text-foreground transition-colors border border-surface-border shadow-sm"
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </button>
                 <div>
-                    <h1 className="text-xl font-black text-white uppercase tracking-tight">Attendance Hub</h1>
+                    <h1 className="text-xl font-black text-foreground uppercase tracking-tight">Attendance Hub</h1>
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Digital credentials & verification</p>
                 </div>
             </div>
 
-            <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5 shadow-xl">
+            <div className="flex bg-surface p-1 rounded-2xl border border-surface-border shadow-xl">
                 <button
                     onClick={() => setMode('my-id')}
                     className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'my-id' ? 'bg-gradient-premium text-white' : 'text-slate-500'}`}
@@ -123,36 +123,38 @@ export function ParticipantQR() {
                         exit={{ opacity: 0, y: -10 }}
                         className="space-y-8"
                     >
-                        <Card className="bg-slate-900/40 border-white/10 p-10 text-center space-y-8 overflow-hidden relative group">
-                            <div className="absolute inset-0 bg-indigo-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <Card className="bg-surface border-surface-border p-10 text-center space-y-8 overflow-hidden relative group shadow-2xl">
+                            <div className="absolute inset-0 bg-primary/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
                             <div className="space-y-2 relative z-10">
-                                <h3 className="text-lg font-black text-white uppercase tracking-tight">Personal Identity Code</h3>
-                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Show this to facilitators for rapid verification</p>
+                                <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Identity Token</h3>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Scan for session verification</p>
                             </div>
 
-                            <div className="relative inline-block mx-auto">
-                                <div className="absolute inset-0 bg-white blur-[80px] opacity-10 rounded-full animate-pulse"></div>
-                                <div className="relative bg-white p-6 rounded-[32px] border border-white/10 shadow-2xl">
-                                    <QRCodeSVG
-                                        value={`user-${user?.id}`}
-                                        size={200}
-                                        level="H"
-                                        includeMargin={true}
-                                    />
+                            <div className="relative group">
+                                <div className="absolute -inset-4 bg-gradient-premium opacity-20 blur-xl group-hover:opacity-30 transition-opacity rounded-full"></div>
+                                <div className="relative bg-background p-6 rounded-3xl border border-surface-border shadow-inner">
+                                    {user?.id && (
+                                        <QRCodeSVG
+                                            value={`user-${user.id}`}
+                                            size={200}
+                                            level="H"
+                                            includeMargin={true}
+                                        />
+                                    )}
                                 </div>
                             </div>
 
                             <div className="pt-4 relative z-10">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
-                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active Identity Stream</span>
+                                <div className="flex items-center space-x-2 mb-4">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Verification Signal</p>
                                 </div>
                             </div>
                         </Card>
 
-                        <div className="bg-indigo-500/5 p-6 rounded-2xl border border-indigo-500/10">
-                            <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Security Protocol</h4>
+                        <div className="bg-primary/5 p-6 rounded-2xl border border-primary/20 shadow-lg">
+                            <h4 className="text-[10px] font-black text-primary uppercase tracking-widest mb-2">Privacy Notice</h4>
                             <p className="text-[9px] text-slate-500 font-medium leading-relaxed uppercase tracking-wider">
                                 This encrypted token is unique to your profile. Do not share or screenshot for 3rd party use.
                             </p>
@@ -166,31 +168,31 @@ export function ParticipantQR() {
                         exit={{ opacity: 0, y: -10 }}
                         className="space-y-6"
                     >
-                        <Card className="aspect-square bg-slate-900 border-white/5 relative overflow-hidden flex items-center justify-center p-0">
+                        <Card className="aspect-square bg-surface border-surface-border relative overflow-hidden flex items-center justify-center p-0 shadow-2xl">
                             {scannedResult ? (
                                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm">
                                     <div className="text-center space-y-6">
                                         {isSuccess ? (
                                             <>
-                                                <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto border-2 shadow-2xl transition-colors ${lastAction === 'clock_out' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                                <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto border-2 shadow-2xl transition-colors ${lastAction === 'clock_out' ? 'bg-blue-500/20 text-blue-600 border-blue-500/30' : 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30'
                                                     }`}>
                                                     <CheckCircle2 className="w-12 h-12" />
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-xl font-black text-white uppercase tracking-tight">{lastAction === 'clock_out' ? 'See You Soon' : 'Welcome'}</h3>
-                                                    <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${lastAction === 'clock_out' ? 'text-blue-400' : 'text-emerald-400'}`}>
+                                                    <h3 className="text-xl font-black text-foreground uppercase tracking-tight">{lastAction === 'clock_out' ? 'See You Soon' : 'Welcome'}</h3>
+                                                    <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${lastAction === 'clock_out' ? 'text-blue-600' : 'text-emerald-600'}`}>
                                                         {lastAction === 'clock_out' ? 'Checkout Synchronized' : 'Attendance Verified'}
                                                     </p>
                                                 </div>
                                             </>
                                         ) : (
                                             <>
-                                                <div className="w-24 h-24 bg-rose-500/20 text-rose-400 rounded-full flex items-center justify-center mx-auto border-2 border-rose-500/30 shadow-2xl">
+                                                <div className="w-24 h-24 bg-rose-500/10 text-rose-600 rounded-full flex items-center justify-center mx-auto border-2 border-rose-500/20 shadow-2xl">
                                                     <XCircle className="w-12 h-12" />
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-xl font-black text-white uppercase tracking-tight">Access Denied</h3>
-                                                    <p className="text-rose-400 text-[10px] font-black uppercase tracking-widest mt-1">Invalid or Inactive Session Token</p>
+                                                    <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Access Denied</h3>
+                                                    <p className="text-rose-600 text-[10px] font-black uppercase tracking-widest mt-1">Invalid or Inactive Session Token</p>
                                                 </div>
                                             </>
                                         )}
@@ -198,24 +200,27 @@ export function ParticipantQR() {
                                 </div>
                             ) : null}
 
-                            <div id="participant-reader" className="w-full h-full"></div>
+                            {loading && <div className="p-8"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}
                             {!scannedResult && (
                                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                                    <div className="w-64 h-64 border-2 border-white/20 rounded-3xl relative">
-                                        <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-500 -mt-1 -ml-1 rounded-tl-xl"></div>
-                                        <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-500 -mt-1 -mr-1 rounded-tr-xl"></div>
-                                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-500 -mb-1 -ml-1 rounded-bl-xl"></div>
-                                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-500 -mb-1 -mr-1 rounded-br-xl"></div>
-                                    </div>
+                                    <Card className="max-w-md w-full p-8 border-surface-border bg-surface shadow-2xl relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-premium"></div>
+
+                                        <div className="text-center space-y-8">
+                                            <div id="participant-reader" className="w-full h-full"></div>
+                                        </div>
+                                    </Card>
                                 </div>
                             )}
                         </Card>
 
-                        <div className="bg-indigo-500/5 p-6 rounded-2xl border border-indigo-500/10 flex items-start gap-4">
-                            <Camera className="w-5 h-5 text-indigo-400 shrink-0" />
-                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
-                                Align session QR code displayed by facilitator to auto-verify your attendance matrix.
-                            </p>
+                        <div className="bg-primary/5 p-6 rounded-2xl border border-primary/20 flex items-start gap-4 shadow-lg">
+                            <div className="mt-8 pt-8 border-t border-surface-border text-center">
+                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] leading-relaxed">
+                                    Hold your device steady for the scanner.<br />
+                                    This token automatically refreshes every minute.
+                                </p>
+                            </div>
                         </div>
                     </motion.div>
                 )}

@@ -7,7 +7,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'premium';
+    variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'premium' | 'united';
     size?: 'sm' | 'md' | 'lg';
     isLoading?: boolean;
 }
@@ -15,11 +15,12 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant = 'primary', size = 'md', isLoading, children, disabled, ...props }, ref) => {
         const variants = {
-            primary: 'bg-primary text-white hover:bg-primary-dark shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0',
-            secondary: 'bg-secondary text-white hover:bg-secondary-dark shadow-lg shadow-secondary/20 hover:shadow-secondary/40 hover:-translate-y-0.5 active:translate-y-0',
-            outline: 'border-2 border-slate-700 bg-transparent hover:bg-slate-800 text-slate-200 hover:border-slate-600',
-            ghost: 'bg-transparent hover:bg-slate-800 text-slate-300',
-            premium: 'bg-gradient-premium text-white hover:opacity-90 shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0',
+            primary: 'bg-primary text-white hover:bg-primary-dark shadow-lg shadow-primary/10 hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0',
+            secondary: 'bg-secondary text-white hover:bg-secondary-dark shadow-lg shadow-secondary/10 hover:shadow-secondary/20 hover:-translate-y-0.5 active:translate-y-0',
+            outline: 'border-2 border-surface-border bg-transparent hover:bg-surface text-foreground hover:border-primary/20 transition-all',
+            ghost: 'bg-transparent hover:bg-surface text-slate-600 hover:text-foreground transition-all',
+            premium: 'bg-gradient-premium text-white hover:opacity-90 shadow-xl shadow-primary/10 hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0',
+            united: 'bg-[#DA291C] text-white font-black uppercase tracking-widest hover:bg-[#B31D14] shadow-xl shadow-[#DA291C]/30 hover:shadow-[#DA291C]/50 hover:-translate-y-0.5 active:translate-y-0 active:scale-95',
         };
 
         const sizes = {

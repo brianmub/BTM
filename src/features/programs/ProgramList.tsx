@@ -50,32 +50,32 @@ export function ProgramList() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <div className="flex items-center space-x-2 mb-2">
-                        <Sparkles className="w-4 h-4 text-indigo-400" />
+                        <Sparkles className="w-4 h-4 text-primary" />
                         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Resource Control</span>
                     </div>
-                    <h1 className="text-4xl font-black text-white tracking-tight uppercase">Ministry Programs</h1>
+                    <h1 className="text-4xl font-black text-foreground tracking-tight uppercase">Ministry Programs</h1>
                     <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-1">Curated educational paths for spiritual growth</p>
                 </div>
                 <Button variant="premium" className="h-14 px-8 font-black uppercase tracking-widest text-xs" onClick={() => navigate('/dashboard/programs/new')}>
-                    <Plus className="w-4 h-4 mr-3" /> Create New Blueprint
+                    <Plus className="w-4 h-4 mr-3" /> Create New Program
                 </Button>
             </div>
 
             {/* Filters & Search */}
             <div className="flex flex-col lg:flex-row gap-6 items-center justify-between">
                 <div className="relative w-full lg:w-[500px] group">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 w-4 h-4 group-focus-within:text-indigo-400 transition-colors" />
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 group-focus-within:text-primary transition-colors" />
                     <input
                         type="text"
                         placeholder="Filter benchmarks or curriculum..."
-                        className="w-full pl-14 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl text-xs font-bold text-white placeholder:text-slate-600 focus:bg-white/10 focus:border-white/10 focus:ring-0 transition-all outline-none"
+                        className="w-full pl-14 pr-6 py-4 bg-background border border-surface-border rounded-2xl text-xs font-bold text-foreground placeholder:text-slate-400 focus:bg-surface focus:border-primary/30 focus:ring-0 transition-all outline-none"
                     />
                 </div>
                 <div className="flex items-center gap-4 w-full lg:w-auto">
-                    <Button variant="outline" className="flex-1 lg:flex-none h-14 bg-white/5 border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white" onClick={fetchPrograms}>
+                    <Button variant="outline" className="flex-1 lg:flex-none h-14 bg-background border-surface-border text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-foreground" onClick={fetchPrograms}>
                         <RefreshCw className="w-4 h-4 mr-3" /> Refresh
                     </Button>
-                    <Button variant="outline" className="flex-1 lg:flex-none h-14 bg-white/5 border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white">
+                    <Button variant="outline" className="flex-1 lg:flex-none h-14 bg-background border-surface-border text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-foreground">
                         <Filter className="w-4 h-4 mr-3" /> Categories
                     </Button>
                 </div>
@@ -96,14 +96,14 @@ export function ProgramList() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: i * 0.1 }}
                     >
-                        <Card className="p-0 overflow-hidden group flex flex-col h-[520px] bg-slate-900/40 border-white/5 hover:border-indigo-500/30 transition-all shadow-2xl relative">
+                        <Card className="p-0 overflow-hidden group flex flex-col h-[520px] bg-surface border-surface-border hover:border-primary/30 transition-all shadow-2xl relative">
                             <div className="relative h-56 overflow-hidden">
                                 <img
                                     src={program.image_url || 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=800'}
                                     alt={program.name}
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-80"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent"></div>
                                 <div className="absolute top-6 right-6">
                                     <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] text-white shadow-2xl backdrop-blur-md border border-white/10 ${program.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
                                         }`}>
@@ -111,8 +111,8 @@ export function ProgramList() {
                                     </span>
                                 </div>
                                 <div className="absolute bottom-6 left-6">
-                                    <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">{program.category}</p>
-                                    <h3 className="text-2xl font-black text-white uppercase tracking-tighter leading-none">{program.name}</h3>
+                                    <p className="text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-1">{program.category}</p>
+                                    <h3 className="text-2xl font-black text-foreground uppercase tracking-tighter leading-none">{program.name}</h3>
                                 </div>
                             </div>
 
@@ -124,20 +124,20 @@ export function ProgramList() {
                                             { icon: <Calendar className="w-4 h-4" />, val: '--', label: 'Sessions' },
                                             { icon: <Award className="w-4 h-4" />, val: `${program.attendance_required_pct}%`, label: 'Pass' }
                                         ].map((s, idx) => (
-                                            <div key={idx} className="text-center p-4 bg-white/5 rounded-2xl border border-white/5 group-hover:bg-white/10 transition-colors">
+                                            <div key={idx} className="text-center p-4 bg-background rounded-2xl border border-surface-border group-hover:bg-surface transition-colors">
                                                 <div className="flex items-center justify-center text-slate-500 mb-2">{s.icon}</div>
-                                                <p className="text-sm font-black text-white leading-none">{s.val}</p>
-                                                <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest mt-1.5">{s.label}</p>
+                                                <p className="text-sm font-black text-foreground leading-none">{s.val}</p>
+                                                <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mt-1.5">{s.label}</p>
                                             </div>
                                         ))}
                                     </div>
 
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-end">
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Progress Saturation</span>
-                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Live</span>
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Program Progress</span>
+                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest">Live</span>
                                         </div>
-                                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                        <div className="h-1.5 w-full bg-background rounded-full overflow-hidden">
                                             <motion.div
                                                 initial={{ width: 0 }}
                                                 animate={{ width: '100%' }}
@@ -146,7 +146,7 @@ export function ProgramList() {
                                         </div>
                                         <div className="flex -space-x-2 overflow-hidden">
                                             {/* Placeholder for avatars */}
-                                            <div className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-900 bg-slate-700 flex items-center justify-center text-[10px]">
+                                            <div className="inline-block h-6 w-6 rounded-full ring-2 ring-background bg-surface flex items-center justify-center text-[10px] text-slate-500">
                                                 +0
                                             </div>
                                         </div>
@@ -159,7 +159,7 @@ export function ProgramList() {
                                         className="flex-[2] h-14 text-[10px] font-black uppercase tracking-widest"
                                         onClick={() => navigate(`/dashboard/programs/${program.id}/sessions`)}
                                     >
-                                        Launch Sessions <ArrowRight className="ml-2 w-4 h-4" />
+                                        Manage Sessions <ArrowRight className="ml-2 w-4 h-4" />
                                     </Button>
                                     <button
                                         onClick={() => {
@@ -168,16 +168,16 @@ export function ProgramList() {
                                             // Optional: Add toast notification here
                                             alert('Program link copied to clipboard!');
                                         }}
-                                        className="flex-1 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5 hover:bg-white/10 transition-all group relative"
+                                        className="flex-1 h-14 bg-background rounded-2xl flex items-center justify-center border border-surface-border hover:bg-surface transition-all group relative"
                                         title="Copy Join Link"
                                     >
-                                        <Share2 className="w-5 h-5 text-slate-400 group-hover:text-indigo-400" />
+                                        <Share2 className="w-5 h-5 text-slate-500 group-hover:text-primary" />
                                     </button>
                                     <button
                                         onClick={() => navigate(`/dashboard/programs/${program.id}`)}
-                                        className="flex-1 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5 hover:bg-white/10 transition-all"
+                                        className="flex-1 h-14 bg-background rounded-2xl flex items-center justify-center border border-surface-border hover:bg-surface transition-all"
                                     >
-                                        <ChevronRight className="w-5 h-5 text-slate-400" />
+                                        <ChevronRight className="w-5 h-5 text-slate-500" />
                                     </button>
                                 </div>
                             </div>
@@ -188,15 +188,15 @@ export function ProgramList() {
                 {programs.length === 0 && !loading && (
                     <motion.div
                         whileHover={{ scale: 1.02 }}
-                        className="h-[520px] rounded-3xl border-2 border-dashed border-white/5 flex flex-col items-center justify-center p-10 cursor-pointer hover:border-indigo-500/30 hover:bg-white/5 transition-all text-center group"
+                        className="h-[520px] rounded-3xl border-2 border-dashed border-surface-border flex flex-col items-center justify-center p-10 cursor-pointer hover:border-primary/30 hover:bg-surface transition-all text-center group"
                         onClick={() => navigate('/dashboard/programs/new')}
                     >
-                        <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mb-8 border border-white/10 group-hover:scale-110 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/30 transition-all">
-                            <Plus className="w-10 h-10 text-slate-600 group-hover:text-indigo-400" />
+                        <div className="w-20 h-20 bg-background rounded-3xl flex items-center justify-center mb-8 border border-surface-border group-hover:scale-110 group-hover:bg-primary/10 group-hover:border-primary/30 transition-all">
+                            <Plus className="w-10 h-10 text-slate-500 group-hover:text-primary" />
                         </div>
-                        <h3 className="text-xl font-black text-slate-400 uppercase tracking-tight group-hover:text-white transition-colors">Assemble Program</h3>
-                        <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest mt-4 max-w-[200px] leading-relaxed">
-                            No programs found. Design a new curriculum structure for your ministry members.
+                        <h3 className="text-xl font-black text-slate-500 uppercase tracking-tight group-hover:text-foreground transition-colors">Assemble Program</h3>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-4 max-w-[200px] leading-relaxed">
+                            No programs found. Design a new curriculum structure for your ministry participants.
                         </p>
                     </motion.div>
                 )}

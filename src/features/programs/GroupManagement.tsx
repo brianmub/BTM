@@ -59,7 +59,7 @@ export function GroupManagement({ programId }: { programId: string }) {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h3 className="text-xl font-black text-white uppercase tracking-tight">Program Groups</h3>
+                    <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Program Groups</h3>
                     <p className="text-slate-400 text-[10px] uppercase font-bold tracking-widest">Organize participants into cohorts or teams</p>
                 </div>
                 <Button variant="premium" size="sm" className="h-10 text-[10px] uppercase font-black tracking-widest" onClick={() => setIsCreateModalOpen(true)}>
@@ -69,38 +69,38 @@ export function GroupManagement({ programId }: { programId: string }) {
 
             {loading ? (
                 <div className="flex justify-center py-12">
-                    <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
                 </div>
             ) : (
                 <div className="grid md:grid-cols-2 gap-6">
                     {groups.map(group => (
-                        <GlassBox key={group.id} className="p-6 border-white/5 hover:border-indigo-500/30 transition-all flex flex-col">
+                        <GlassBox key={group.id} className="p-6 border-surface-border bg-surface hover:border-primary/30 transition-all flex flex-col shadow-xl">
                             <div className="flex justify-between items-start mb-4">
-                                <div className="p-3 bg-indigo-500/10 rounded-xl">
-                                    <Users className="w-6 h-6 text-indigo-400" />
+                                <div className="p-3 bg-primary/10 rounded-xl">
+                                    <Users className="w-6 h-6 text-primary" />
                                 </div>
                                 <div className="flex gap-2">
-                                    <button className="p-2 text-slate-500 hover:text-white transition-colors"><Edit2 className="w-4 h-4" /></button>
-                                    <button className="p-2 text-slate-500 hover:text-rose-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                    <button className="p-2 text-slate-400 hover:text-foreground transition-colors"><Edit2 className="w-4 h-4" /></button>
+                                    <button className="p-2 text-slate-400 hover:text-rose-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                                 </div>
                             </div>
 
-                            <h4 className="text-lg font-black text-white uppercase tracking-tight mb-2">{group.name}</h4>
-                            <p className="text-slate-400 text-xs mb-6 flex-1">{group.description || 'No description provided for this group.'}</p>
+                            <h4 className="text-lg font-black text-foreground uppercase tracking-tight mb-2">{group.name}</h4>
+                            <p className="text-slate-500 text-xs mb-6 flex-1">{group.description || 'No description provided for this group.'}</p>
 
-                            <div className="space-y-4 pt-4 border-t border-white/5">
+                            <div className="space-y-4 pt-4 border-t border-surface-border">
                                 <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
                                     <span className="text-slate-500">Lead Facilitator</span>
-                                    <span className="text-white">{group.facilitator ? `${group.facilitator.first_name} ${group.facilitator.surname}` : 'Unassigned'}</span>
+                                    <span className="text-foreground">{group.facilitator ? `${group.facilitator.first_name} ${group.facilitator.surname}` : 'Unassigned'}</span>
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
-                                        <span className="text-slate-500">Saturation</span>
-                                        <span className="text-indigo-400">{group.member_count} / {group.max_capacity || '∞'}</span>
+                                        <span className="text-slate-500">Fill Rate</span>
+                                        <span className="text-primary">{group.member_count} / {group.max_capacity || '∞'}</span>
                                     </div>
-                                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                                    <div className="h-1 bg-surface rounded-full overflow-hidden">
                                         <div
-                                            className="h-full bg-indigo-500"
+                                            className="h-full bg-primary"
                                             style={{ width: `${group.max_capacity ? (group.member_count / group.max_capacity) * 100 : 0}%` }}
                                         ></div>
                                     </div>
@@ -124,16 +124,16 @@ export function GroupManagement({ programId }: { programId: string }) {
                                     </div>
                                 </div>
 
-                                <Button variant="outline" className="w-full h-10 text-[10px] font-black uppercase tracking-widest bg-white/5 border-white/5">
-                                    <UserPlus className="w-3 h-3 mr-2" /> Manage Members
+                                <Button variant="outline" className="w-full h-10 text-[10px] font-black uppercase tracking-widest bg-background border-surface-border">
+                                    <UserPlus className="w-3 h-3 mr-2" /> Manage Participants
                                 </Button>
                             </div>
                         </GlassBox>
                     ))}
 
                     {groups.length === 0 && (
-                        <div className="md:col-span-2 text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
-                            <Users className="w-12 h-12 text-slate-700 mx-auto mb-4" />
+                        <div className="md:col-span-2 text-center py-20 bg-background rounded-3xl border border-dashed border-surface-border">
+                            <Users className="w-12 h-12 text-slate-200 mx-auto mb-4" />
                             <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">No groups assembled yet</p>
                         </div>
                     )}
@@ -182,11 +182,11 @@ function CreateGroupModal({ programId, onClose, onSuccess }: { programId: string
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <GlassBox className="w-full max-w-md p-8 bg-slate-900 border-white/10 shadow-2xl relative">
-                <button onClick={onClose} className="absolute top-6 right-6 text-slate-500 hover:text-white"><X className="w-6 h-6" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <GlassBox className="w-full max-w-md p-8 bg-surface border-surface-border shadow-2xl relative">
+                <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-foreground"><X className="w-6 h-6" /></button>
                 <div className="mb-8">
-                    <h3 className="text-2xl font-black text-white uppercase tracking-tight">Form Group</h3>
+                    <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Form Group</h3>
                     <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Initialize a new cohort structure</p>
                 </div>
 
@@ -199,7 +199,7 @@ function CreateGroupModal({ programId, onClose, onSuccess }: { programId: string
                             value={name}
                             onChange={e => setName(e.target.value)}
                             placeholder="e.g. Wednesday Bible Study"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-sm outline-none focus:border-indigo-500/50 transition-all font-bold"
+                            className="w-full bg-background border border-surface-border rounded-xl px-4 py-4 text-foreground text-sm outline-none focus:border-primary/30 transition-all font-bold shadow-inner"
                         />
                     </div>
                     <div>
@@ -209,7 +209,7 @@ function CreateGroupModal({ programId, onClose, onSuccess }: { programId: string
                             required
                             value={capacity}
                             onChange={e => setCapacity(Number(e.target.value))}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-sm outline-none focus:border-indigo-500/50 transition-all font-mono"
+                            className="w-full bg-background border border-surface-border rounded-xl px-4 py-4 text-foreground text-sm outline-none focus:border-primary/30 transition-all font-mono shadow-inner"
                         />
                     </div>
                     <div>
@@ -217,7 +217,7 @@ function CreateGroupModal({ programId, onClose, onSuccess }: { programId: string
                         <textarea
                             value={description}
                             onChange={e => setDescription(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 h-32 text-white text-sm outline-none focus:border-indigo-500/50 transition-all font-bold resize-none"
+                            className="w-full bg-background border border-surface-border rounded-xl px-4 py-4 h-32 text-foreground text-sm outline-none focus:border-primary/30 transition-all font-bold resize-none shadow-inner"
                         ></textarea>
                     </div>
 

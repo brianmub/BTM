@@ -160,22 +160,22 @@ export function AssignmentManager({ programId }: { programId: string }) {
 
     return (
         <div className="space-y-8">
-            <div className="flex justify-between items-center bg-white/5 p-6 rounded-3xl border border-white/5">
+            <div className="flex justify-between items-center bg-surface p-6 rounded-3xl border border-surface-border">
                 <div>
-                    <h4 className="text-sm font-black text-white uppercase tracking-tight">Assignment Matrix</h4>
+                    <h4 className="text-sm font-black text-foreground uppercase tracking-tight">Assignment Matrix</h4>
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Deploy tasks and evaluate participant performance</p>
                 </div>
                 <div className="flex gap-4">
-                    <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 mr-4">
+                    <div className="flex bg-background p-1 rounded-xl border border-surface-border mr-4">
                         <button
                             onClick={() => setViewMode('individual')}
-                            className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${viewMode === 'individual' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                            className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${viewMode === 'individual' ? 'bg-primary text-white' : 'text-slate-500 hover:text-foreground'}`}
                         >
                             By Task
                         </button>
                         <button
                             onClick={() => setViewMode('global')}
-                            className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${viewMode === 'global' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                            className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${viewMode === 'global' ? 'bg-primary text-white' : 'text-slate-500 hover:text-foreground'}`}
                         >
                             Everything
                         </button>
@@ -199,7 +199,7 @@ export function AssignmentManager({ programId }: { programId: string }) {
                             {assignments.map((assignment) => (
                                 <Card
                                     key={assignment.id}
-                                    className={`p-6 bg-slate-900/40 border-white/5 hover:border-indigo-500/30 transition-all cursor-pointer group ${selectedAssignment?.id === assignment.id ? 'border-indigo-500/50 bg-indigo-500/5' : ''}`}
+                                    className={`p-6 bg-surface border-surface-border hover:border-primary/30 transition-all cursor-pointer group ${selectedAssignment?.id === assignment.id ? 'border-primary/50 bg-primary/5' : ''}`}
                                     onClick={() => {
                                         setSelectedAssignment(assignment);
                                         fetchSubmissions(assignment.id);
@@ -207,24 +207,24 @@ export function AssignmentManager({ programId }: { programId: string }) {
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 transition-colors border border-white/5">
+                                            <div className="w-10 h-10 rounded-xl bg-background flex items-center justify-center text-slate-500 group-hover:text-primary transition-colors border border-surface-border">
                                                 <FileText className="w-5 h-5" />
                                             </div>
                                             <div>
-                                                <h5 className="text-sm font-black text-white uppercase tracking-tight">{assignment.name}</h5>
+                                                <h5 className="text-sm font-black text-foreground uppercase tracking-tight">{assignment.name}</h5>
                                                 <div className="flex items-center gap-3 mt-1">
                                                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center">
-                                                        <Calendar className="w-3 h-3 mr-1 text-pink-400" /> {new Date(assignment.due_date).toLocaleDateString()}
+                                                        <Calendar className="w-3 h-3 mr-1 text-pink-500" /> {new Date(assignment.due_date).toLocaleDateString()}
                                                     </span>
                                                     {assignment.sessions?.name && (
-                                                        <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+                                                        <span className="text-[9px] font-black text-primary uppercase tracking-widest">
                                                             {assignment.sessions.name}
                                                         </span>
                                                     )}
                                                 </div>
                                             </div>
                                         </div>
-                                        <ChevronRight className={`w-4 h-4 text-slate-700 transition-transform ${selectedAssignment?.id === assignment.id ? 'rotate-90 text-indigo-400' : ''}`} />
+                                        <ChevronRight className={`w-4 h-4 text-slate-300 transition-transform ${selectedAssignment?.id === assignment.id ? 'rotate-90 text-primary' : ''}`} />
                                     </div>
                                 </Card>
                             ))}
@@ -244,13 +244,13 @@ export function AssignmentManager({ programId }: { programId: string }) {
                                             <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Submissions ({submissions.length})</h5>
                                         </div>
                                         {submissions.length > 0 ? submissions.map((sub) => (
-                                            <Card key={sub.id} className="p-4 bg-slate-900/40 border-white/5 flex items-center justify-between group">
+                                            <Card key={sub.id} className="p-4 bg-surface border-surface-border flex items-center justify-between group">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-black text-indigo-400">
+                                                    <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center text-[10px] font-black text-primary border border-surface-border">
                                                         {sub.users.first_name[0]}{sub.users.surname[0]}
                                                     </div>
                                                     <div>
-                                                        <p className="text-xs font-black text-white uppercase">{sub.users.first_name} {sub.users.surname}</p>
+                                                        <p className="text-xs font-black text-foreground uppercase">{sub.users.first_name} {sub.users.surname}</p>
                                                         <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
                                                             {new Date(sub.submitted_at).toLocaleString()}
                                                         </p>
@@ -266,7 +266,7 @@ export function AssignmentManager({ programId }: { programId: string }) {
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
-                                                            className="h-8 text-[9px] font-black uppercase tracking-widest border-white/5 bg-white/5 hover:bg-white/10"
+                                                            className="h-8 text-[9px] font-black uppercase tracking-widest border-surface-border bg-background hover:bg-surface"
                                                             onClick={() => {
                                                                 setSelectedSubmission(sub);
                                                                 setIsGradingModalOpen(true);
@@ -278,17 +278,17 @@ export function AssignmentManager({ programId }: { programId: string }) {
                                                 </div>
                                             </Card>
                                         )) : (
-                                            <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
-                                                <Clock className="w-8 h-8 text-slate-700 mx-auto mb-4" />
+                                            <div className="text-center py-20 bg-background rounded-3xl border border-dashed border-surface-border">
+                                                <Clock className="w-8 h-8 text-slate-300 mx-auto mb-4" />
                                                 <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Awaiting intake...</p>
                                             </div>
                                         )}
                                     </motion.div>
                                 ) : (
-                                    <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-white/5 rounded-3xl border border-dashed border-white/5">
-                                        <FileText className="w-12 h-12 text-slate-700 mb-4" />
+                                    <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-background rounded-3xl border border-dashed border-surface-border">
+                                        <FileText className="w-12 h-12 text-slate-300 mb-4" />
                                         <h3 className="text-sm font-black text-slate-400 uppercase tracking-tight">Select an assignment</h3>
-                                        <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest mt-1">Review submissions and provide critical feedback</p>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Review submissions and provide critical feedback</p>
                                     </div>
                                 )}
                             </AnimatePresence>
@@ -298,16 +298,16 @@ export function AssignmentManager({ programId }: { programId: string }) {
                     <div className="col-span-full space-y-4">
                         <div className="grid gap-4">
                             {allSubmissions.length > 0 ? allSubmissions.map((sub) => (
-                                <Card key={sub.id} className="p-6 bg-slate-900/40 border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6 group">
+                                <Card key={sub.id} className="p-6 bg-surface border-surface-border flex flex-col md:flex-row md:items-center justify-between gap-6 group">
                                     <div className="flex items-center gap-6">
-                                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-indigo-400 border border-white/5 group-hover:border-indigo-500/30 transition-all">
+                                        <div className="w-12 h-12 rounded-2xl bg-background flex items-center justify-center text-primary border border-surface-border group-hover:border-primary/30 transition-all">
                                             <User className="w-6 h-6" />
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
-                                                <p className="text-sm font-black text-white uppercase tracking-tight">{sub.users.first_name} {sub.users.surname}</p>
-                                                <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
-                                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{sub.assignments.name}</p>
+                                                <p className="text-sm font-black text-foreground uppercase tracking-tight">{sub.users.first_name} {sub.users.surname}</p>
+                                                <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                                                <p className="text-[9px] font-black text-primary uppercase tracking-widest">{sub.assignments.name}</p>
                                             </div>
                                             <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
                                                 Submitted {new Date(sub.submitted_at).toLocaleString()}
@@ -337,7 +337,7 @@ export function AssignmentManager({ programId }: { programId: string }) {
                                     </div>
                                 </Card>
                             )) : (
-                                <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                <div className="text-center py-20 bg-surface rounded-3xl border border-dashed border-surface-border">
                                     <FileText className="w-10 h-10 text-slate-700 mx-auto mb-4" />
                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">No program-wide submissions found.</p>
                                 </div>
@@ -349,15 +349,15 @@ export function AssignmentManager({ programId }: { programId: string }) {
 
             {/* Create Assignment Modal */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-md p-4">
                     <motion.div
                         initial={{ scale: 0.95, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-md p-8 shadow-2xl"
+                        className="bg-surface border border-surface-border rounded-3xl w-full max-w-md p-8 shadow-2xl"
                     >
                         <div className="flex justify-between items-center mb-8">
-                            <h3 className="text-xl font-black text-white uppercase tracking-tight">Deploy Assignment</h3>
-                            <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-500 hover:text-white transition-colors">
+                            <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Deploy Assignment</h3>
+                            <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-500 hover:text-foreground transition-colors">
                                 <XCircle className="w-6 h-6" />
                             </button>
                         </div>
@@ -365,7 +365,7 @@ export function AssignmentManager({ programId }: { programId: string }) {
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Assignment Name</label>
                                 <input
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-indigo-500 outline-none"
+                                    className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground text-sm focus:border-primary outline-none"
                                     placeholder="e.g. Apostolic Vision Essay"
                                     value={newAssignment.name}
                                     onChange={e => setNewAssignment({ ...newAssignment, name: e.target.value })}
@@ -375,7 +375,7 @@ export function AssignmentManager({ programId }: { programId: string }) {
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Task Description</label>
                                 <textarea
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-indigo-500 outline-none h-24"
+                                    className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground text-sm focus:border-primary outline-none h-24"
                                     placeholder="Outline the core deliverables..."
                                     value={newAssignment.description}
                                     onChange={e => setNewAssignment({ ...newAssignment, description: e.target.value })}
@@ -386,7 +386,7 @@ export function AssignmentManager({ programId }: { programId: string }) {
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Due Date</label>
                                     <input
                                         type="date"
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-indigo-500 outline-none"
+                                        className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground text-sm focus:border-primary outline-none"
                                         value={newAssignment.due_date}
                                         onChange={e => setNewAssignment({ ...newAssignment, due_date: e.target.value })}
                                         required
@@ -396,7 +396,7 @@ export function AssignmentManager({ programId }: { programId: string }) {
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Points Matrix</label>
                                     <input
                                         type="number"
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-indigo-500 outline-none"
+                                        className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground text-sm focus:border-primary outline-none"
                                         value={newAssignment.max_score}
                                         onChange={e => setNewAssignment({ ...newAssignment, max_score: parseInt(e.target.value) })}
                                         required
@@ -413,26 +413,26 @@ export function AssignmentManager({ programId }: { programId: string }) {
 
             {/* Grading Modal */}
             {isGradingModalOpen && selectedSubmission && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-md p-4">
                     <motion.div
                         initial={{ scale: 0.95, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-md p-8 shadow-2xl"
+                        className="bg-surface border border-surface-border rounded-3xl w-full max-w-md p-8 shadow-2xl"
                     >
                         <div className="flex justify-between items-center mb-8">
                             <div>
-                                <h3 className="text-xl font-black text-white uppercase tracking-tight">Evaluate Task</h3>
+                                <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Evaluate Task</h3>
                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
                                     {selectedSubmission.users.first_name} {selectedSubmission.users.surname}
                                 </p>
                             </div>
-                            <button onClick={() => setIsGradingModalOpen(false)} className="text-slate-500 hover:text-white transition-colors">
+                            <button onClick={() => setIsGradingModalOpen(false)} className="text-slate-500 hover:text-foreground transition-colors">
                                 <XCircle className="w-6 h-6" />
                             </button>
                         </div>
-                        <div className="bg-white/5 p-4 rounded-2xl mb-6 border border-white/5">
+                        <div className="bg-background p-4 rounded-2xl mb-6 border border-surface-border">
                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Participant Submission</p>
-                            <p className="text-sm text-slate-300 italic">"{selectedSubmission.submission_text || 'No text content provided.'}"</p>
+                            <p className="text-sm text-foreground italic">"{selectedSubmission.submission_text || 'No text content provided.'}"</p>
                         </div>
                         <form onSubmit={(e) => {
                             e.preventDefault();
@@ -448,7 +448,7 @@ export function AssignmentManager({ programId }: { programId: string }) {
                                 <input
                                     name="score"
                                     type="number"
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-indigo-500 outline-none"
+                                    className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground text-sm focus:border-primary outline-none"
                                     max={selectedAssignment.max_score}
                                     min={0}
                                     defaultValue={selectedAssignment.max_score}
@@ -459,7 +459,7 @@ export function AssignmentManager({ programId }: { programId: string }) {
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Critical Feedback</label>
                                 <textarea
                                     name="feedback"
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-indigo-500 outline-none h-24"
+                                    className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground text-sm focus:border-primary outline-none h-24"
                                     placeholder="Provide constructive insight..."
                                 />
                             </div>

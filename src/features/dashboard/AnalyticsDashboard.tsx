@@ -111,14 +111,14 @@ export function AnalyticsDashboard() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
                 <div>
                     <div className="flex items-center space-x-2 mb-2">
-                        <Sparkles className="w-4 h-4 text-indigo-400" />
+                        <Sparkles className="w-4 h-4 text-primary" />
                         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Intelligence Matrix</span>
                     </div>
-                    <h1 className="text-4xl font-black text-white tracking-tight uppercase">Reporting & Analytics</h1>
+                    <h1 className="text-4xl font-black text-foreground tracking-tight uppercase">Reporting & Analytics</h1>
                     <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-1">Deep insights into organizational expansion</p>
                 </div>
                 <div className="flex gap-4">
-                    <Button variant="outline" className="h-14 px-8 bg-white/5 border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white">
+                    <Button variant="outline" className="h-14 px-8 bg-background border-surface-border text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-foreground">
                         <Filter className="w-4 h-4 mr-3" /> Last 30 Cycles
                     </Button>
                     <Button variant="premium" className="h-14 px-8 font-black uppercase tracking-widest text-xs">
@@ -139,10 +139,10 @@ export function AnalyticsDashboard() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.1 }}
                     >
-                        <Card className="bg-slate-900/40 border-white/5 p-8 group hover:border-indigo-500/30 transition-all">
+                        <Card className="bg-surface border-surface-border p-8 group hover:border-primary/30 transition-all shadow-xl">
                             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-4">{stat.label}</p>
                             <div className="flex items-end justify-between">
-                                <h3 className="text-3xl font-black text-white tracking-tighter">{stat.value}</h3>
+                                <h3 className="text-3xl font-black text-foreground tracking-tighter">{stat.value}</h3>
                                 <div className={`flex items-center text-[9px] font-black ${stat.up ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'} px-2 py-1 rounded-lg border ${stat.up ? 'border-emerald-500/20' : 'border-rose-500/20'} uppercase tracking-widest`}>
                                     {stat.up ? <ArrowUpRight className="w-3 h-3 mr-1" /> : <ArrowDownRight className="w-3 h-3 mr-1" />}
                                     {stat.change}
@@ -155,19 +155,19 @@ export function AnalyticsDashboard() {
 
             <div className="grid lg:grid-cols-2 gap-12">
                 {/* Attendance Trends */}
-                <Card className="p-10 bg-slate-900/40 border-white/5 overflow-hidden relative">
+                <Card className="p-10 bg-surface border-surface-border overflow-hidden relative shadow-2xl">
                     <div className="flex items-center justify-between mb-10 relative z-10">
                         <div className="flex items-center space-x-3">
-                            <Activity className="w-5 h-5 text-indigo-400" />
-                            <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Attendance Flux</h3>
+                            <Activity className="w-5 h-5 text-primary" />
+                            <h3 className="text-[11px] font-black text-foreground uppercase tracking-[0.2em]">Attendance Flux</h3>
                         </div>
                         <div className="flex items-center gap-6">
                             <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
+                                <div className="w-2 h-2 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]"></div>
                                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Actual</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-white/10 rounded-full"></div>
+                                <div className="w-2 h-2 bg-slate-200 rounded-full"></div>
                                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Capacity</span>
                             </div>
                         </div>
@@ -175,38 +175,38 @@ export function AnalyticsDashboard() {
                     <div className="h-80 w-full relative z-10">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={attendanceData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                 <XAxis
                                     dataKey="name"
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fill: '#64748b', fontSize: 10, fontWeight: 900 }}
+                                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 900 }}
                                     dy={10}
                                 />
                                 <YAxis hide />
                                 <Tooltip
-                                    cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                                    cursor={{ fill: 'rgba(0,0,0,0.02)' }}
                                     contentStyle={{
-                                        backgroundColor: '#0f172a',
+                                        backgroundColor: 'var(--surface)',
                                         borderRadius: '16px',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)'
+                                        border: '1px solid var(--surface-border)',
+                                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
                                     }}
-                                    itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
+                                    itemStyle={{ color: 'var(--foreground)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
                                 />
-                                <Bar dataKey="capacity" fill="rgba(255,255,255,0.05)" radius={[6, 6, 0, 0]} barSize={32} />
-                                <Bar dataKey="attendance" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={32} />
+                                <Bar dataKey="capacity" fill="rgba(0,0,0,0.05)" radius={[6, 6, 0, 0]} barSize={32} />
+                                <Bar dataKey="attendance" fill="var(--primary)" radius={[6, 6, 0, 0]} barSize={32} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </Card>
 
                 {/* Growth Chart */}
-                <Card className="p-10 bg-slate-900/40 border-white/5 overflow-hidden relative">
+                <Card className="p-10 bg-surface border-surface-border overflow-hidden relative shadow-2xl">
                     <div className="flex items-center justify-between mb-10 relative z-10">
                         <div className="flex items-center space-x-3">
-                            <TrendingUp className="w-5 h-5 text-pink-400" />
-                            <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">User Expansion</h3>
+                            <TrendingUp className="w-5 h-5 text-pink-500" />
+                            <h3 className="text-[11px] font-black text-foreground uppercase tracking-[0.2em]">User Expansion</h3>
                         </div>
                     </div>
                     <div className="h-80 w-full relative z-10">
@@ -220,12 +220,12 @@ export function AnalyticsDashboard() {
                                 </defs>
                                 <Tooltip
                                     contentStyle={{
-                                        backgroundColor: '#0f172a',
+                                        backgroundColor: 'var(--surface)',
                                         borderRadius: '16px',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)'
+                                        border: '1px solid var(--surface-border)',
+                                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
                                     }}
-                                    itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
+                                    itemStyle={{ color: 'var(--foreground)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
                                 />
                                 <Area
                                     type="monotone"
@@ -242,8 +242,8 @@ export function AnalyticsDashboard() {
             </div>
 
             <div className="grid lg:grid-cols-3 gap-12">
-                <Card className="lg:col-span-2 p-10 bg-slate-900/40 border-white/5">
-                    <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-10">Curriculum Performance</h3>
+                <Card className="lg:col-span-2 p-10 bg-surface border-surface-border shadow-2xl">
+                    <h3 className="text-[11px] font-black text-foreground uppercase tracking-[0.2em] mb-10">Curriculum Performance</h3>
                     <div className="space-y-8">
                         {analytics.programPerformance.length > 0 ? analytics.programPerformance.map((program: any, i: number) => {
                             const colors = ['bg-indigo-500', 'bg-pink-500', 'bg-amber-500', 'bg-emerald-500'];
@@ -254,10 +254,10 @@ export function AnalyticsDashboard() {
                             return (
                                 <div key={program.id} className="space-y-3">
                                     <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                                        <span className="text-white">{program.name}</span>
+                                        <span className="text-foreground">{program.name}</span>
                                         <span className="text-slate-500">{program.enrollments[0]?.count || 0} Enrolled</span>
                                     </div>
-                                    <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/5 p-0.5">
+                                    <div className="w-full h-2 bg-background rounded-full overflow-hidden border border-surface-border p-0.5">
                                         <motion.div
                                             initial={{ width: 0 }}
                                             animate={{ width: `${rate}%` }}

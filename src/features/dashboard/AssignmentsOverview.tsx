@@ -86,26 +86,26 @@ export function AssignmentsOverview() {
         <div className="space-y-8">
             <div className="flex justify-between items-end">
                 <div>
-                    <p className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">Protocol Intake</p>
-                    <h1 className="text-4xl font-black text-white uppercase tracking-tight">Assignment Matrix</h1>
+                    <p className="text-xs font-black text-primary uppercase tracking-[0.2em] mb-2">Protocol Intake</p>
+                    <h1 className="text-4xl font-black text-foreground uppercase tracking-tight">Assignment Matrix</h1>
                 </div>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-3 gap-6">
-                <GlassBox className="p-6 border-white/5 bg-amber-500/5">
-                    <AlertCircle className="w-6 h-6 text-amber-400 mb-2" />
-                    <div className="text-3xl font-black text-white">{stats.pending}</div>
+                <GlassBox className="p-6 border-surface-border bg-amber-500/5 shadow-lg">
+                    <AlertCircle className="w-6 h-6 text-amber-500 mb-2" />
+                    <div className="text-3xl font-black text-foreground">{stats.pending}</div>
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Pending Evaluation</p>
                 </GlassBox>
-                <GlassBox className="p-6 border-white/5 bg-emerald-500/5">
-                    <CheckCircle className="w-6 h-6 text-emerald-400 mb-2" />
-                    <div className="text-3xl font-black text-white">{stats.graded}</div>
+                <GlassBox className="p-6 border-surface-border bg-emerald-500/5 shadow-lg">
+                    <CheckCircle className="w-6 h-6 text-emerald-500 mb-2" />
+                    <div className="text-3xl font-black text-foreground">{stats.graded}</div>
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Graded Protocols</p>
                 </GlassBox>
-                <GlassBox className="p-6 border-white/5 bg-indigo-500/5">
-                    <FileText className="w-6 h-6 text-indigo-400 mb-2" />
-                    <div className="text-3xl font-black text-white">{stats.totalTasks}</div>
+                <GlassBox className="p-6 border-surface-border bg-primary/5 shadow-lg">
+                    <FileText className="w-6 h-6 text-primary mb-2" />
+                    <div className="text-3xl font-black text-foreground">{stats.totalTasks}</div>
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active Assignments</p>
                 </GlassBox>
             </div>
@@ -113,24 +113,24 @@ export function AssignmentsOverview() {
             {/* Recent Submissions */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
-                    <h2 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-indigo-400" />
+                    <h2 className="text-sm font-black text-foreground uppercase tracking-widest flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-primary" />
                         Live Intake Stream
                     </h2>
                 </div>
 
                 <div className="grid gap-4">
                     {recentSubmissions.length > 0 ? recentSubmissions.map((sub) => (
-                        <Card key={sub.id} className="p-6 bg-slate-900/40 border-white/5 hover:border-indigo-500/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 group">
+                        <Card key={sub.id} className="p-6 bg-surface border-surface-border hover:border-primary/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 group shadow-xl">
                             <div className="flex items-center gap-6">
-                                <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-indigo-400 border border-white/5">
+                                <div className="w-12 h-12 rounded-2xl bg-background flex items-center justify-center text-primary border border-surface-border">
                                     <Users className="w-6 h-6" />
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
-                                        <p className="text-sm font-black text-white uppercase tracking-tight">{sub.users.first_name} {sub.users.surname}</p>
-                                        <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
-                                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{sub.assignments.name}</p>
+                                        <p className="text-sm font-black text-foreground uppercase tracking-tight">{sub.users.first_name} {sub.users.surname}</p>
+                                        <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                                        <p className="text-[10px] font-black text-primary uppercase tracking-widest">{sub.assignments.name}</p>
                                     </div>
                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
                                         Submitted {new Date(sub.submitted_at).toLocaleString()}
@@ -139,15 +139,15 @@ export function AssignmentsOverview() {
                             </div>
                             <div className="flex items-center gap-4">
                                 <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${sub.status === 'graded'
-                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                        : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                    : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
                                     }`}>
                                     {sub.status === 'graded' ? `Scored: ${sub.score}` : 'Pending Proof'}
                                 </span>
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white"
+                                    className="text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-foreground"
                                     onClick={async () => {
                                         // Navigate to the program details context where this assignment lives
                                         const { data: session } = await supabase
@@ -163,8 +163,8 @@ export function AssignmentsOverview() {
                             </div>
                         </Card>
                     )) : (
-                        <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
-                            <FileText className="w-10 h-10 text-slate-700 mx-auto mb-4" />
+                        <div className="text-center py-20 bg-background rounded-3xl border border-dashed border-surface-border">
+                            <FileText className="w-10 h-10 text-slate-200 mx-auto mb-4" />
                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">No recent intake activity detected.</p>
                         </div>
                     )}

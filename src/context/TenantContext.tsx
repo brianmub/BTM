@@ -43,7 +43,11 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     async function fetchOrg(slugOverride?: string | null) {
         setLoading(true);
-        const effectiveSlug = slugOverride || new URLSearchParams(window.location.search).get('org') || localStorage.getItem('active_org_slug');
+
+        // Priority: 1. Slug Override, 2. URL Param, 3. Impersonated Org, 4. LocalStorage
+        const effectiveSlug = slugOverride ||
+            new URLSearchParams(window.location.search).get('org') ||
+            (currentProfile?.organization_id ? null : localStorage.getItem('active_org_slug'));
 
         try {
             let query = supabase.from('organizations').select('*');
@@ -51,11 +55,14 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             if (effectiveSlug) {
                 console.log('TenantContext: Fetching by slug:', effectiveSlug);
                 query = query.eq('slug', effectiveSlug);
+            } else if (currentProfile?.organization_id) {
+                // If we have an impersonated/switched profile, use its org ID directly
+                console.log('TenantContext: Fetching by ID from currentProfile:', currentProfile.organization_id);
+                query = query.eq('id', currentProfile.organization_id);
             } else if (profiles && profiles.length > 0) {
                 console.log('TenantContext: Fetching by ID from first profile:', profiles[0].organization_id);
                 query = query.eq('id', profiles[0].organization_id);
             } else {
-                // No way to identify org
                 console.warn('TenantContext: No slug or organization_id found.');
                 setLoading(false);
                 return;
@@ -67,33 +74,32 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             if (error) throw error;
             setOrganization(data);
 
-            // Find the matching profile for this organization
-            if (data && profiles && profiles.length > 0) {
+            // If we found the org and it doesn't match the current profile, we might need to sync
+            if (data && currentProfile && currentProfile.organization_id !== data.id) {
+                // During impersonation, currentProfile is already set by AuthContext
+                // This block handles profile matching if needed
+                console.log('TenantContext: Org sync with currentProfile');
+            } else if (data && profiles && profiles.length > 0) {
                 const match = profiles.find(p => p.organization_id === data.id);
                 if (match) {
                     console.log('TenantContext: Set currentProfile:', match);
                     setCurrentProfile(match);
-                } else {
-                    console.warn('TenantContext: User has no profile in this organization');
-                    setCurrentProfile(null);
                 }
             }
 
-            // Ensure we save the slug for persistence if we found it via ID
             if (data?.slug) {
                 localStorage.setItem('active_org_slug', data.slug);
             }
         } catch (err: any) {
-            console.error('Error fetching organization:', err);
+            console.error('TenantContext: Error fetching organization:', err);
             setError(err.message);
-            // Even on error, we must stop loading
         } finally {
             setLoading(false);
         }
     }
 
     return (
-        <TenantContext.Provider value={{ organization, currentProfile, loading, error, switchOrganization }}>
+        <TenantContext.Provider value={{ organization, currentProfile: currentProfile, loading, error, switchOrganization }}>
             {children}
         </TenantContext.Provider>
     );

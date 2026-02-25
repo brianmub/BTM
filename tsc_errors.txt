@@ -1,0 +1,5 @@
+﻿src/features/admin/PlatformDashboard.tsx(286,14): error TS2304: Cannot find name 'AnimatePresence'.
+src/features/admin/PlatformDashboard.tsx(351,15): error TS2304: Cannot find name 'AnimatePresence'.
+src/features/admin/PlatformDashboard.tsx(354,14): error TS2304: Cannot find name 'AnimatePresence'.
+src/features/admin/PlatformDashboard.tsx(384,15): error TS2304: Cannot find name 'AnimatePresence'.
+src/services/platformService.ts(61,62): error TS2304: Cannot find name 'Organization'.

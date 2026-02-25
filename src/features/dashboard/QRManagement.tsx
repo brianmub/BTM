@@ -17,7 +17,7 @@ export function QRManagement() {
     const sessionId = searchParams.get('session');
     const mode = searchParams.get('mode');
     const { organization } = useOrganization();
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
 
     const [view, setView] = useState<'generate' | 'scan'>(sessionId ? 'generate' : 'scan');
     const [scannedResult, setScannedResult] = useState<string | null>(null);
@@ -162,19 +162,19 @@ export function QRManagement() {
         <div className="max-w-6xl mx-auto space-y-12 pb-20">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
                 <div>
-                    <h1 className="text-4xl font-black text-white tracking-tight uppercase">Attendance Terminal</h1>
+                    <h1 className="text-4xl font-black text-foreground tracking-tight uppercase">Attendance Terminal</h1>
                     <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-1">Bi-directional verification & validation</p>
                 </div>
-                <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5">
+                <div className="flex bg-surface p-1.5 rounded-2xl border border-surface-border">
                     <button
                         onClick={() => setView('generate')}
-                        className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${view === 'generate' ? 'bg-gradient-premium text-white shadow-xl' : 'text-slate-500 hover:text-white'}`}
+                        className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${view === 'generate' ? 'bg-gradient-premium text-white shadow-xl' : 'text-slate-500 hover:text-foreground'}`}
                     >
                         Display QR
                     </button>
                     <button
                         onClick={() => setView('scan')}
-                        className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${view === 'scan' ? 'bg-gradient-premium text-white shadow-xl' : 'text-slate-500 hover:text-white'}`}
+                        className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${view === 'scan' ? 'bg-gradient-premium text-white shadow-xl' : 'text-slate-500 hover:text-foreground'}`}
                     >
                         Scanner Mode
                     </button>
@@ -183,7 +183,7 @@ export function QRManagement() {
 
             <div className="grid lg:grid-cols-2 gap-12">
                 {/* Action Area */}
-                <Card className="flex flex-col items-center justify-center p-12 min-h-[550px] bg-slate-900/40 border-white/5 relative overflow-hidden group">
+                <Card className="flex flex-col items-center justify-center p-12 min-h-[550px] bg-surface border-surface-border relative overflow-hidden group">
                     <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
                     {view === 'generate' ? (
@@ -202,16 +202,16 @@ export function QRManagement() {
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2">{session.name}</h3>
+                                        <h3 className="text-2xl font-black text-foreground uppercase tracking-tight mb-2">{session.name}</h3>
                                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest max-w-xs mx-auto mb-10 leading-relaxed">
-                                            Participants scan this encrypted token to confirm their presence in the session matrix.
+                                            Participants scan this encrypted token to confirm their presence in the session.
                                         </p>
                                         <div className="flex gap-4 justify-center">
-                                            <Button variant="outline" className="h-12 bg-white/5 border-white/10 text-[10px] font-black uppercase tracking-widest">
-                                                <Maximize className="w-4 h-4 mr-3 text-indigo-400" /> Fullscreen
+                                            <Button variant="outline" className="h-12 bg-background border-surface-border text-[10px] font-black uppercase tracking-widest">
+                                                <Maximize className="w-4 h-4 mr-3 text-primary" /> Fullscreen
                                             </Button>
-                                            <Button variant="outline" className="h-12 bg-white/5 border-white/10 text-[10px] font-black uppercase tracking-widest" onClick={fetchSessionData}>
-                                                <RefreshCw className="w-4 h-4 mr-3 text-indigo-400" /> Refresh Data
+                                            <Button variant="outline" className="h-12 bg-background border-surface-border text-[10px] font-black uppercase tracking-widest" onClick={fetchSessionData}>
+                                                <RefreshCw className="w-4 h-4 mr-3 text-primary" /> Refresh Data
                                             </Button>
                                         </div>
                                     </div>
@@ -235,7 +235,7 @@ export function QRManagement() {
                                                 <CheckCircle2 className="w-16 h-16" />
                                             </div>
                                             <div>
-                                                <h3 className="text-3xl font-black text-white uppercase tracking-tight">
+                                                <h3 className="text-3xl font-black text-foreground uppercase tracking-tight">
                                                     {lastAction === 'clock_out' ? 'Departure Recorded' : 'Access Granted'}
                                                 </h3>
                                                 <p className={`font-black uppercase tracking-widest text-[10px] mt-2 ${lastAction === 'clock_out' ? 'text-blue-400' : 'text-emerald-400'
@@ -250,7 +250,7 @@ export function QRManagement() {
                                                 <XCircle className="w-16 h-16" />
                                             </div>
                                             <div>
-                                                <h3 className="text-3xl font-black text-white uppercase tracking-tight">
+                                                <h3 className="text-3xl font-black text-foreground uppercase tracking-tight">
                                                     {paymentRequired ? 'No Payment Found' : 'Validation Failed'}
                                                 </h3>
                                                 <p className="text-rose-400 font-black uppercase tracking-widest text-[10px] mt-2">
@@ -263,7 +263,7 @@ export function QRManagement() {
                                                         className="mt-8 h-12 uppercase font-black tracking-widest text-[10px]"
                                                         onClick={() => setIsProcessingPayment(true)}
                                                     >
-                                                        <Banknote className="w-4 h-4 mr-2" /> Collect $5.00 Payment
+                                                        <Banknote className="w-4 h-4 mr-2" /> Collect ${session?.session_fee?.toFixed(2) || '5.00'} Payment
                                                     </Button>
                                                 )}
                                             </div>
@@ -272,11 +272,11 @@ export function QRManagement() {
                                 </div>
                             ) : (
                                 <div className="w-full space-y-10">
-                                    <div id="reader" className="w-full rounded-3xl overflow-hidden border border-white/5 bg-slate-950/50 aspect-square flex items-center justify-center relative">
-                                        <div className="absolute inset-0 border-[40px] border-slate-900 opacity-20 pointer-events-none"></div>
+                                    <div id="reader" className="w-full rounded-3xl overflow-hidden border border-surface-border bg-background/50 aspect-square flex items-center justify-center relative">
+                                        <div className="absolute inset-0 border-[40px] border-surface opacity-20 pointer-events-none"></div>
                                         <div className="text-center">
-                                            <Camera className="w-12 h-12 text-slate-800 mx-auto mb-4" />
-                                            <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Awaiting Capture Input</p>
+                                            <Camera className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Awaiting Capture Input</p>
                                         </div>
                                     </div>
                                     <div className="bg-indigo-500/5 p-6 rounded-2xl border border-indigo-500/10">
@@ -309,7 +309,7 @@ export function QRManagement() {
                                 </div>
                                 <div className="text-right">
                                     <p className="text-2xl font-black tracking-tight">{session?.max_capacity ? Math.round((attendance.length / session.max_capacity) * 100) : '--'}%</p>
-                                    <p className="text-[10px] font-black uppercase text-white/60 tracking-widest mt-1">Saturation Rate</p>
+                                    <p className="text-[10px] font-black uppercase text-white/60 tracking-widest mt-1">Attendance Rate</p>
                                 </div>
                             </div>
                             <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden border border-white/5 p-0.5">
@@ -322,8 +322,8 @@ export function QRManagement() {
                         </div>
                     </Card>
 
-                    <Card className="p-10 bg-slate-900/40 border-white/5">
-                        <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-10">Audit Stream</h3>
+                    <Card className="p-10 bg-surface border-surface-border">
+                        <h3 className="text-[11px] font-black text-foreground uppercase tracking-[0.2em] mb-10">Audit Stream</h3>
                         <div className="space-y-8">
                             {attendance.length > 0 ? attendance.slice(0, 4).map((att, i) => (
                                 <div key={att.id} className="flex items-center justify-between group">
@@ -354,7 +354,7 @@ export function QRManagement() {
                         </div>
                         <Button
                             variant="ghost"
-                            className="w-full mt-12 h-14 bg-white/5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white border border-transparent hover:border-white/5"
+                            className="w-full mt-12 h-14 bg-background text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-foreground border border-transparent hover:border-surface-border"
                             onClick={() => setIsManualModalOpen(true)}
                         >
                             <Search className="w-4 h-4 mr-3" /> Execute Manual Override
@@ -365,19 +365,19 @@ export function QRManagement() {
 
             {/* In-App Payment Collection Modal */}
             {isProcessingPayment && paymentRequired && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/90 backdrop-blur-xl p-4">
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-md p-8 shadow-2xl"
+                        className="bg-surface border border-surface-border rounded-3xl w-full max-w-md p-8 shadow-2xl"
                     >
                         <div className="flex justify-between items-center mb-8">
-                            <h3 className="text-xl font-black text-white uppercase tracking-tight text-center w-full">Point-of-Entry Checkout</h3>
+                            <h3 className="text-xl font-black text-foreground uppercase tracking-tight text-center w-full">Point-of-Entry Checkout</h3>
                         </div>
 
-                        <div className="bg-white/5 rounded-2xl p-6 mb-8 border border-white/5 text-center">
+                        <div className="bg-background rounded-2xl p-6 mb-8 border border-surface-border text-center">
                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Session Fee</p>
-                            <p className="text-5xl font-black text-white tracking-tighter">$5.00</p>
+                            <p className="text-5xl font-black text-foreground tracking-tighter">${session?.session_fee?.toFixed(2) || '5.00'}</p>
                         </div>
 
                         <div className="space-y-4">
@@ -392,8 +392,10 @@ export function QRManagement() {
                                             sessionId!,
                                             paymentRequired.userId,
                                             organization!.id,
-                                            5,
-                                            'cash'
+                                            session?.session_fee || 5,
+                                            'cash',
+                                            profile!.id,
+                                            'paid'
                                         );
 
                                         setLatestPayment(p);
@@ -416,7 +418,7 @@ export function QRManagement() {
                             </Button>
                             <Button
                                 variant="outline"
-                                className="h-14 w-full border-white/5 text-slate-500 uppercase font-black tracking-widest text-xs"
+                                className="h-14 w-full border-surface-border text-slate-500 uppercase font-black tracking-widest text-xs"
                                 onClick={() => {
                                     setIsProcessingPayment(false);
                                     setPaymentRequired(null);
@@ -432,19 +434,19 @@ export function QRManagement() {
 
             {/* Manual Override Modal */}
             {isManualModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-2xl p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-2xl p-4">
                     <motion.div
                         initial={{ scale: 0.95, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="bg-slate-900 border border-white/10 rounded-[32px] w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden"
+                        className="bg-surface border border-surface-border rounded-[32px] w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden"
                     >
-                        <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
+                        <div className="p-8 border-b border-surface-border flex justify-between items-center bg-background">
                             <div>
-                                <h3 className="text-xl font-black text-white uppercase tracking-tight">Manual Attendance Registry</h3>
+                                <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Manual Attendance Registry</h3>
                                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Bypass QR protocol for authenticated override</p>
                             </div>
                             <Button variant="ghost" size="sm" onClick={() => setIsManualModalOpen(false)}>
-                                <XCircle className="w-6 h-6 text-slate-500 hover:text-white" />
+                                <XCircle className="w-6 h-6 text-slate-500 hover:text-foreground" />
                             </Button>
                         </div>
 
@@ -453,9 +455,9 @@ export function QRManagement() {
                                 const userItem = Array.isArray(p.users) ? p.users[0] : p.users;
                                 const attended = isUserAttended(userItem.id);
                                 return (
-                                    <div key={userItem.id} className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:bg-white/10 transition-all">
+                                    <div key={userItem.id} className="bg-background border border-surface-border rounded-2xl p-4 flex items-center justify-between group hover:bg-surface transition-all">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center font-black text-xs text-indigo-400 border border-white/5 overflow-hidden">
+                                            <div className="w-12 h-12 rounded-xl bg-surface flex items-center justify-center font-black text-xs text-primary border border-surface-border overflow-hidden">
                                                 {userItem.profile_photo_url ? (
                                                     <img src={userItem.profile_photo_url} alt="" className="w-full h-full object-cover" />
                                                 ) : (
@@ -463,7 +465,7 @@ export function QRManagement() {
                                                 )}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-black text-white uppercase tracking-tight">{userItem.first_name} {userItem.surname}</p>
+                                                <p className="text-sm font-black text-foreground uppercase tracking-tight">{userItem.first_name} {userItem.surname}</p>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${attended ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400'}`}>
                                                         {attended ? 'Attended' : 'Absent'}
@@ -475,7 +477,7 @@ export function QRManagement() {
                                         <div className="flex gap-2">
                                             <Button
                                                 variant="outline"
-                                                className="h-9 px-4 text-[9px] font-black uppercase tracking-widest bg-emerald-500/5 text-emerald-400 border-white/5 hover:bg-emerald-500/10"
+                                                className="h-9 px-4 text-[9px] font-black uppercase tracking-widest bg-emerald-500/5 text-emerald-600 border-surface-border hover:bg-emerald-500/10"
                                                 onClick={() => {
                                                     setPaymentRequired({ userId: userItem.id });
                                                     setIsProcessingPayment(true);
@@ -497,13 +499,13 @@ export function QRManagement() {
                             })}
 
                             {participants.length === 0 && (
-                                <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/5">
+                                <div className="text-center py-20 bg-background rounded-3xl border border-dashed border-surface-border">
                                     <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">No Active Enrollments Found</p>
                                 </div>
                             )}
                         </div>
 
-                        <div className="p-6 border-t border-white/5 bg-slate-950/50">
+                        <div className="p-6 border-t border-surface-border bg-background/50">
                             <Button variant="ghost" className="w-full text-slate-500 text-[10px] font-black uppercase tracking-widest" onClick={() => setIsManualModalOpen(false)}>
                                 Exit Override Mode
                             </Button>

@@ -1,4 +1,4 @@
-export type UserRole = 'system_admin' | 'program_admin' | 'facilitator' | 'participant';
+export type UserRole = 'platform_admin' | 'system_admin' | 'program_admin' | 'facilitator' | 'participant';
 
 export interface Organization {
     id: string;
@@ -26,6 +26,7 @@ export interface Organization {
         };
     };
     is_active: boolean;
+    is_suspended?: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -87,6 +88,7 @@ export interface Session {
     location_type: 'physical' | 'virtual' | 'hybrid';
     location?: string;
     virtual_link?: string;
+    session_fee?: number;
     qr_code_data: string;
     facilitator_id?: string;
     max_capacity?: number;
@@ -105,4 +107,26 @@ export interface Attendance {
     checkout_method?: string;
     duration_minutes?: number;
     status: 'present' | 'absent' | 'late' | 'excused';
+}
+
+export interface CellMeeting {
+    id: string;
+    group_id: string;
+    organization_id: string;
+    scheduled_date: string;
+    title?: string;
+    notes?: string;
+    status: 'open' | 'closed';
+    created_by?: string;
+    created_at: string;
+}
+
+export interface CellAttendance {
+    id: string;
+    meeting_id: string;
+    user_id: string;
+    status: 'present' | 'absent' | 'excused';
+    checkin_method?: 'qr' | 'manual';
+    marked_at: string;
+    marked_by?: string;
 }

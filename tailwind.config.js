@@ -17,12 +17,14 @@ export default {
                     dark: '#db2777',
                     light: '#f472b6',
                 },
-                background: '#0f172a',
-                surface: 'rgba(30, 41, 59, 0.7)',
+                background: 'var(--color-background)',
+                foreground: 'var(--color-foreground)',
+                surface: 'var(--color-surface)',
+                'surface-border': 'var(--color-surface-border)',
             },
             backgroundImage: {
-                'gradient-premium': 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
-                'gradient-glass': 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+                'gradient-premium': 'var(--gradient-premium)',
+                'gradient-glass': 'var(--gradient-surface)',
             }
         },
     },

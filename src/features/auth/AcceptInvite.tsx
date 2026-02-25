@@ -100,33 +100,33 @@ export function AcceptInvite() {
         }
     };
 
-    if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center"><Loader2 className="w-10 h-10 text-indigo-500 animate-spin" /></div>;
+    if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-10 h-10 text-primary animate-spin" /></div>;
 
     if (error) return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-            <GlassBox className="p-8 max-w-md w-full text-center border-red-500/20 bg-red-500/5">
-                <h1 className="text-xl font-bold text-red-500 mb-2">Invitation Error</h1>
-                <p className="text-slate-400 mb-6">{error}</p>
+        <div className="min-h-screen bg-background flex items-center justify-center p-6">
+            <GlassBox className="p-8 max-w-md w-full text-center border-red-500/20 bg-rose-500/5">
+                <h1 className="text-xl font-bold text-rose-600 mb-2">Invitation Error</h1>
+                <p className="text-slate-500 mb-6">{error}</p>
                 <Button variant="outline" onClick={() => navigate('/login')}>Go to Login</Button>
             </GlassBox>
         </div>
     );
 
     return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-white relative overflow-hidden">
+        <div className="min-h-screen bg-background flex items-center justify-center p-6 text-foreground relative overflow-hidden">
             {/* Dynamic Background */}
             <div
                 className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full opacity-20 blur-[150px] pointer-events-none"
                 style={{ background: invite.organizations?.primary_color || '#6366f1' }}
             ></div>
 
-            <GlassBox className="relative z-10 p-10 max-w-lg w-full border-white/10 bg-black/40 backdrop-blur-xl">
+            <GlassBox className="relative z-10 p-10 max-w-lg w-full border-surface-border bg-surface shadow-2xl">
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/10">
-                        <CheckCircle2 className="w-8 h-8 text-green-400" />
+                    <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-500/20">
+                        <CheckCircle2 className="w-8 h-8 text-emerald-600" />
                     </div>
                     <h1 className="text-2xl font-black uppercase tracking-tight mb-2">Join {invite.organizations?.name}</h1>
-                    <p className="text-slate-400 text-sm">Set up your account to accept the invitation.</p>
+                    <p className="text-slate-500 text-sm">Set up your account to accept the invitation.</p>
                 </div>
 
                 <form onSubmit={handleAccept} className="space-y-6">
@@ -136,7 +136,7 @@ export function AcceptInvite() {
                             <input
                                 type="text"
                                 required
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500/50 transition-colors"
+                                className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner"
                                 value={form.firstName}
                                 onChange={e => setForm({ ...form, firstName: e.target.value })}
                             />
@@ -146,7 +146,7 @@ export function AcceptInvite() {
                             <input
                                 type="text"
                                 required
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500/50 transition-colors"
+                                className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner"
                                 value={form.surname}
                                 onChange={e => setForm({ ...form, surname: e.target.value })}
                             />
@@ -161,7 +161,7 @@ export function AcceptInvite() {
                                 type="password"
                                 required
                                 minLength={6}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white outline-none focus:border-indigo-500/50 transition-colors"
+                                className="w-full bg-background border border-surface-border rounded-xl pl-12 pr-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner"
                                 value={form.password}
                                 onChange={e => setForm({ ...form, password: e.target.value })}
                             />
@@ -176,7 +176,7 @@ export function AcceptInvite() {
                                 type="password"
                                 required
                                 minLength={6}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white outline-none focus:border-indigo-500/50 transition-colors"
+                                className="w-full bg-background border border-surface-border rounded-xl pl-12 pr-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner"
                                 value={form.confirmPassword}
                                 onChange={e => setForm({ ...form, confirmPassword: e.target.value })}
                             />

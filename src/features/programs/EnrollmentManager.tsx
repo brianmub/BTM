@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { useParams } from 'react-router-dom';
 import { ReceiptModal } from '@/components/shared/ReceiptModal';
 import { History } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Enrollment {
     id: string;
@@ -35,6 +36,7 @@ export function EnrollmentManager({ programId: propProgramId }: { programId?: st
     const { programId: urlProgramId } = useParams();
     const programId = propProgramId || urlProgramId;
     const { organization } = useOrganization();
+    const { profile } = useAuth();
     const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedEnrollment, setSelectedEnrollment] = useState<Enrollment | null>(null);
@@ -97,8 +99,8 @@ export function EnrollmentManager({ programId: propProgramId }: { programId?: st
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-2xl font-black text-white uppercase tracking-tight">Enrollments & Payments</h2>
-                    <p className="text-slate-400 text-xs">Manage student access and financials</p>
+                    <h2 className="text-2xl font-black text-foreground uppercase tracking-tight">Enrollments & Payments</h2>
+                    <p className="text-slate-500 text-xs">Manage student access and financials</p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" className="h-10 text-xs uppercase font-bold">
@@ -111,10 +113,10 @@ export function EnrollmentManager({ programId: propProgramId }: { programId?: st
             </div>
 
             {/* List */}
-            <Card className="p-0 overflow-hidden bg-slate-900/50 border-white/5">
+            <Card className="p-0 overflow-hidden bg-surface border-surface-border shadow-2xl">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-400">
-                        <thead className="bg-white/5 text-xs uppercase font-black text-white tracking-wider">
+                    <table className="w-full text-left text-sm text-slate-500">
+                        <thead className="bg-background text-xs uppercase font-black text-foreground tracking-wider">
                             <tr>
                                 <th className="px-6 py-4">Student</th>
                                 <th className="px-6 py-4">Program</th>
@@ -124,7 +126,7 @@ export function EnrollmentManager({ programId: propProgramId }: { programId?: st
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5">
+                        <tbody className="divide-y divide-surface-border">
                             {loading ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-8 text-center">
@@ -132,13 +134,13 @@ export function EnrollmentManager({ programId: propProgramId }: { programId?: st
                                     </td>
                                 </tr>
                             ) : enrollments.map((enrollment) => (
-                                <tr key={enrollment.id} className="hover:bg-white/5 transition-colors">
+                                <tr key={enrollment.id} className="hover:bg-background transition-colors">
                                     <td className="px-6 py-4">
-                                        <div className="font-bold text-white">{enrollment.user.first_name} {enrollment.user.surname}</div>
-                                        <div className="text-[10px] opacity-60">{enrollment.user.email}</div>
+                                        <div className="font-bold text-foreground">{enrollment.user.first_name} {enrollment.user.surname}</div>
+                                        <div className="text-[10px] opacity-60 text-slate-500">{enrollment.user.email}</div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className="text-xs font-medium text-white">{enrollment.program.name}</span>
+                                        <span className="text-xs font-medium text-foreground">{enrollment.program.name}</span>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col gap-1">
@@ -165,13 +167,13 @@ export function EnrollmentManager({ programId: propProgramId }: { programId?: st
                                             <div className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">${enrollment.amount_paid} Paid</div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-right font-mono text-white">
+                                    <td className="px-6 py-4 text-right font-mono text-foreground">
                                         ${(enrollment.amount_due - enrollment.amount_paid).toFixed(2)}
                                     </td>
                                     <td className="px-6 py-4 text-right space-x-2">
                                         <Button
                                             variant="ghost"
-                                            className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                                            className="h-8 w-8 p-0 text-slate-400 hover:text-foreground"
                                             onClick={async () => {
                                                 setSelectedEnrollment(enrollment);
                                                 const { data } = await supabase
@@ -205,6 +207,7 @@ export function EnrollmentManager({ programId: propProgramId }: { programId?: st
             {isPaymentModalOpen && selectedEnrollment && (
                 <ReceivePaymentModal
                     enrollment={selectedEnrollment}
+                    profile={profile}
                     onClose={() => setIsPaymentModalOpen(false)}
                     onSuccess={(payment) => {
                         setIsPaymentModalOpen(false);
@@ -225,28 +228,28 @@ export function EnrollmentManager({ programId: propProgramId }: { programId?: st
             )}
 
             {isHistoryOpen && selectedEnrollment && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl overflow-hidden">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-md p-4">
+                    <div className="bg-surface border border-surface-border rounded-2xl w-full max-w-lg p-6 shadow-2xl overflow-hidden">
                         <div className="flex justify-between items-center mb-6">
                             <div>
-                                <h3 className="text-xl font-black text-white uppercase tracking-tight">Payment History</h3>
+                                <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Payment History</h3>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{selectedEnrollment.user.first_name} {selectedEnrollment.user.surname}</p>
                             </div>
-                            <button onClick={() => setIsHistoryOpen(false)} className="text-slate-400 hover:text-white"><XCircle className="w-6 h-6" /></button>
+                            <button onClick={() => setIsHistoryOpen(false)} className="text-slate-500 hover:text-foreground"><XCircle className="w-6 h-6" /></button>
                         </div>
 
                         <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                             {payments.length > 0 ? payments.map((p) => (
-                                <div key={p.id} className="bg-white/5 border border-white/5 rounded-xl p-4 flex items-center justify-between group hover:border-indigo-500/30 transition-all">
+                                <div key={p.id} className="bg-background border border-surface-border rounded-xl p-4 flex items-center justify-between group hover:border-primary/30 transition-all">
                                     <div className="space-y-1">
-                                        <div className="text-sm font-black text-white">${p.amount.toFixed(2)}</div>
+                                        <div className="text-sm font-black text-foreground">${p.amount.toFixed(2)}</div>
                                         <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                             {new Date(p.created_at).toLocaleDateString()} • {p.payment_method}
                                         </div>
                                     </div>
                                     <Button
                                         variant="outline"
-                                        className="h-8 text-[9px] font-black uppercase tracking-widest border-white/10 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="h-8 text-[9px] font-black uppercase tracking-widest border-surface-border bg-background opacity-0 group-hover:opacity-100 transition-opacity"
                                         onClick={() => {
                                             setLatestPayment(p);
                                             setIsReceiptModalOpen(true);
@@ -262,7 +265,7 @@ export function EnrollmentManager({ programId: propProgramId }: { programId?: st
                             )}
                         </div>
 
-                        <div className="mt-8 pt-6 border-t border-white/5">
+                        <div className="mt-8 pt-6 border-t border-surface-border">
                             <Button variant="ghost" className="w-full text-slate-400 font-bold uppercase tracking-widest text-[10px]" onClick={() => setIsHistoryOpen(false)}>
                                 Done
                             </Button>
@@ -274,7 +277,7 @@ export function EnrollmentManager({ programId: propProgramId }: { programId?: st
     );
 }
 
-function ReceivePaymentModal({ enrollment, onClose, onSuccess }: { enrollment: Enrollment, onClose: () => void, onSuccess: (payment: any) => void }) {
+function ReceivePaymentModal({ enrollment, profile, onClose, onSuccess }: { enrollment: Enrollment, profile: any, onClose: () => void, onSuccess: (payment: any) => void }) {
     const { organization } = useOrganization();
     const [amount, setAmount] = useState(enrollment.amount_due - enrollment.amount_paid);
     const [method, setMethod] = useState('cash');
@@ -302,7 +305,7 @@ function ReceivePaymentModal({ enrollment, onClose, onSuccess }: { enrollment: E
         try {
             if (sessionId !== 'none') {
                 const { sessionService } = await import('@/services/sessionService');
-                const p = await sessionService.recordSessionPayment(sessionId, enrollment.user.id, organization!.id, amount, method);
+                const p = await sessionService.recordSessionPayment(sessionId, enrollment.user.id, organization!.id, amount, method, profile.id);
                 onSuccess(p);
                 return;
             }
@@ -317,7 +320,7 @@ function ReceivePaymentModal({ enrollment, onClose, onSuccess }: { enrollment: E
                 transaction_reference: reference || `MANUAL-${Date.now()}`,
                 status: 'completed',
                 receipt_number: `RCP-${Date.now().toString().slice(-6)}`,
-                processed_by: (await supabase.auth.getUser()).data.user?.id
+                processed_by: profile.id
             };
 
             const { data: paymentData, error: payError } = await supabase
@@ -356,21 +359,21 @@ function ReceivePaymentModal({ enrollment, onClose, onSuccess }: { enrollment: E
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md p-4">
+            <div className="bg-surface border border-surface-border rounded-2xl w-full max-w-md p-6 shadow-2xl">
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-black text-white uppercase tracking-tight">Receive Payment</h3>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white"><XCircle className="w-6 h-6" /></button>
+                    <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Receive Payment</h3>
+                    <button onClick={onClose} className="text-slate-500 hover:text-foreground"><XCircle className="w-6 h-6" /></button>
                 </div>
 
-                <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 mb-6">
+                <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-6">
                     <div className="flex justify-between text-sm mb-1">
-                        <span className="text-slate-400">Student:</span>
-                        <span className="text-white font-bold">{enrollment.user.first_name} {enrollment.user.surname}</span>
+                        <span className="text-slate-500">Student:</span>
+                        <span className="text-foreground font-bold">{enrollment.user.first_name} {enrollment.user.surname}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">Outstanding:</span>
-                        <span className="text-rose-400 font-bold">${(enrollment.amount_due - enrollment.amount_paid).toFixed(2)}</span>
+                        <span className="text-slate-500">Outstanding:</span>
+                        <span className="text-rose-500 font-bold">${(enrollment.amount_due - enrollment.amount_paid).toFixed(2)}</span>
                     </div>
                 </div>
 
@@ -381,7 +384,7 @@ function ReceivePaymentModal({ enrollment, onClose, onSuccess }: { enrollment: E
                             type="number"
                             value={amount}
                             onChange={e => setAmount(Number(e.target.value))}
-                            className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white font-mono text-lg focus:border-indigo-500/50 outline-none"
+                            className="w-full bg-background border border-surface-border rounded-lg p-3 text-foreground font-mono text-lg focus:border-primary/50 outline-none"
                             max={enrollment.amount_due - enrollment.amount_paid}
                             min={0.01}
                             step="0.01"
@@ -397,11 +400,11 @@ function ReceivePaymentModal({ enrollment, onClose, onSuccess }: { enrollment: E
                                 setSessionId(e.target.value);
                                 if (e.target.value !== 'none') setAmount(5); // Default session fee
                             }}
-                            className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white text-sm focus:border-indigo-500/50 outline-none"
+                            className="w-full bg-background border border-surface-border rounded-lg p-3 text-foreground text-sm focus:border-primary/50 outline-none"
                         >
-                            <option value="none">General Program Fee</option>
+                            <option value="none" className="bg-surface text-foreground">General Program Fee</option>
                             {sessions.map(s => (
-                                <option key={s.id} value={s.id}>{s.name} ({new Date(s.session_date).toLocaleDateString()})</option>
+                                <option key={s.id} value={s.id} className="bg-surface text-foreground">{s.name} ({new Date(s.session_date).toLocaleDateString()})</option>
                             ))}
                         </select>
                     </div>
@@ -411,12 +414,12 @@ function ReceivePaymentModal({ enrollment, onClose, onSuccess }: { enrollment: E
                         <select
                             value={method}
                             onChange={e => setMethod(e.target.value)}
-                            className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white text-sm focus:border-indigo-500/50 outline-none"
+                            className="w-full bg-background border border-surface-border rounded-lg p-3 text-foreground text-sm focus:border-primary/50 outline-none"
                         >
-                            <option value="cash">Cash</option>
-                            <option value="ecocash">EcoCash</option>
-                            <option value="swipe">Swipe / Bank Card</option>
-                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="cash" className="bg-surface text-foreground">Cash</option>
+                            <option value="ecocash" className="bg-surface text-foreground">EcoCash</option>
+                            <option value="swipe" className="bg-surface text-foreground">Swipe / Bank Card</option>
+                            <option value="bank_transfer" className="bg-surface text-foreground">Bank Transfer</option>
                         </select>
                     </div>
 
@@ -427,7 +430,7 @@ function ReceivePaymentModal({ enrollment, onClose, onSuccess }: { enrollment: E
                             value={reference}
                             onChange={e => setReference(e.target.value)}
                             placeholder="e.g. Transaction ID or Receipt Book #"
-                            className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white text-sm focus:border-indigo-500/50 outline-none"
+                            className="w-full bg-background border border-surface-border rounded-lg p-3 text-foreground text-sm focus:border-primary/50 outline-none"
                         />
                     </div>
 

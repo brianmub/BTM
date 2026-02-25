@@ -62,10 +62,10 @@ export function DashboardOverview() {
     };
 
     const statCards = [
-        { label: 'Active Curriculums', value: stats.programs, icon: <Calendar className="w-5 h-5" />, color: 'indigo', trend: '+2 this month' },
-        { label: 'Total Participants', value: stats.participants, icon: <Users className="w-5 h-5" />, color: 'pink', trend: '+14% growth' },
-        { label: 'Verification Rate', value: stats.verificationRate, icon: <QrCode className="w-5 h-5" />, color: 'amber', trend: 'Optimal' },
-        { label: 'Total Revenue', value: `$${stats.revenue.toLocaleString()}`, icon: <Banknote className="w-5 h-5" />, color: 'emerald', trend: 'Live Sync' },
+        { label: 'Active Curriculums', value: stats.programs, icon: <Calendar className="w-5 h-5" />, accent: 'from-primary/20 to-primary/5', iconBg: 'bg-primary/15 border-primary/20 text-primary', trend: '+2 this month', trendColor: 'text-primary bg-primary/10' },
+        { label: 'Total Participants', value: stats.participants, icon: <Users className="w-5 h-5" />, accent: 'from-amber-500/20 to-amber-500/5', iconBg: 'bg-amber-500/15 border-amber-500/20 text-amber-400', trend: '+14% growth', trendColor: 'text-amber-400 bg-amber-500/10' },
+        { label: 'Verification Rate', value: stats.verificationRate, icon: <QrCode className="w-5 h-5" />, accent: 'from-emerald-500/20 to-emerald-500/5', iconBg: 'bg-emerald-500/15 border-emerald-500/20 text-emerald-400', trend: 'Optimal', trendColor: 'text-emerald-400 bg-emerald-500/10' },
+        { label: 'Total Revenue', value: `$${stats.revenue.toLocaleString()}`, icon: <Banknote className="w-5 h-5" />, accent: 'from-blue-500/20 to-blue-500/5', iconBg: 'bg-blue-500/15 border-blue-500/20 text-blue-400', trend: 'Live Sync', trendColor: 'text-blue-400 bg-blue-500/10' },
     ];
 
     return (
@@ -76,25 +76,25 @@ export function DashboardOverview() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                 >
-                    <div className="flex items-center space-x-2 mb-2">
-                        <Sparkles className="w-4 h-4 text-indigo-400" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">System Online</span>
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Live Dashboard</span>
                     </div>
-                    <h1 className="text-4xl font-black text-white tracking-tight uppercase">
+                    <h1 className="text-4xl font-black text-foreground tracking-tight uppercase">
                         Greetings, {profile?.first_name || 'Servant'}
                     </h1>
-                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-1">Ministry oversight and performance metrics</p>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-1">Ministry oversight · Performance metrics</p>
                 </motion.div>
 
                 <div className="flex gap-4">
-                    <Button variant="premium" className="h-14 px-8 font-black uppercase tracking-widest text-xs" onClick={() => navigate('/dashboard/qr')}>
+                    <Button variant="united" className="h-14 px-8 text-xs" onClick={() => navigate('/dashboard/qr')}>
                         <QrCode className="w-4 h-4 mr-3" /> Launch Quick Scan
                     </Button>
                 </div>
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {statCards.map((stat, i) => (
                     <motion.div
                         key={stat.label}
@@ -102,16 +102,20 @@ export function DashboardOverview() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.1 }}
                     >
-                        <Card className="bg-slate-900/40 border-white/5 p-8 group hover:border-indigo-500/30 transition-all relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <Card className={`bg-gradient-to-br ${stat.accent} border-surface-border p-7 group hover:border-primary/30 transition-all relative overflow-hidden`}>
+                            {/* Background icon watermark */}
+                            <div className="absolute -bottom-3 -right-3 w-20 h-20 opacity-5 group-hover:opacity-10 transition-opacity text-foreground">
                                 {stat.icon}
                             </div>
-                            <div className={`p-3 rounded-xl bg-${stat.color}-500/10 border border-${stat.color}-500/20 w-fit mb-6 text-${stat.color}-400`}>
+                            {/* Icon badge */}
+                            <div className={`p-3 rounded-2xl border w-fit mb-5 ${stat.iconBg}`}>
                                 {stat.icon}
                             </div>
-                            <h3 className="text-4xl font-black text-white tracking-tighter mb-2">{stat.value}</h3>
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">{stat.label}</p>
-                            <div className="flex items-center text-[9px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/5 w-fit px-2 py-1 rounded">
+                            {/* Value */}
+                            <h3 className="text-4xl font-black text-foreground tracking-tighter mb-1">{stat.value}</h3>
+                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">{stat.label}</p>
+                            {/* Trend pill */}
+                            <div className={`flex items-center text-[9px] font-black uppercase tracking-widest w-fit px-2.5 py-1 rounded-lg ${stat.trendColor}`}>
                                 <TrendingUp className="w-3 h-3 mr-1.5" /> {stat.trend}
                             </div>
                         </Card>
@@ -124,12 +128,18 @@ export function DashboardOverview() {
                 {/* Recent Activity */}
                 <div className="lg:col-span-2 space-y-8">
                     <div className="flex items-center justify-between px-2">
-                        <div className="flex items-center space-x-3">
-                            <Activity className="w-5 h-5 text-indigo-400" />
-                            <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Activity Stream</h3>
+                        <div className="flex items-center gap-3">
+                            {/* Live pulse indicator */}
+                            <div className="relative">
+                                <Activity className="w-5 h-5 text-primary" />
+                                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary animate-ping" />
+                                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary" />
+                            </div>
+                            <h3 className="text-[11px] font-black text-foreground uppercase tracking-[0.2em]">Live Activity</h3>
+                            <span className="text-[8px] font-black text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded uppercase tracking-widest">● Live</span>
                         </div>
-                        <Button variant="ghost" className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white">
-                            View all logs <ChevronRight className="w-3 h-3 ml-2" />
+                        <Button variant="ghost" className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-foreground">
+                            View all <ChevronRight className="w-3 h-3 ml-2" />
                         </Button>
                     </div>
 
@@ -145,9 +155,9 @@ export function DashboardOverview() {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: i * 0.05 }}
                             >
-                                <Card className="p-6 bg-slate-900/40 border-white/5 hover:bg-slate-900/60 transition-colors flex items-center justify-between group">
+                                <Card className="p-6 bg-surface border-surface-border hover:bg-background transition-colors flex items-center justify-between group">
                                     <div className="flex items-center space-x-6">
-                                        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-indigo-400 overflow-hidden">
+                                        <div className="w-14 h-14 rounded-2xl bg-background border border-surface-border flex items-center justify-center font-black text-primary overflow-hidden">
                                             {activity.users.profile_photo_url ? (
                                                 <img src={activity.users.profile_photo_url} className="w-full h-full object-cover" />
                                             ) : (
@@ -155,11 +165,11 @@ export function DashboardOverview() {
                                             )}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-black text-white uppercase tracking-tight">
+                                            <p className="text-sm font-black text-foreground uppercase tracking-tight">
                                                 {activity.users.first_name} {activity.users.surname}
                                             </p>
                                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
-                                                Checked in to <span className="text-indigo-400">{activity.sessions.name}</span>
+                                                Checked in to <span className="text-primary">{activity.sessions.name}</span>
                                             </p>
                                         </div>
                                     </div>
@@ -185,13 +195,13 @@ export function DashboardOverview() {
                         </div>
                         <div className="relative z-10">
                             <div className="flex items-center space-x-3 mb-6">
-                                <Globe className="w-4 h-4 text-indigo-400" />
-                                <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Participant Hub</h3>
+                                <Globe className="w-4 h-4 text-primary" />
+                                <h3 className="text-[11px] font-black text-foreground uppercase tracking-[0.2em]">Participant Hub</h3>
                             </div>
                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed mb-6">
-                                Share this link with your members to let them enroll and check-in.
+                                Share this link with your participants to let them enroll and check-in.
                             </p>
-                            <div className="flex items-center gap-2 p-3 bg-white/5 border border-white/5 rounded-xl mb-4">
+                            <div className="flex items-center gap-2 p-3 bg-background border border-surface-border rounded-xl mb-4">
                                 <span className="text-[10px] font-bold text-slate-400 truncate flex-1">
                                     {window.location.origin}/portal/{organization?.slug}
                                 </span>
@@ -207,7 +217,7 @@ export function DashboardOverview() {
                             </div>
                             <Button
                                 variant="ghost"
-                                className="w-full h-12 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-white border border-white/5"
+                                className="w-full h-12 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-foreground border border-surface-border"
                                 onClick={() => window.open(`/portal/${organization?.slug}`, '_blank')}
                             >
                                 <ExternalLink className="w-3.5 h-3.5 mr-2" /> Preview Portal
@@ -222,7 +232,7 @@ export function DashboardOverview() {
                         <div className="relative z-10">
                             <h3 className="text-xl font-black text-white uppercase tracking-tight mb-4">Quick QR Terminal</h3>
                             <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest leading-relaxed mb-8">
-                                Instantly activate the attendance engine for your current session matrix.
+                                Instantly activate the attendance engine for your current program schedule.
                             </p>
                             <Button
                                 variant="outline"
@@ -234,10 +244,10 @@ export function DashboardOverview() {
                         </div>
                     </GlassBox>
 
-                    <Card className="p-8 bg-slate-900/40 border-white/5">
+                    <Card className="p-8 bg-surface border-surface-border">
                         <div className="flex items-center space-x-3 mb-8">
                             <Zap className="w-4 h-4 text-amber-500" />
-                            <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Rapid Actions</h3>
+                            <h3 className="text-[11px] font-black text-foreground uppercase tracking-[0.2em]">Rapid Actions</h3>
                         </div>
                         <div className="space-y-4">
                             {[
@@ -248,15 +258,15 @@ export function DashboardOverview() {
                                 <button
                                     key={action.label}
                                     onClick={() => navigate(action.path)}
-                                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-transparent hover:border-white/5 hover:bg-white/10 transition-all group"
+                                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-background border border-transparent hover:border-surface-border hover:bg-surface transition-all group"
                                 >
                                     <div className="flex items-center space-x-4">
-                                        <div className="text-slate-500 group-hover:text-indigo-400 transition-colors">
+                                        <div className="text-slate-500 group-hover:text-primary transition-colors">
                                             {action.icon}
                                         </div>
-                                        <span className="text-[10px] font-black text-white uppercase tracking-widest">{action.label}</span>
+                                        <span className="text-[10px] font-black text-foreground uppercase tracking-widest">{action.label}</span>
                                     </div>
-                                    <ChevronRight className="w-4 h-4 text-slate-700 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-foreground group-hover:translate-x-1 transition-all" />
                                 </button>
                             ))}
                         </div>

@@ -11,8 +11,8 @@ export function Card({ children, className, hover = true, ...props }: CardProps)
     return (
         <div
             className={cn(
-                'bg-slate-900/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 shadow-sm transition-all duration-300',
-                hover && 'hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 hover:border-slate-700',
+                'bg-surface backdrop-blur-sm rounded-2xl p-6 border border-surface-border shadow-sm transition-all duration-300',
+                hover && 'hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 hover:border-primary/20',
                 className
             )}
             {...props}
@@ -22,11 +22,16 @@ export function Card({ children, className, hover = true, ...props }: CardProps)
     );
 }
 
-export function GlassBox({ children, className, ...props }: CardProps) {
+interface GlassBoxProps extends CardProps {
+    elite?: boolean;
+}
+
+export function GlassBox({ children, className, elite, ...props }: GlassBoxProps) {
     return (
         <div
             className={cn(
-                'bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl transition-all duration-500 hover:bg-white/10',
+                'bg-surface/40 backdrop-blur-xl border border-surface-border rounded-3xl p-8 shadow-2xl transition-all duration-500 hover:bg-surface/60',
+                elite && 'bg-black/60 border-white/10 shadow-[0_0_40px_0_rgba(218,41,28,0.08)] hover:shadow-[0_0_60px_0_rgba(218,41,28,0.15)]',
                 className
             )}
             {...props}

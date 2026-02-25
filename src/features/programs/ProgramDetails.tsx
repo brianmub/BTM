@@ -50,7 +50,7 @@ export function ProgramDetails() {
         </div>
     );
 
-    if (!program) return <div className="text-white">Program not found.</div>;
+    if (!program) return <div className="text-foreground">Program not found.</div>;
 
     const tabs = [
         { id: 'sessions', name: 'Curriculum', icon: Calendar },
@@ -66,23 +66,23 @@ export function ProgramDetails() {
             <div className="flex items-center gap-6">
                 <Button
                     variant="outline"
-                    className="w-12 h-12 p-0 border-white/5 bg-white/5 rounded-xl hover:bg-white/10"
+                    className="w-12 h-12 p-0 border-surface-border bg-background rounded-xl hover:bg-surface"
                     onClick={() => navigate('/dashboard/programs')}
                 >
-                    <ArrowLeft className="w-5 h-5" />
+                    <ArrowLeft className="w-5 h-5 text-slate-500" />
                 </Button>
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{program.category || 'General'}</span>
-                        <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Master Blueprint</span>
+                        <span className="text-[10px] font-black text-primary uppercase tracking-widest">{program.category || 'General'}</span>
+                        <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Master Program</span>
                     </div>
-                    <h1 className="text-3xl font-black text-white uppercase tracking-tight">{program.name}</h1>
+                    <h1 className="text-3xl font-black text-foreground uppercase tracking-tight">{program.name}</h1>
                 </div>
             </div>
 
             {/* Tabs */}
-            <div className="flex flex-wrap gap-2 p-1.5 bg-slate-900 border border-white/5 rounded-2xl w-fit">
+            <div className="flex flex-wrap gap-2 p-1.5 bg-surface border border-surface-border rounded-2xl w-fit">
                 {tabs.map(tab => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -91,8 +91,8 @@ export function ProgramDetails() {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-3 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isActive
-                                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                : 'text-slate-500 hover:text-foreground hover:bg-background'
                                 }`}
                         >
                             <Icon className="w-3.5 h-3.5" />
@@ -109,8 +109,8 @@ export function ProgramDetails() {
                 {activeTab === 'students' && <EnrollmentManager programId={programId} />}
                 {activeTab === 'groups' && <GroupManagement programId={programId!} />}
                 {activeTab === 'settings' && (
-                    <GlassBox className="p-12 border-white/5 flex flex-col items-center justify-center text-center">
-                        <Info className="w-12 h-12 text-slate-700 mb-6" />
+                    <GlassBox className="p-12 border-surface-border bg-surface flex flex-col items-center justify-center text-center">
+                        <Info className="w-12 h-12 text-slate-200 mb-6" />
                         <h3 className="text-xl font-black text-slate-400 uppercase tracking-tight">Configuration Matrix</h3>
                         <p className="max-w-md text-[10px] text-slate-500 mt-4 leading-relaxed font-black uppercase tracking-[0.2em]">
                             Direct program manipulation is currently locked to maintain architectural integrity.

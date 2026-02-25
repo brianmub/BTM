@@ -14,6 +14,38 @@ export const sessionService = {
         return data as Session[];
     },
 
+    async updateSession(sessionId: string, updates: Partial<Session>) {
+        const { data, error } = await supabase
+            .from('sessions')
+            .update({ ...updates, updated_at: new Date().toISOString() })
+            .eq('id', sessionId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data as Session;
+    },
+
+    async deleteSession(sessionId: string) {
+        // Guard: Check if attendance records exist
+        const { count, error: countError } = await supabase
+            .from('attendance')
+            .select('*', { count: 'exact', head: true })
+            .eq('session_id', sessionId);
+
+        if (countError) throw countError;
+        if (count && count > 0) {
+            throw new Error('HAS_ATTENDEES');
+        }
+
+        const { error } = await supabase
+            .from('sessions')
+            .delete()
+            .eq('id', sessionId);
+
+        if (error) throw error;
+    },
+
     async createSession(session: Partial<Session>) {
         // Generate a unique QR code data if not provided
         const qrData = session.qr_code_data || `sess-${uuidv4()}`;
@@ -144,7 +176,7 @@ export const sessionService = {
         return sessEnroll;
     },
 
-    async recordSessionPayment(sessionId: string, userId: string, organizationId: string, amount: number, method: string) {
+    async recordSessionPayment(sessionId: string, userId: string, organizationId: string, amount: number, method: string, processedById: string, paymentStatus: 'paid' | 'pending' = 'paid') {
         // 1. Get enrollment ID
         const { data: enrollment } = await supabase
             .from('enrollments')
@@ -162,9 +194,9 @@ export const sessionService = {
                 organization_id: organizationId,
                 enrollment_id: enrollment.id,
                 session_id: sessionId,
-                payment_status: 'paid',
-                amount_paid: amount,
-                amount_due: amount // Assuming it covers the fee
+                payment_status: paymentStatus,
+                amount_paid: paymentStatus === 'paid' ? amount : 0,
+                amount_due: amount
             }], { onConflict: 'enrollment_id, session_id' })
             .select()
             .single();
@@ -183,7 +215,7 @@ export const sessionService = {
                 payment_method: method,
                 status: 'completed',
                 receipt_number: `SES-${Date.now().toString().slice(-6)}`,
-                processed_by: (await supabase.auth.getUser()).data.user?.id
+                processed_by: processedById
             }])
             .select(`
                 *,

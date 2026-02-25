@@ -14,8 +14,8 @@ export function RequireRole({ children, roles }: RequireRoleProps) {
 
     if (loading) {
         return (
-            <div className="flex h-screen items-center justify-center bg-slate-950">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+            <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100]">
+                <Loader2 className="w-12 h-12 text-primary animate-spin" />
             </div>
         );
     }

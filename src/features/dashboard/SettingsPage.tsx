@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/hooks/useOrganization';
 import { Card } from '@/components/ui/Card';
@@ -12,18 +12,22 @@ import {
     Shield,
     Save,
     User,
+    Users,
     Loader2,
-    Sparkles
+    Sparkles,
+    LogOut,
 } from 'lucide-react';
 
 import { organizationService } from '@/services/organizationService';
 import { TeamSettings } from '@/features/settings/TeamSettings';
+import { UserRolesList } from '@/features/settings/UserRolesList';
 
 export function SettingsPage() {
     const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     const initialTab = searchParams.get('tab') || 'organization';
     const [activeTab, setActiveTab] = useState(initialTab);
-    const { user, profile } = useAuth();
+    const { user, profile, signOut } = useAuth();
     const { organization } = useOrganization();
 
     const [loading, setLoading] = useState(false);
@@ -73,6 +77,7 @@ export function SettingsPage() {
 
 
     const tabs = [
+        { id: 'users', name: 'Users', icon: <Users className="w-4 h-4" /> },
         { id: 'profile', name: 'User Profile', icon: <User className="w-4 h-4" /> },
         { id: 'organization', name: 'Organization', icon: <Building className="w-4 h-4" /> },
         { id: 'team', name: 'Team Management', icon: <User className="w-4 h-4" /> },
@@ -81,9 +86,18 @@ export function SettingsPage() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-8 pb-10">
-            <div>
-                <h1 className="text-3xl font-black text-white uppercase tracking-tight">System Configuration</h1>
-                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-1">Management of organizational protocols and identity</p>
+            <div className="flex items-start justify-between">
+                <div>
+                    <h1 className="text-3xl font-black text-foreground uppercase tracking-tight">System Configuration</h1>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-1">Management of organizational protocols and identity</p>
+                </div>
+                <button
+                    onClick={() => signOut()}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[10px] font-black uppercase tracking-widest hover:bg-rose-500/20 active:scale-95 transition-all"
+                >
+                    <LogOut className="w-4 h-4" />
+                    Log Out
+                </button>
             </div>
 
             <div className="flex flex-col md:flex-row gap-8">
@@ -94,8 +108,8 @@ export function SettingsPage() {
                             key={tab.id}
                             onClick={() => handleTabChange(tab.id)}
                             className={`w-full flex items-center space-x-4 px-5 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${activeTab === tab.id
-                                ? 'bg-indigo-500 text-white shadow-xl shadow-indigo-500/20'
-                                : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'
+                                ? 'bg-primary text-white shadow-xl shadow-primary/20'
+                                : 'text-slate-500 hover:text-foreground hover:bg-background'
                                 }`}
                         >
                             <span className={activeTab === tab.id ? 'text-white' : 'text-slate-500'}>
@@ -109,21 +123,21 @@ export function SettingsPage() {
                 {/* Content Area */}
                 <div className="flex-1 space-y-8">
                     {activeTab === 'profile' && (
-                        <Card className="space-y-8 bg-slate-900/40 border-white/5 backdrop-blur-xl p-10">
+                        <Card className="space-y-8 bg-surface border-surface-border backdrop-blur-xl p-10 shadow-2xl">
                             <div>
-                                <h3 className="text-xl font-black text-white uppercase tracking-tight mb-8">Personal Intelligence</h3>
-                                <div className="flex items-center gap-6 mb-10 p-6 bg-white/5 rounded-3xl border border-white/5">
-                                    <div className="w-20 h-20 bg-gradient-premium rounded-[24px] flex items-center justify-center text-4xl shadow-2xl shadow-indigo-500/20">
+                                <h3 className="text-xl font-black text-foreground uppercase tracking-tight mb-8">Personal Intelligence</h3>
+                                <div className="flex items-center gap-6 mb-10 p-6 bg-background rounded-3xl border border-surface-border">
+                                    <div className="w-20 h-20 bg-gradient-premium rounded-[24px] flex items-center justify-center text-4xl shadow-2xl shadow-primary/20">
                                         <span className="text-white opacity-90 font-black">
                                             {profile?.first_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
                                         </span>
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-black text-white uppercase tracking-tight">
+                                        <h2 className="text-2xl font-black text-foreground uppercase tracking-tight">
                                             {profile?.first_name} {profile?.surname}
                                         </h2>
                                         <div className="flex items-center gap-3 mt-2">
-                                            <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                                            <span className="px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg text-[10px] font-black uppercase tracking-widest">
                                                 {profile?.role?.replace('_', ' ') || 'User'}
                                             </span>
                                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{organization?.name}</span>
@@ -137,7 +151,7 @@ export function SettingsPage() {
                                         <input
                                             type="text"
                                             defaultValue={profile?.first_name || ''}
-                                            className="w-full px-6 py-4 rounded-2xl border border-white/5 bg-white/5 text-slate-400 font-bold outline-none cursor-not-allowed"
+                                            className="w-full px-6 py-4 rounded-2xl border border-surface-border bg-background text-slate-400 font-bold outline-none cursor-not-allowed"
                                             readOnly
                                         />
                                     </div>
@@ -146,7 +160,7 @@ export function SettingsPage() {
                                         <input
                                             type="text"
                                             defaultValue={profile?.surname || ''}
-                                            className="w-full px-6 py-4 rounded-2xl border border-white/5 bg-white/5 text-slate-400 font-bold outline-none cursor-not-allowed"
+                                            className="w-full px-6 py-4 rounded-2xl border border-surface-border bg-background text-slate-400 font-bold outline-none cursor-not-allowed"
                                             readOnly
                                         />
                                     </div>
@@ -156,38 +170,49 @@ export function SettingsPage() {
                                             <input
                                                 type="email"
                                                 defaultValue={user?.email || ''}
-                                                className="w-full px-6 py-4 rounded-2xl border border-white/5 bg-white/5 text-slate-400 font-bold outline-none cursor-not-allowed"
+                                                className="w-full px-6 py-4 rounded-2xl border border-surface-border bg-background text-slate-400 font-bold outline-none cursor-not-allowed"
                                                 readOnly
                                             />
-                                            <Mail className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                                            <Mail className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="pt-10 border-t border-white/5">
-                                <h4 className="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-6">Security Protocols</h4>
-                                <Button variant="outline" className="w-full justify-between group h-14 rounded-2xl bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10">
+                            <div className="pt-10 border-t border-surface-border">
+                                <h4 className="text-[11px] font-black text-foreground uppercase tracking-[0.2em] mb-6">Security & Access</h4>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => navigate('/forgot-password')}
+                                    className="w-full justify-between group h-14 rounded-2xl bg-background border-surface-border text-slate-500 hover:text-foreground hover:bg-surface-border/5"
+                                >
                                     <span className="flex items-center gap-3">
-                                        <Key className="w-4 h-4 text-slate-600 group-hover:text-indigo-400 transition-colors" />
-                                        <span className="text-xs font-black uppercase tracking-widest">Update Cryptographic Access</span>
+                                        <Key className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+                                        <span className="text-xs font-black uppercase tracking-widest">Change Login Password</span>
                                     </span>
-                                    <span className="text-[9px] font-black uppercase text-slate-600 tracking-widest">Rotated 3 mo ago</span>
+                                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Enhanced Security</span>
                                 </Button>
                             </div>
                         </Card>
                     )}
 
+                    {activeTab === 'users' && (
+                        <div className="bg-surface border border-surface-border rounded-[32px] p-8 shadow-2xl">
+                            <h3 className="text-xl font-black text-foreground uppercase tracking-tight mb-8">All Users</h3>
+                            <UserRolesList />
+                        </div>
+                    )}
+
                     {activeTab === 'team' && (
-                        <div className="bg-slate-900/40 border border-white/5 rounded-[32px] overflow-hidden">
+                        <div className="bg-surface border border-surface-border rounded-[32px] overflow-hidden shadow-2xl">
                             <TeamSettings />
                         </div>
                     )}
 
                     {activeTab === 'organization' && (
-                        <Card className="space-y-10 bg-slate-900/40 border-white/5 backdrop-blur-xl p-10">
+                        <Card className="space-y-10 bg-surface border-surface-border backdrop-blur-xl p-10 shadow-2xl">
                             <div>
-                                <h3 className="text-xl font-black text-white uppercase tracking-tight mb-8">Organization Information</h3>
+                                <h3 className="text-xl font-black text-foreground uppercase tracking-tight mb-8">Organization Information</h3>
                                 <div className="grid md:grid-cols-2 gap-8">
                                     <div className="space-y-3 md:col-span-2">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-1">Church / Org Designation</label>
@@ -195,7 +220,7 @@ export function SettingsPage() {
                                             type="text"
                                             value={orgForm.name}
                                             onChange={(e) => setOrgForm({ ...orgForm, name: e.target.value })}
-                                            className="w-full px-6 py-4 rounded-2xl border border-white/5 bg-white/5 text-white font-bold focus:bg-white/10 focus:border-indigo-500/30 outline-none transition-all shadow-inner"
+                                            className="w-full px-6 py-4 rounded-2xl border border-surface-border bg-background text-foreground font-bold focus:bg-background/80 focus:border-primary/30 outline-none transition-all shadow-inner"
                                         />
                                     </div>
                                     <div className="space-y-3 md:col-span-2">
@@ -204,14 +229,14 @@ export function SettingsPage() {
                                             type="email"
                                             value={orgForm.email}
                                             onChange={(e) => setOrgForm({ ...orgForm, email: e.target.value })}
-                                            className="w-full px-6 py-4 rounded-2xl border border-white/5 bg-white/5 text-white font-bold focus:bg-white/10 focus:border-indigo-500/30 outline-none transition-all shadow-inner"
+                                            className="w-full px-6 py-4 rounded-2xl border border-surface-border bg-background text-foreground font-bold focus:bg-background/80 focus:border-primary/30 outline-none transition-all shadow-inner"
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="pt-10 border-t border-white/5 flex justify-end">
-                                <Button variant="premium" className="h-14 px-10 font-black uppercase tracking-widest text-xs" onClick={handleSaveOrganization} disabled={loading}>
+                            <div className="pt-10 border-t border-surface-border flex justify-end">
+                                <Button variant="premium" className="h-14 px-10 font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20" onClick={handleSaveOrganization} disabled={loading}>
                                     {loading ? <Loader2 className="animate-spin" /> : <Save className="w-4 h-4 mr-3" />}
                                     Commit Data
                                 </Button>

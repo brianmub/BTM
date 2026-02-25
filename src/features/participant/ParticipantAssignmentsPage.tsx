@@ -93,19 +93,19 @@ export function ParticipantAssignmentsPage() {
     return (
         <div className="p-6 space-y-8 pb-24">
             <header className="space-y-1">
-                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Training Protocol</p>
-                <h1 className="text-3xl font-black text-white tracking-tight uppercase">My Assignments</h1>
-                <p className="text-slate-400 text-sm">Review your active tasks and requirements.</p>
+                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Training Protocol</p>
+                <h1 className="text-3xl font-black text-foreground tracking-tight uppercase">My Assignments</h1>
+                <p className="text-slate-500 text-sm">Review your active tasks and requirements.</p>
             </header>
 
             <div className="grid grid-cols-2 gap-4">
-                <GlassBox className="p-4 bg-amber-500/10 border-amber-500/20">
-                    <div className="text-2xl font-black text-white">{pendingTasks.length}</div>
-                    <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Pending Tasks</div>
+                <GlassBox className="p-4 bg-amber-500/5 border-amber-500/20 shadow-lg">
+                    <div className="text-2xl font-black text-foreground">{pendingTasks.length}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Pending Tasks</div>
                 </GlassBox>
-                <GlassBox className="p-4 bg-emerald-500/10 border-emerald-500/20">
-                    <div className="text-2xl font-black text-white">{completedTasks.length}</div>
-                    <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Handed In</div>
+                <GlassBox className="p-4 bg-emerald-500/5 border-emerald-500/20 shadow-lg">
+                    <div className="text-2xl font-black text-foreground">{completedTasks.length}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Handed In</div>
                 </GlassBox>
             </div>
 
@@ -119,44 +119,44 @@ export function ParticipantAssignmentsPage() {
                                 return (
                                     <GlassBox
                                         key={task.id}
-                                        className="p-4 active:scale-[0.98] transition-transform cursor-pointer overflow-hidden group"
+                                        className="p-4 active:scale-[0.98] transition-transform cursor-pointer overflow-hidden group bg-surface border-surface-border shadow-xl"
                                         onClick={() => navigate(`/portal/${orgSlug}/dashboard/program/${task.session.program_id}`)}
                                     >
                                         <div className="flex items-center gap-4">
                                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-xl transition-colors ${task.submission
-                                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
                                                 : isOverdue
-                                                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                                                    : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
+                                                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-600'
+                                                    : 'bg-primary/10 border-primary/20 text-primary'
                                                 }`}>
                                                 <FileText className="w-5 h-5" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="text-sm font-black text-white uppercase tracking-tight line-clamp-1">{task.name}</h3>
+                                                <h3 className="text-sm font-black text-foreground uppercase tracking-tight line-clamp-1">{task.name}</h3>
                                                 <div className="flex items-center gap-2 mt-0.5">
-                                                    <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{task.session?.programs?.name}</p>
-                                                    <span className="w-0.5 h-0.5 bg-slate-700 rounded-full"></span>
+                                                    <p className="text-[9px] font-black text-primary uppercase tracking-widest">{task.session?.programs?.name}</p>
+                                                    <span className="w-0.5 h-0.5 bg-slate-300 rounded-full"></span>
                                                     <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none">
                                                         {task.session?.name}
                                                     </p>
                                                 </div>
                                             </div>
-                                            <ChevronRight className="w-4 h-4 text-slate-700 group-hover:text-indigo-400 transition-colors" />
+                                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors" />
                                         </div>
-                                        <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
+                                        <div className="mt-3 flex items-center justify-between border-t border-surface-border pt-3">
                                             <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest flex items-center">
-                                                <Calendar className="w-3 h-3 mr-1.5 text-pink-400" /> Due: {new Date(task.due_date).toLocaleDateString()}
+                                                <Calendar className="w-3 h-3 mr-1.5 text-pink-500" /> Due: {new Date(task.due_date).toLocaleDateString()}
                                             </span>
                                             {task.submission ? (
-                                                <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest flex items-center">
+                                                <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest flex items-center">
                                                     <CheckCircle className="w-3 h-3 mr-1" /> Handed In
                                                 </span>
                                             ) : isOverdue ? (
-                                                <span className="text-[8px] font-black text-rose-400 uppercase tracking-widest flex items-center">
+                                                <span className="text-[8px] font-black text-rose-600 uppercase tracking-widest flex items-center">
                                                     <AlertCircle className="w-3 h-3 mr-1" /> Overdue
                                                 </span>
                                             ) : (
-                                                <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest flex items-center">
+                                                <span className="text-[8px] font-black text-primary uppercase tracking-widest flex items-center">
                                                     Action Required
                                                 </span>
                                             )}
@@ -166,8 +166,8 @@ export function ParticipantAssignmentsPage() {
                             })}
                         </div>
                     ) : (
-                        <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
-                            <Clock className="w-10 h-10 text-slate-700 mx-auto mb-4" />
+                        <div className="text-center py-20 bg-background rounded-3xl border border-dashed border-surface-border">
+                            <Clock className="w-10 h-10 text-slate-300 mx-auto mb-4" />
                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">No tasks assigned to your profile yet.</p>
                         </div>
                     )}

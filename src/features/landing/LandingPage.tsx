@@ -247,7 +247,7 @@ export function LandingPage() {
                 <div className="container mx-auto text-center">
                     <div className="flex items-center justify-center space-x-3 mb-10 opacity-50 grayscale hover:grayscale-0 transition-all">
                         <div className="text-3xl text-indigo-400 italic font-black">CP</div>
-                        <h2 className="text-xl font-bold text-white tracking-widest">CHURCHPROGRAMS</h2>
+                        <h2 className="text-xl font-bold text-white tracking-widest">KINGDOMCONNECT</h2>
                     </div>
                     <div className="flex justify-center space-x-12 mb-12 text-xs font-black uppercase tracking-widest text-slate-500">
                         <a href="#" className="hover:text-indigo-400 transition-colors">Privacy</a>

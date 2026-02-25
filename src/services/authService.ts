@@ -10,6 +10,20 @@ export const authService = {
         return data;
     },
 
+    async checkSlugAvailability(slug: string) {
+        const { data, error } = await supabase
+            .from('organizations')
+            .select('id')
+            .eq('slug', slug)
+            .maybeSingle();
+
+        if (error) {
+            console.error('Error checking slug availability:', error);
+            throw new Error(`Failed to verify name availability: ${error.message}`);
+        }
+        return !data;
+    },
+
     async signUp(formData: any) {
         // 1. Create Organization
         const { data: org, error: orgError } = await supabase
@@ -24,7 +38,12 @@ export const authService = {
             .select()
             .single();
 
-        if (orgError) throw orgError;
+        if (orgError) {
+            if (orgError.code === '23505') {
+                throw new Error('An organization with this name already exists. Please choose a different name.');
+            }
+            throw orgError;
+        }
 
         // 2. Sign up User
         const { data: authData, error: authError } = await supabase.auth.signUp({
