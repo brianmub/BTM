@@ -139,10 +139,27 @@ export function ParticipantDashboard() {
     return (
         <div className="min-h-screen">
             {/* ── HERO SECTION ── */}
-            <div className="relative overflow-hidden bg-foreground px-6 pt-12 pb-10">
+            <div className="relative overflow-hidden bg-foreground px-6 pt-10 pb-10">
                 {/* Diagonal red slash */}
                 <div className="absolute -right-12 top-0 w-48 h-full bg-primary skew-x-[-10deg] opacity-90" />
                 <div className="absolute -right-24 top-0 w-20 h-full bg-primary/30 skew-x-[-10deg]" />
+
+                {/* ── ORG LOGO (top-right, over the red slash, like a club crest) ── */}
+                <div className="absolute top-5 right-5 z-20">
+                    {organization?.logo_url ? (
+                        <img
+                            src={organization.logo_url}
+                            alt={organization.name}
+                            className="w-14 h-14 rounded-2xl object-contain bg-white/10 border border-white/20 p-1 shadow-2xl"
+                        />
+                    ) : (
+                        <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shadow-2xl backdrop-blur-sm">
+                            <span className="text-2xl font-black text-white uppercase">
+                                {organization?.name?.[0] ?? '⛪'}
+                            </span>
+                        </div>
+                    )}
+                </div>
 
                 <div className="relative z-10 space-y-6">
                     <div>

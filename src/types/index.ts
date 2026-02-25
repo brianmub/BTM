@@ -4,6 +4,7 @@ export interface Organization {
     id: string;
     name: string;
     slug: string;
+    logo_url?: string;
     description?: string;
     contact_email: string;
     contact_phone?: string;
