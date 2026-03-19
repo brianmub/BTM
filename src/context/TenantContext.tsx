@@ -50,7 +50,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             (currentProfile?.organization_id ? null : localStorage.getItem('active_org_slug'));
 
         try {
-            let query = supabase.from('organizations').select('*');
+            // Select specific columns to avoid crashing if a new column is missing from the DB
+            let query = supabase.from('organizations').select('id, name, slug, contact_email, join_code, primary_color, is_active');
 
             if (effectiveSlug) {
                 console.log('TenantContext: Fetching by slug:', effectiveSlug);

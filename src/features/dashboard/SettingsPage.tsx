@@ -16,6 +16,8 @@ import {
     Loader2,
     Sparkles,
     LogOut,
+    RefreshCw,
+    Copy,
 } from 'lucide-react';
 
 import { organizationService } from '@/services/organizationService';
@@ -33,7 +35,8 @@ export function SettingsPage() {
     const [loading, setLoading] = useState(false);
     const [orgForm, setOrgForm] = useState({
         name: '',
-        email: ''
+        email: '',
+        joinCode: ''
     });
 
     // Update URL when tab changes
@@ -53,7 +56,8 @@ export function SettingsPage() {
         if (organization) {
             setOrgForm({
                 name: organization.name,
-                email: organization.contact_email || ''
+                email: organization.contact_email || '',
+                joinCode: organization.join_code || ''
             });
         }
     }, [organization]);
@@ -64,7 +68,8 @@ export function SettingsPage() {
         try {
             await organizationService.updateOrganization(organization.id, {
                 name: orgForm.name,
-                contact_email: orgForm.email
+                contact_email: orgForm.email,
+                join_code: orgForm.joinCode
             });
             alert('Organization details updated successfully!');
         } catch (error) {
@@ -72,6 +77,18 @@ export function SettingsPage() {
             alert('Failed to update organization.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleRegenerateCode = () => {
+        const newCode = organizationService.generateJoinCode();
+        setOrgForm(prev => ({ ...prev, joinCode: newCode }));
+    };
+
+    const copyJoinCode = () => {
+        if (orgForm.joinCode) {
+            navigator.clipboard.writeText(orgForm.joinCode);
+            alert('Organization code copied to clipboard!');
         }
     };
 
@@ -231,6 +248,46 @@ export function SettingsPage() {
                                             onChange={(e) => setOrgForm({ ...orgForm, email: e.target.value })}
                                             className="w-full px-6 py-4 rounded-2xl border border-surface-border bg-background text-foreground font-bold focus:bg-background/80 focus:border-primary/30 outline-none transition-all shadow-inner"
                                         />
+                                    </div>
+
+                                    {/* Mobile Registration Code */}
+                                    <div className="space-y-3 md:col-span-2 pt-4 border-t border-surface-border mt-4">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-primary pl-1 flex items-center gap-2">
+                                                <Sparkles className="w-3 h-3" /> Mobile Registration Code
+                                            </label>
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">For Mobile App Signups</span>
+                                        </div>
+                                        <div className="flex gap-4">
+                                            <div className="relative flex-1">
+                                                <input
+                                                    type="text"
+                                                    value={orgForm.joinCode}
+                                                    readOnly
+                                                    className="w-full px-6 py-4 rounded-2xl border border-surface-border bg-background/50 text-foreground font-mono text-lg font-black tracking-[0.2em] outline-none transition-all shadow-inner uppercase"
+                                                    placeholder="NO CODE"
+                                                />
+                                                <button
+                                                    onClick={copyJoinCode}
+                                                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-surface rounded-xl text-slate-400 hover:text-primary transition-all"
+                                                    title="Copy Code"
+                                                >
+                                                    <Copy className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                className="h-auto px-6 border-surface-border bg-background hover:bg-surface"
+                                                onClick={handleRegenerateCode}
+                                            >
+                                                <RefreshCw className="w-4 h-4 mr-2" />
+                                                Regenerate
+                                            </Button>
+                                        </div>
+                                        <p className="text-[9px] text-slate-500 font-medium leading-relaxed px-1">
+                                            Participants can use this unique code to join your organization when registering on the mobile app. 
+                                            Regenerating the code will invalidate the previous one.
+                                        </p>
                                     </div>
                                 </div>
                             </div>

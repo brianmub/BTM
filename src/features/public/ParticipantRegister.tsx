@@ -6,6 +6,7 @@ import { GlassBox } from '@/components/ui/Card';
 import { supabase } from '@/services/supabase';
 import { Loader2, User, Mail, Lock, Phone, ArrowRight, ArrowLeft, Eye, EyeOff, ShieldCheck, Sparkles, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { organizationService } from '@/services/organizationService';
 
 export function ParticipantRegister() {
     const { orgSlug } = useParams();
@@ -17,6 +18,8 @@ export function ParticipantRegister() {
     const [orgData, setOrgData] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
+    const [joinCode, setJoinCode] = useState('');
+    const [searching, setSearching] = useState(false);
 
     const [form, setForm] = useState({
         firstName: '',
@@ -46,12 +49,40 @@ export function ParticipantRegister() {
     const passStrength = calculatePasswordStrength(form.password);
 
     useEffect(() => {
-        if (orgSlug) fetchOrg();
+        if (orgSlug) {
+            fetchOrg();
+        }
     }, [orgSlug]);
 
     const fetchOrg = async () => {
-        const { data } = await supabase.from('organizations').select('id, name, primary_color').eq('slug', orgSlug).single();
-        if (data) setOrgData(data);
+        setLoading(true);
+        try {
+            const { data } = await supabase.from('organizations').select('id, name, slug, primary_color').eq('slug', orgSlug).single();
+            if (data) setOrgData(data);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCodeLookup = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!joinCode) return;
+
+        setSearching(true);
+        setError(null);
+        try {
+            const org = await organizationService.getOrganizationByJoinCode(joinCode);
+            if (org) {
+                setOrgData(org);
+                // Also update URL if possible or just stay on /register
+            } else {
+                setError('Invalid organization code. Please check and try again.');
+            }
+        } catch (err) {
+            setError('Error searching for organization.');
+        } finally {
+            setSearching(false);
+        }
     };
 
     const handleRegister = async (e: React.FormEvent) => {
@@ -126,7 +157,62 @@ export function ParticipantRegister() {
         }
     };
 
-    if (!orgData && !loading) return null;
+    if (!orgData && !loading) {
+        return (
+            <PublicLayout showFooter={false}>
+                <div className="max-w-md mx-auto mt-20">
+                    <div className="text-center mb-10 space-y-2">
+                        <Sparkles className="w-12 h-12 text-primary mx-auto mb-4 animate-pulse" />
+                        <h1 className="text-3xl font-black text-foreground uppercase tracking-tighter">Join Organisation</h1>
+                        <p className="text-slate-500 text-sm font-medium">Enter your unique registration code</p>
+                    </div>
+
+                    <GlassBox className="p-8 border-surface-border bg-surface backdrop-blur-xl shadow-2xl">
+                        <form onSubmit={handleCodeLookup} className="space-y-6">
+                            {error && (
+                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold text-center">
+                                    {error}
+                                </div>
+                            )}
+
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center block">Organisation Code</label>
+                                <input
+                                    type="text"
+                                    value={joinCode}
+                                    onChange={e => setJoinCode(e.target.value.toUpperCase())}
+                                    placeholder="Enter 6-digit code"
+                                    maxLength={6}
+                                    className="w-full bg-background border border-surface-border rounded-2xl px-6 py-5 text-center text-2xl font-black tracking-[0.5em] text-foreground outline-none focus:border-primary/50 transition-all shadow-inner uppercase"
+                                    required
+                                />
+                            </div>
+
+                            <Button 
+                                variant="premium" 
+                                className="w-full h-14 text-sm font-black uppercase tracking-widest" 
+                                disabled={searching || joinCode.length < 6}
+                            >
+                                {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                                    <>Find Organisation <ArrowRight className="w-4 h-4 ml-2" /></>
+                                )}
+                            </Button>
+                        </form>
+                    </GlassBox>
+
+                    <p className="text-center mt-8 text-xs text-slate-500 font-medium">
+                        Don't have a code? Contact your organization administrator.
+                    </p>
+                </div>
+            </PublicLayout>
+        );
+    }
+
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+    );
 
     return (
         <PublicLayout showFooter={false}>

@@ -177,6 +177,9 @@ CREATE TABLE organizations (
     suspended_reason TEXT,
     suspended_at TIMESTAMP WITH TIME ZONE,
     
+    -- Mobile App Registration
+    join_code VARCHAR(10) UNIQUE,
+    
     -- Metadata
     created_by UUID, -- Platform admin who created (if not self-signup)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -185,6 +188,7 @@ CREATE TABLE organizations (
 
 CREATE INDEX idx_organizations_slug ON organizations(slug);
 CREATE INDEX idx_organizations_is_active ON organizations(is_active);
+CREATE INDEX idx_organizations_join_code ON organizations(join_code);
 
 -- Organization subscriptions
 CREATE TABLE organization_subscriptions (

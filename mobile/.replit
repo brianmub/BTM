@@ -1,0 +1,79 @@
+entrypoint = "README.md"
+modules = ["nodejs-22", "postgresql-16"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+deploymentTarget = "cloudrun"
+build = ["sh", "-c", "npm run expo:static:build && npm run server:build"]
+run = ["npm", "run", "server:prod"]
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[env]
+PORT = "5000"
+
+[agent]
+stack = "EXPO"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start App"
+
+[[workflows.workflow]]
+name = "Start App"
+author = "agent"
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start Backend"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start Frontend"
+
+[[workflows.workflow]]
+name = "Start Backend"
+author = "agent"
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run server:dev"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Start Frontend"
+author = "agent"
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run expo:dev"
+waitForPort = 8081
+ensurePreviewReachable = "/status"
+
+[userenv]
+
+[userenv.shared]
+SUPABASE_URL = "https://xrbddybbaqxlgextswbe.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYmRkeWJiYXF4bGdleHRzd2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NzcwOTgsImV4cCI6MjA4NTU1MzA5OH0.HcAk_ldYyeZ_Ho3vS74IMkqf6K3BCyFz63FtKAtj2Os"
+EXPO_PUBLIC_SUPABASE_URL = "https://xrbddybbaqxlgextswbe.supabase.co"
+EXPO_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYmRkeWJiYXF4bGdleHRzd2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NzcwOTgsImV4cCI6MjA4NTU1MzA5OH0.HcAk_ldYyeZ_Ho3vS74IMkqf6K3BCyFz63FtKAtj2Os"
+SUPABASE_DB_URL = "postgresql://postgres.xrbddybbaqxlgextswbe:c.bvpkw!WADq%2/@aws-1-eu-west-1.pooler.supabase.com:5432/postgres"

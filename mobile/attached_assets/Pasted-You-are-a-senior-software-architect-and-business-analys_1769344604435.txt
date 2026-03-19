@@ -1,0 +1,145 @@
+You are a senior software architect and business analyst.
+
+Your task is to design a formal Software Requirements Specification (SRS) for a mobile-first web application that manages a structured training program using self-enrollment, cell-based grouping, attendance tracking, assignment management, cash-based session payments, and graduation eligibility.
+
+CONTEXT
+
+The program operates in sessions. Participants and leaders self-register during a defined enrollment period. After enrollment closes, participants are grouped into balanced “cells” led by facilitators.
+
+The system must reduce manual registers, WhatsApp coordination, and spreadsheet tracking while maintaining accountability and auditability.
+
+USER ROLES
+
+Define and clearly separate the following roles:
+
+Participant
+
+Self-register and onboard
+
+View assigned cell and facilitator
+
+View sessions, assignments, attendance count, payment status, and graduation eligibility
+
+Submit assignments through the app
+
+Cell Leader (Facilitator)
+
+Self-register and await approval
+
+Manage one assigned cell
+
+Confirm attendance per session
+
+Confirm cash payments per session
+
+Confirm assignment completion
+
+Validate graduation eligibility
+
+Program Administrator
+
+Read-only access to reports
+
+No system configuration permissions
+
+System Administrator
+
+Full system access
+
+Approve and assign Cell Leaders
+
+Create enrollment periods and sessions
+
+Trigger cell creation
+
+Manually override cell assignments when necessary
+
+Access all audit logs and reports
+
+CORE FUNCTIONAL REQUIREMENTS
+
+Include detailed sections for:
+
+Enrollment periods and self-onboarding
+
+Leader onboarding and approval
+
+Session scheduling
+
+Attendance tracking with facilitator confirmation
+
+Assignment creation, submission, and confirmation
+
+Cash-based payment tracking per session with no mobile or online payment integration
+
+Graduation eligibility enforcement
+
+CELL GROUPING RULES
+
+Cells must:
+
+Be created only after enrollment closes
+
+Depend on the number of approved leaders and registered participants
+
+Have configurable minimum and maximum sizes
+
+Be balanced based on marital status, ensuring a fair distribution of married and unmarried participants
+
+REQUIRED: EXACT CELL-BALANCING ALGORITHM
+
+Write an explicit, step-by-step algorithm that:
+
+Distributes participants evenly across cells
+
+Balances married vs unmarried participants per cell
+
+Handles uneven numbers gracefully
+
+Enforces min and max cell sizes
+
+Flags edge cases for administrator intervention
+
+Allows manual overrides with audit logging
+
+Use clear variable definitions and deterministic logic.
+
+PAYMENT CONSTRAINTS
+
+Payments are made per session
+
+Payments are cash only
+
+Facilitators record payments in the system
+
+Payment records are immutable and auditable
+
+Reports must reflect payment compliance
+
+GRADUATION RULES
+
+A participant is eligible to graduate only if:
+
+They attended more than five (5) sessions
+
+All assignments are submitted and confirmed
+
+Attendance is confirmed by the facilitator
+
+Participants with four (4) sessions or fewer must re-enroll in the next program cycle.
+
+The system must automatically calculate and display eligibility status.
+
+NON-FUNCTIONAL REQUIREMENTS
+
+Include:
+
+Role-based access control
+
+Audit logs for critical actions
+
+Mobile-friendly design
+
+Data integrity and validation
+
+Admin override mechanisms with traceability

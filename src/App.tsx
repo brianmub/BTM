@@ -49,6 +49,7 @@ function App() {
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/forgot-password" element={<ForgotPassword />} />
                         <Route path="/invite/:token" element={<AcceptInvite />} />
+                        <Route path="/register" element={<ParticipantRegister />} />
 
                         {/* Public Portal */}
                         <Route path="/portal/:orgSlug" element={<OrgLandingPage />} />

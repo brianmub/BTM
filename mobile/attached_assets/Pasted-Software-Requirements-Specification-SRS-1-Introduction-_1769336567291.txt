@@ -1,0 +1,410 @@
+Software Requirements Specification (SRS)
+1. Introduction
+1.1 Purpose
+
+This document defines the functional and non-functional requirements for a Program Enrollment, Cell Grouping, Attendance, Assignment, and Graduation Management System. The system is intended to manage participant self-enrollment, balanced cell group creation, leader onboarding, session-based cash payments, attendance verification, assignment tracking, and graduation eligibility.
+
+1.2 Scope
+
+The system will:
+
+Allow participants and leaders to self-register
+
+Organize participants into balanced cells based on defined rules
+
+Manage session attendance and assignments
+
+Track per-session cash payments without mobile payment integration
+
+Enforce graduation criteria automatically
+
+Provide administrative oversight, reporting, and manual overrides where necessary
+
+The system is designed to reduce manual coordination, registers, and WhatsApp-based tracking while maintaining accountability.
+
+2. User Roles and Access Levels
+2.1 Participant
+
+Self-register and onboard
+
+View assigned cell and facilitator
+
+View session schedule
+
+View assignments and submit responses
+
+View attendance count and graduation eligibility status
+
+View payment history per session
+
+2.2 Cell Leader (Facilitator)
+
+Self-register
+
+Assigned or approved by Admin
+
+View assigned cell members
+
+Confirm session attendance
+
+Confirm cash payments received per session
+
+Review and confirm assignment completion
+
+Approve graduation eligibility for participants
+
+2.3 Program Administrator
+
+View aggregated reports
+
+View attendance statistics
+
+View assignment completion rates
+
+View graduation eligibility lists
+
+No system configuration access
+
+2.4 System Administrator
+
+Full system access
+
+Create enrollment periods
+
+Approve or assign Cell Leaders
+
+Trigger cell creation process
+
+Override cell assignments
+
+Manage roles and permissions
+
+Access all reports and audit logs
+
+3. Enrollment and Onboarding
+3.1 Enrollment Periods
+
+The system shall support defined enrollment windows
+
+During an enrollment period, participants and leaders may self-register
+
+No cell assignment occurs until the enrollment window closes
+
+3.2 Participant Registration
+
+Participants shall provide:
+
+Full name
+
+Contact details
+
+Gender
+
+Marital status (Married or Unmarried)
+
+Availability (optional but recommended)
+
+Agreement to program terms
+
+3.3 Leader Registration
+
+Leaders shall provide:
+
+Full name
+
+Contact details
+
+Gender
+
+Marital status
+
+Leadership confirmation status
+
+Leaders are marked as:
+
+Pending approval
+
+Approved Cell Leader
+
+Approval is done by the System Administrator.
+
+4. Cell Group Management
+4.1 Cell Creation Timing
+
+Cells are created after the enrollment period closes
+
+Cell creation depends on:
+
+Number of registered participants
+
+Number of approved Cell Leaders
+
+Target cell size configuration
+
+4.2 Cell Size Configuration
+
+Minimum cell size: Configurable (e.g. 8)
+
+Maximum cell size: Configurable (e.g. 12)
+
+Each cell must have exactly one Cell Leader
+
+5. Cell Balancing Algorithm (Exact Specification)
+5.1 Objectives
+
+The algorithm must:
+
+Distribute participants evenly across available cells
+
+Maintain a balanced ratio of Married vs Unmarried participants
+
+Avoid overloading any single cell
+
+Ensure no cell exceeds maximum size
+
+5.2 Definitions
+
+Let:
+
+P = total participants
+
+L = total approved Cell Leaders
+
+C = number of cells = L
+
+S_max = maximum cell size
+
+S_min = minimum cell size
+
+Participants are divided into:
+
+M = Married participants
+
+U = Unmarried participants
+
+5.3 Pre-Checks
+
+If P < L * S_min, the system shall:
+
+Reduce number of cells
+
+Or flag insufficient participants to admin
+
+If P > L * S_max, the system shall:
+
+Flag overflow and require admin intervention
+
+5.4 Algorithm Steps
+
+Step 1: Sort Participants
+
+Separate participants into two lists:
+
+Married list M
+
+Unmarried list U
+
+Shuffle both lists to avoid bias
+
+Step 2: Initialize Cells
+
+Create C empty cells
+
+Assign one approved Cell Leader per cell
+
+Step 3: Calculate Target Distribution
+For each cell:
+
+target_married = round(|M| / C)
+
+target_unmarried = round(|U| / C)
+
+Step 4: Primary Distribution
+
+Loop through each cell:
+
+Assign up to target_married participants from M
+
+Assign up to target_unmarried participants from U
+
+Ensure total cell size does not exceed S_max
+
+Step 5: Remainder Distribution
+
+Combine remaining participants from M and U
+
+Distribute one-by-one to cells with:
+
+Lowest current size
+
+Lowest deviation from ideal married/unmarried ratio
+
+Step 6: Validation
+
+Ensure:
+
+No cell exceeds S_max
+
+No cell is below S_min unless unavoidable
+
+If constraints fail:
+
+Flag admin for manual adjustment
+
+5.5 Manual Overrides
+
+Admin may manually move participants between cells
+
+All overrides must be logged
+
+6. Attendance Management
+6.1 Session Definition
+
+Sessions are predefined by the System Administrator
+
+Each session has:
+
+Date
+
+Session number
+
+Assignment (optional)
+
+6.2 Attendance Recording
+
+Attendance is recorded per session
+
+Cell Leader confirms attendance from a digital register
+
+Attendance is immutable once confirmed unless overridden by Admin
+
+7. Assignment Management
+7.1 Assignment Creation
+
+Assignments are created per session
+
+Each assignment includes:
+
+Title
+
+Description
+
+Due date
+
+Submission format (text upload or file upload)
+
+7.2 Assignment Submission
+
+Participants submit assignments through the app
+
+Submissions are timestamped
+
+Late submissions are flagged
+
+7.3 Assignment Confirmation
+
+Cell Leaders confirm assignment completion
+
+Completion status contributes to graduation eligibility
+
+8. Payment Handling (Cash-Based, Per Session)
+8.1 Payment Model
+
+Payment is required per session
+
+No mobile or online payment integration
+
+Cash payments are collected physically
+
+8.2 Payment Recording
+
+Cell Leader records:
+
+Participant
+
+Session
+
+Amount paid
+
+Payment status (Paid or Not Paid)
+
+Payment confirmation requires leader authentication
+
+8.3 Audit Controls
+
+Payment records cannot be deleted
+
+Admin can flag discrepancies
+
+Payment logs are included in reports
+
+9. Graduation Eligibility Rules
+
+A participant is eligible to graduate if ALL conditions are met:
+
+Attendance:
+
+Attended more than five (5) sessions
+
+Assignments:
+
+All assignments submitted and confirmed
+
+Verification:
+
+Facilitator confirms attendance and compliance
+
+9.1 System Enforcement
+
+Eligibility is calculated automatically
+
+Participants who attended four (4) sessions or fewer are flagged:
+
+Required to re-enroll in the next program cycle
+
+9.2 Graduation Grouping
+
+Eligible participants are added to a graduation list
+
+Facilitators confirm final graduation group
+
+10. Reporting
+10.1 Available Reports
+
+Attendance per session
+
+Attendance per cell
+
+Assignment completion rates
+
+Payment summaries
+
+Graduation eligibility lists
+
+10.2 Access Control
+
+Program Administrator: View-only reports
+
+System Administrator: Full access
+
+11. Non-Functional Requirements
+
+Secure authentication and role-based access
+
+Audit logs for all critical actions
+
+Mobile-friendly interface
+
+Offline-friendly data entry for leaders where possible
+
+Data integrity and consistency
+
+12. Critical Observations (Constructive)
+
+Cash payments introduce trust risk. Strong audit logs and leader accountability are mandatory.
+
+Cell balancing will never be perfect with uneven demographics. Admin override is not optional.
+
+Enrollment windows are essential to prevent continuous reshuffling chaos.
+
+Assignments should remain lightweight or leaders will bypass the system.
