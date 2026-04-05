@@ -1,5 +1,7 @@
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+// expo-notifications is not fully supported in Expo Go.
+// All notification calls are stubbed to no-ops here.
+// When building a standalone/production app re-enable the real implementation.
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NOTIFICATION_SETTINGS_KEY = '@btm_notification_settings';
@@ -13,38 +15,20 @@ export interface NotificationSettings {
 }
 
 const DEFAULT_SETTINGS: NotificationSettings = {
-  enabled: true,
-  sessionReminders: true,
-  assignmentReminders: true,
-  attendanceAlerts: true,
-  cellUpdates: true,
+  enabled: false, // disabled by default in Expo Go
+  sessionReminders: false,
+  assignmentReminders: false,
+  attendanceAlerts: false,
+  cellUpdates: false,
 };
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// No-op: expo-notifications handler skipped in Expo Go
+// Notifications.setNotificationHandler({ ... });
 
 export const notificationService = {
   async requestPermissions(): Promise<boolean> {
-    if (Platform.OS === 'web') {
-      return false;
-    }
-
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-
-    return finalStatus === 'granted';
+    // Stubbed – expo-notifications not supported in Expo Go
+    return false;
   },
 
   async getSettings(): Promise<NotificationSettings> {
@@ -64,160 +48,75 @@ export const notificationService = {
   },
 
   async scheduleSessionReminder(
-    sessionId: string,
-    sessionTitle: string,
-    sessionDate: Date,
-    programName: string
+    _sessionId: string,
+    _sessionTitle: string,
+    _sessionDate: Date,
+    _programName: string
   ): Promise<string | null> {
-    const settings = await this.getSettings();
-    if (!settings.enabled || !settings.sessionReminders) return null;
-
-    const reminderDate = new Date(sessionDate);
-    reminderDate.setHours(reminderDate.getHours() - 24);
-
-    if (reminderDate <= new Date()) return null;
-
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Session Tomorrow',
-        body: `${sessionTitle} for ${programName} is tomorrow. Don't forget to attend!`,
-        data: { type: 'session_reminder', sessionId },
-      },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: reminderDate },
-    });
-
-    return id;
+    // Stubbed – expo-notifications not supported in Expo Go
+    return null;
   },
 
   async scheduleAssignmentReminder(
-    assignmentId: string,
-    assignmentTitle: string,
-    dueDate: Date,
-    programName: string
+    _assignmentId: string,
+    _assignmentTitle: string,
+    _dueDate: Date,
+    _programName: string
   ): Promise<string | null> {
-    const settings = await this.getSettings();
-    if (!settings.enabled || !settings.assignmentReminders) return null;
-
-    const reminderDate = new Date(dueDate);
-    reminderDate.setHours(reminderDate.getHours() - 48);
-
-    if (reminderDate <= new Date()) return null;
-
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Assignment Due Soon',
-        body: `"${assignmentTitle}" for ${programName} is due in 2 days. Make sure to submit!`,
-        data: { type: 'assignment_reminder', assignmentId },
-      },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: reminderDate },
-    });
-
-    return id;
+    // Stubbed – expo-notifications not supported in Expo Go
+    return null;
   },
 
   async sendLocalNotification(
-    title: string,
-    body: string,
-    data?: Record<string, unknown>
+    _title: string,
+    _body: string,
+    _data?: Record<string, unknown>
   ): Promise<string | null> {
-    const settings = await this.getSettings();
-    if (!settings.enabled) return null;
-
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-        data: data || {},
-      },
-      trigger: null,
-    });
-
-    return id;
+    // Stubbed – expo-notifications not supported in Expo Go
+    return null;
   },
 
-  async notifyCellAssignment(cellName: string, leaderName: string, programName: string): Promise<void> {
-    const settings = await this.getSettings();
-    if (!settings.enabled || !settings.cellUpdates) return;
-
-    await this.sendLocalNotification(
-      'Cell Assignment',
-      `You have been assigned to ${cellName} in ${programName}. Your cell leader is ${leaderName}.`,
-      { type: 'cell_assignment' }
-    );
+  async notifyCellAssignment(_cellName: string, _leaderName: string, _programName: string): Promise<void> {
+    // Stubbed
   },
 
-  async notifyAttendanceConfirmed(sessionTitle: string): Promise<void> {
-    const settings = await this.getSettings();
-    if (!settings.enabled || !settings.attendanceAlerts) return;
-
-    await this.sendLocalNotification(
-      'Attendance Confirmed',
-      `Your attendance for "${sessionTitle}" has been confirmed by your cell leader.`,
-      { type: 'attendance_confirmed' }
-    );
+  async notifyAttendanceConfirmed(_sessionTitle: string): Promise<void> {
+    // Stubbed
   },
 
-  async notifyAssignmentConfirmed(assignmentTitle: string): Promise<void> {
-    const settings = await this.getSettings();
-    if (!settings.enabled || !settings.assignmentReminders) return;
-
-    await this.sendLocalNotification(
-      'Assignment Confirmed',
-      `Your submission for "${assignmentTitle}" has been confirmed!`,
-      { type: 'assignment_confirmed' }
-    );
+  async notifyAssignmentConfirmed(_assignmentTitle: string): Promise<void> {
+    // Stubbed
   },
 
   async notifyLeaderApproved(): Promise<void> {
-    const settings = await this.getSettings();
-    if (!settings.enabled) return;
-
-    await this.sendLocalNotification(
-      'Leader Approved',
-      'Your cell leader application has been approved! You can now manage your cell group.',
-      { type: 'leader_approved' }
-    );
+    // Stubbed
   },
 
-  async notifyPaymentRecorded(amount: number, programName: string): Promise<void> {
-    const settings = await this.getSettings();
-    if (!settings.enabled) return;
-
-    await this.sendLocalNotification(
-      'Payment Recorded',
-      `Your payment of $${amount.toFixed(2)} for ${programName} has been recorded.`,
-      { type: 'payment_recorded' }
-    );
+  async notifyPaymentRecorded(_amount: number, _programName: string): Promise<void> {
+    // Stubbed
   },
 
-  async notifyGraduationEligible(programName: string): Promise<void> {
-    const settings = await this.getSettings();
-    if (!settings.enabled) return;
-
-    await this.sendLocalNotification(
-      'Graduation Eligible!',
-      `Congratulations! You are now eligible for graduation from ${programName}.`,
-      { type: 'graduation_eligible' }
-    );
+  async notifyGraduationEligible(_programName: string): Promise<void> {
+    // Stubbed
   },
 
-  async cancelNotification(notificationId: string): Promise<void> {
-    await Notifications.cancelScheduledNotificationAsync(notificationId);
+  async cancelNotification(_notificationId: string): Promise<void> {
+    // Stubbed
   },
 
   async cancelAllNotifications(): Promise<void> {
-    await Notifications.cancelAllScheduledNotificationsAsync();
+    // Stubbed
   },
 
   async getBadgeCount(): Promise<number> {
-    return await Notifications.getBadgeCountAsync();
+    return 0;
   },
 
-  async setBadgeCount(count: number): Promise<void> {
-    await Notifications.setBadgeCountAsync(count);
+  async setBadgeCount(_count: number): Promise<void> {
+    // Stubbed
   },
 
   async clearBadge(): Promise<void> {
-    await Notifications.setBadgeCountAsync(0);
+    // Stubbed
   },
 };

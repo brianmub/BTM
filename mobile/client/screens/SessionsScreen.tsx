@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { storage, Session, AttendanceRecord } from "@/lib/storage";
 
 export default function SessionsScreen() {
+  console.log("[DEBUG] SessionsScreen loaded - v2 with attendance logic fixes");
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
@@ -26,16 +27,19 @@ export default function SessionsScreen() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [checkingOutId, setCheckingOutId] = useState<string | null>(null);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
+    if (!user?.organizationId) return;
+
     const [loadedSessions, loadedAttendance] = await Promise.all([
-      storage.getSessions(),
-      storage.getAttendance(),
+      storage.getSessions(user.organizationId),
+      storage.getUserAttendance(user.id),
     ]);
     setSessions(loadedSessions.sort((a, b) => a.sessionNumber - b.sessionNumber));
     setAttendance(loadedAttendance);
-  }, []);
+  }, [user?.organizationId]);
 
   useEffect(() => {
     loadData();
@@ -90,11 +94,16 @@ export default function SessionsScreen() {
 
   const formatTime = (isoString?: string): string => {
     if (!isoString) return "-";
-    const date = new Date(isoString);
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return "-";
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      return "-";
+    }
   };
 
   const canCheckOut = async (sessionDate: string): Promise<boolean> => {
@@ -129,6 +138,34 @@ export default function SessionsScreen() {
     });
   };
 
+  const handleDirectCheckOut = async (session: Session) => {
+    const isAvailable = await storage.isCheckoutAvailable(session.date);
+    if (!isAvailable) {
+      Alert.alert(
+        "Check-Out Not Available",
+        "Check-out is only available after 11:00 AM on the session date."
+      );
+      return;
+    }
+
+    try {
+      setCheckingOutId(session.id);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const result = await storage.checkOutOfSession(user!.id, session.id);
+      
+      if (result.success) {
+        Alert.alert("Success", "Successfully checked out! Hope you enjoyed the session.");
+        loadData();
+      } else {
+        Alert.alert("Error", result.message);
+      }
+    } catch (err) {
+      Alert.alert("Error", "Failed to check out. Please try again or use the QR scanner.");
+    } finally {
+      setCheckingOutId(null);
+    }
+  };
+
   const getSessionStatus = (session: Session): "upcoming" | "available" | "past" => {
     const sessionDate = new Date(session.date);
     const now = new Date();
@@ -151,6 +188,7 @@ export default function SessionsScreen() {
   const renderSession = ({ item: session, index }: { item: Session; index: number }) => {
     const status = getSessionStatus(session);
     const checkedIn = isCheckedIn(session.id);
+    const hasActiveOtherSession = attendance.some(a => a.sessionId !== session.id && a.checkedIn && !a.exitTime);
     const confirmed = isConfirmed(session.id);
     const isExpanded = expandedSessionId === session.id;
 
@@ -271,15 +309,16 @@ export default function SessionsScreen() {
                     </View>
                     {!getAttendanceRecord(session.id)?.exitTime ? (
                       <Button
-                        variant="outline"
-                        onPress={() => handleQRCheckOut(session)}
-                        style={styles.checkInButton}
+                        variant="primary"
+                        onPress={() => handleDirectCheckOut(session)}
+                        loading={checkingOutId === session.id}
+                        style={[styles.checkInButton, { backgroundColor: theme.error }]}
                       >
-                        Scan QR to Check Out
+                        Check Out Now
                       </Button>
                     ) : null}
                   </>
-                ) : (
+                ) : !hasActiveOtherSession ? (
                   <View style={styles.qrButtonsContainer}>
                     <Button
                       onPress={() => handleQRCheckIn(session)}
@@ -290,6 +329,13 @@ export default function SessionsScreen() {
                     </Button>
                     <ThemedText type="small" style={[styles.qrHint, { color: theme.textSecondary }]}>
                       Scan the session QR code to record your entry time
+                    </ThemedText>
+                  </View>
+                ) : (
+                  <View style={[styles.confirmedBadge, { backgroundColor: theme.textSecondary + "20" }]}>
+                    <Feather name="alert-circle" size={18} color={theme.textSecondary} />
+                    <ThemedText type="body" style={{ color: theme.textSecondary, marginLeft: Spacing.sm }}>
+                      Another session is currently active
                     </ThemedText>
                   </View>
                 )}
@@ -322,7 +368,7 @@ export default function SessionsScreen() {
             <View style={[styles.attendanceSummary, { backgroundColor: theme.backgroundSecondary }]}>
               <Feather name="check-circle" size={16} color={theme.link} />
               <ThemedText type="small" style={{ marginLeft: Spacing.sm }}>
-                {attendedCount}/5 sessions confirmed
+                {attendedCount}/{sessions.length} sessions confirmed
               </ThemedText>
             </View>
           </View>

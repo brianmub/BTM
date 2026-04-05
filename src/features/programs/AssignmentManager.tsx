@@ -42,6 +42,7 @@ export function AssignmentManager({ programId }: { programId: string }) {
         session_id: '',
         max_score: 100
     });
+    const [createError, setCreateError] = useState<string | null>(null);
 
     useEffect(() => {
         if (organization) {
@@ -128,6 +129,11 @@ export function AssignmentManager({ programId }: { programId: string }) {
 
     const handleCreateAssignment = async (e: React.FormEvent) => {
         e.preventDefault();
+        setCreateError(null);
+        if (!newAssignment.session_id) {
+            setCreateError('Please select a session for this assignment.');
+            return;
+        }
         try {
             await assignmentService.createAssignment({
                 ...newAssignment,
@@ -135,9 +141,11 @@ export function AssignmentManager({ programId }: { programId: string }) {
                 is_active: true
             });
             setIsCreateModalOpen(false);
+            setNewAssignment({ name: '', description: '', due_date: '', session_id: '', max_score: 100 });
             fetchAssignments();
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
+            setCreateError(err?.message || 'Failed to create assignment. Please try again.');
         }
     };
 
@@ -362,6 +370,25 @@ export function AssignmentManager({ programId }: { programId: string }) {
                             </button>
                         </div>
                         <form onSubmit={handleCreateAssignment} className="space-y-6">
+                            {createError && (
+                                <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-xs font-bold uppercase tracking-widest">
+                                    {createError}
+                                </div>
+                            )}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Session</label>
+                                <select
+                                    className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground text-sm focus:border-primary outline-none"
+                                    value={newAssignment.session_id}
+                                    onChange={e => setNewAssignment({ ...newAssignment, session_id: e.target.value })}
+                                    required
+                                >
+                                    <option value="">Select a session...</option>
+                                    {sessions.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                    ))}
+                                </select>
+                            </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Assignment Name</label>
                                 <input

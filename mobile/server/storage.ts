@@ -40,17 +40,20 @@ export interface Session {
   overview: string;
   topics: string[];
   assignment_id?: string;
+  qr_code_data: string;
 }
 
 export interface Enrollment {
   id: string;
   program_id: string;
+  organization_id: string;
   user_id: string;
   status: 'enrolled' | 'assigned' | 'graduated' | 'incomplete';
   cell_id?: string;
   enrolled_at: string;
   sessions_attended: number;
   assignments_completed: number;
+  payment_status?: string;
 }
 
 export interface CellGroup {
@@ -62,6 +65,7 @@ export interface CellGroup {
 
 export interface Assignment {
   id: string;
+  organization_id: string;
   session_id: string;
   program_id: string;
   title: string;
@@ -93,6 +97,7 @@ export interface AssignmentSubmission {
 
 export interface AttendanceRecord {
   id: string;
+  organization_id: string;
   session_id: string;
   program_id: string;
   user_id: string;
@@ -224,8 +229,14 @@ export const storage = {
   },
 
   // Programs
-  async getPrograms(): Promise<Program[]> {
-    const { data, error } = await supabase.from('programs').select('*').eq('is_active', true);
+  async getPrograms(organizationId?: string): Promise<Program[]> {
+    let query = supabase.from('programs').select('*').eq('is_active', true);
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+    // Sort by name for better UX
+    query = query.order('name', { ascending: true });
+    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   },
@@ -249,34 +260,64 @@ export const storage = {
   },
 
   // Sessions
-  async getSessions(): Promise<Session[]> {
-    const { data, error } = await supabase.from('sessions').select('*').order('session_number');
+  async getSessions(organizationId?: string): Promise<Session[]> {
+    let query = supabase.from('sessions').select('*').order('session_number');
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+    const { data, error } = await query;
     if (error) throw error;
-    return data || [];
+    return (data || []).map(this.mapDbSessionToMobile);
   },
 
   async getSessionsByProgram(programId: string): Promise<Session[]> {
     const { data, error } = await supabase.from('sessions').select('*').eq('program_id', programId).order('session_number');
     if (error) throw error;
-    return data || [];
+    return (data || []).map(this.mapDbSessionToMobile);
   },
 
   async getSessionById(id: string): Promise<Session | null> {
     const { data, error } = await supabase.from('sessions').select('*').eq('id', id).single();
-    if (error) return null;
-    return data;
+    if (error || !data) return null;
+    return this.mapDbSessionToMobile(data);
+  },
+
+  mapDbSessionToMobile(row: any): Session {
+    return {
+      id: row.id,
+      program_id: row.program_id,
+      session_number: row.session_number || 1,
+      date: row.session_date || new Date().toISOString(),
+      title: row.name || 'Unnamed Session',
+      overview: row.description || '',
+      topics: [],
+      qr_code_data: row.qr_code_data || '',
+    };
   },
 
   async updateSession(id: string, updates: Partial<Session>): Promise<Session | null> {
-    const { data, error } = await supabase.from('sessions').update(updates).eq('id', id).select().single();
+    // Only map back if the mobile app attempts an update, though typically admins use the web portal
+    const { data, error } = await supabase.from('sessions').update({
+       name: updates.title,
+       description: updates.overview,
+       session_date: updates.date,
+       session_number: updates.session_number
+    }).eq('id', id).select().single();
     if (error) throw error;
-    return data;
+    return this.mapDbSessionToMobile(data);
   },
 
-  async createSession(session: Omit<Session, 'id'>): Promise<Session> {
-    const { data, error } = await supabase.from('sessions').insert(session).select().single();
+  async createSession(session: Omit<Session, 'id' | 'qr_code_data'> & { qr_code_data?: string }): Promise<Session> {
+    const { data, error } = await supabase.from('sessions').insert({
+       program_id: session.program_id,
+       name: session.title,
+       description: session.overview,
+       session_date: session.date,
+       session_number: session.session_number,
+       qr_code_data: session.qr_code_data || `session-${Math.random().toString(36).substring(2, 11)}`
+    }).select().single();
     if (error) throw error;
-    return data;
+    return this.mapDbSessionToMobile(data);
   },
 
   async deleteSession(id: string): Promise<void> {
@@ -285,8 +326,12 @@ export const storage = {
   },
 
   // Enrollments
-  async getEnrollments(): Promise<Enrollment[]> {
-    const { data, error } = await supabase.from('enrollments').select('*');
+  async getEnrollments(organizationId?: string): Promise<Enrollment[]> {
+    let query = supabase.from('enrollments').select('*');
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   },
@@ -355,9 +400,38 @@ export const storage = {
     if (error) throw error;
   },
 
+  async getUnassignedParticipants(programId: string): Promise<User[]> {
+    const { data: enrollments, error: enrollError } = await supabase
+      .from('enrollments')
+      .select('user_id')
+      .eq('program_id', programId)
+      .eq('status', 'enrolled')
+      .is('cell_id', null);
+
+    if (enrollError) throw enrollError;
+    if (!enrollments || enrollments.length === 0) return [];
+
+    const userIds = enrollments.map(e => e.user_id);
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('*')
+      .in('id', userIds);
+
+    if (usersError) throw usersError;
+
+    return (users || []).map(u => ({
+      ...u,
+      full_name: `${u.first_name || ''} ${u.surname || ''}`.trim()
+    }));
+  },
+
   // Assignments
-  async getAssignments(): Promise<Assignment[]> {
-    const { data, error } = await supabase.from('assignments').select('*');
+  async getAssignments(organizationId?: string): Promise<Assignment[]> {
+    let query = supabase.from('assignments').select('*');
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   },
@@ -375,8 +449,12 @@ export const storage = {
   },
 
   // Assignment Submissions
-  async getSubmissions(): Promise<AssignmentSubmission[]> {
-    const { data, error } = await supabase.from('assignment_submissions').select('*');
+  async getSubmissions(organizationId?: string): Promise<AssignmentSubmission[]> {
+    let query = supabase.from('assignment_submissions').select('*');
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   },
@@ -418,27 +496,31 @@ export const storage = {
   },
 
   // Attendance
-  async getAttendance(): Promise<AttendanceRecord[]> {
-    const { data, error } = await supabase.from('attendance').select('*');
+  async getAttendance(organizationId?: string): Promise<AttendanceRecord[]> {
+    let query = supabase.from('attendance_records').select('*');
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   },
 
   async getUserAttendance(userId: string): Promise<AttendanceRecord[]> {
-    const { data, error } = await supabase.from('attendance').select('*').eq('user_id', userId);
+    const { data, error } = await supabase.from('attendance_records').select('*').eq('user_id', userId);
     if (error) throw error;
     return data || [];
   },
 
   async getSessionAttendance(sessionId: string): Promise<AttendanceRecord[]> {
-    const { data, error } = await supabase.from('attendance').select('*').eq('session_id', sessionId);
+    const { data, error } = await supabase.from('attendance_records').select('*').eq('session_id', sessionId);
     if (error) throw error;
     return data || [];
   },
 
   async upsertAttendance(record: Omit<AttendanceRecord, 'id'>): Promise<AttendanceRecord> {
     const { data, error } = await supabase
-      .from('attendance')
+      .from('attendance_records')
       .upsert(record, { onConflict: 'session_id,user_id' })
       .select()
       .single();
@@ -447,38 +529,42 @@ export const storage = {
   },
 
   async updateAttendance(id: string, updates: Partial<AttendanceRecord>): Promise<AttendanceRecord | null> {
-    const { data, error } = await supabase.from('attendance').update(updates).eq('id', id).select().single();
+    const { data, error } = await supabase.from('attendance_records').update(updates).eq('id', id).select().single();
     if (error) throw error;
     return data;
   },
 
   // Payments
-  async getPayments(): Promise<PaymentRecord[]> {
-    const { data, error } = await supabase.from('payments').select('*');
+  async getPayments(organizationId?: string): Promise<PaymentRecord[]> {
+    let query = supabase.from('payment_records').select('*');
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   },
 
   async getUserPayments(userId: string): Promise<PaymentRecord[]> {
-    const { data, error } = await supabase.from('payments').select('*').eq('user_id', userId);
+    const { data, error } = await supabase.from('payment_records').select('*').eq('user_id', userId);
     if (error) throw error;
     return data || [];
   },
 
   async createPayment(payment: Omit<PaymentRecord, 'id'>): Promise<PaymentRecord> {
-    const { data, error } = await supabase.from('payments').insert(payment).select().single();
+    const { data, error } = await supabase.from('payment_records').insert(payment).select().single();
     if (error) throw error;
     return data;
   },
 
   async updatePayment(id: string, updates: Partial<PaymentRecord>): Promise<PaymentRecord | null> {
-    const { data, error } = await supabase.from('payments').update(updates).eq('id', id).select().single();
+    const { data, error } = await supabase.from('payment_records').update(updates).eq('id', id).select().single();
     if (error) throw error;
     return data;
   },
 
   async getSessionPayments(sessionId: string): Promise<PaymentRecord[]> {
-    const { data, error } = await supabase.from('payments').select('*').eq('session_id', sessionId);
+    const { data, error } = await supabase.from('payment_records').select('*').eq('session_id', sessionId);
     if (error) throw error;
     return data || [];
   },

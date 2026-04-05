@@ -46,10 +46,11 @@ export default function FacilitatorHomeScreen({ navigation }: Props) {
   const [nextSession, setNextSession] = useState<Session | null>(null);
 
   const loadData = useCallback(async () => {
+    if (!user?.organizationId) return;
     const [sessions, programs, assignments] = await Promise.all([
-      storage.getSessions(),
-      storage.getPrograms(),
-      storage.getAssignments(),
+      storage.getSessions(user.organizationId),
+      storage.getPrograms(user.organizationId),
+      storage.getAssignments(user.organizationId),
     ]);
 
     const now = new Date();

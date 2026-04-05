@@ -15,6 +15,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { storage, Session, Program } from "@/lib/storage";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SessionWithProgram extends Session {
   programName: string;
@@ -25,6 +26,7 @@ export default function SessionManagementScreen() {
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const [sessions, setSessions] = useState<SessionWithProgram[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedSession, setSelectedSession] = useState<SessionWithProgram | null>(null);
@@ -34,9 +36,10 @@ export default function SessionManagementScreen() {
   const [isSaving, setIsSaving] = useState(false);
 
   const loadData = useCallback(async () => {
+    if (!user?.organizationId) return;
     const [allSessions, programs] = await Promise.all([
-      storage.getSessions(),
-      storage.getPrograms(),
+      storage.getSessions(user.organizationId),
+      storage.getPrograms(user.organizationId),
     ]);
 
     const sessionsWithProgram: SessionWithProgram[] = allSessions.map(session => ({

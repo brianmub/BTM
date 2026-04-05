@@ -33,6 +33,8 @@ export function AnalyticsDashboard() {
     const [stats, setStats] = useState({ programs: 0, sessions: 0, attendance: 0 });
     const [loading, setLoading] = useState(true);
     const [analytics, setAnalytics] = useState<any>({ attendanceFlux: [], userExpansion: [], programPerformance: [] });
+    const [groupStats, setGroupStats] = useState<any[]>([]);
+    const [selectedProgramId, setSelectedProgramId] = useState<string>('');
 
     useEffect(() => {
         if (orgLoading) return;
@@ -53,11 +55,24 @@ export function AnalyticsDashboard() {
             ]);
             setStats(s as any);
             setAnalytics(a);
+
+            if (a.programPerformance.length > 0) {
+                const progId = a.programPerformance[0].id;
+                setSelectedProgramId(progId);
+                const gStats = await profileService.getGroupStats(progId);
+                setGroupStats(gStats);
+            }
         } catch (err) {
             console.error(err);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleProgramChange = async (programId: string) => {
+        setSelectedProgramId(programId);
+        const gStats = await profileService.getGroupStats(programId);
+        setGroupStats(gStats);
     };
 
     // Process Attendance Flux for Chart (Last 7 Days)
@@ -73,7 +88,7 @@ export function AnalyticsDashboard() {
     const attendanceData = lastSevenDays().map(date => {
         const dayName = days[date.getDay()];
         const count = analytics.attendanceFlux.filter((a: any) =>
-            new Date(a.checkin_time).toDateString() === date.toDateString()
+            new Date(a.checked_in_at).toDateString() === date.toDateString()
         ).length;
         return { name: dayName, attendance: count, capacity: 100 };
     });
@@ -101,7 +116,7 @@ export function AnalyticsDashboard() {
     }
 
     const avgAttendance = analytics.attendanceFlux.length > 0
-        ? Math.round(analytics.attendanceFlux.length / new Set(analytics.attendanceFlux.map((a: any) => new Date(a.checkin_time).toDateString())).size)
+        ? Math.round(analytics.attendanceFlux.length / new Set(analytics.attendanceFlux.map((a: any) => new Date(a.checked_in_at).toDateString())).size)
         : 0;
 
     const newEnrollments = analytics.userExpansion.length;
@@ -243,32 +258,49 @@ export function AnalyticsDashboard() {
 
             <div className="grid lg:grid-cols-3 gap-12">
                 <Card className="lg:col-span-2 p-10 bg-surface border-surface-border shadow-2xl">
-                    <h3 className="text-[11px] font-black text-foreground uppercase tracking-[0.2em] mb-10">Curriculum Performance</h3>
+                    <div className="flex justify-between items-center mb-10">
+                        <h3 className="text-[11px] font-black text-foreground uppercase tracking-[0.2em]">Group Capacity & Engagement</h3>
+                        <select 
+                            value={selectedProgramId}
+                            onChange={(e) => handleProgramChange(e.target.value)}
+                            className="bg-background border border-surface-border rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary/40 transition-all"
+                        >
+                            {analytics.programPerformance.map((p: any) => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    
                     <div className="space-y-8">
-                        {analytics.programPerformance.length > 0 ? analytics.programPerformance.map((program: any, i: number) => {
+                        {groupStats.length > 0 ? groupStats.map((group: any, i: number) => {
                             const colors = ['bg-indigo-500', 'bg-pink-500', 'bg-amber-500', 'bg-emerald-500'];
                             const color = colors[i % colors.length];
-                            // Using enrollment count as a simple performance metric for now
-                            const rate = Math.min(100, (program.enrollments[0]?.count || 0) * 5); // Multiplier for visual effect
+                            const memberCount = group.members[0]?.count || 0;
+                            const capacity = group.max_capacity || 20;
+                            const rate = Math.min(100, (memberCount / capacity) * 100);
 
                             return (
-                                <div key={program.id} className="space-y-3">
+                                <div key={group.id} className="space-y-3">
                                     <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                                        <span className="text-foreground">{program.name}</span>
-                                        <span className="text-slate-500">{program.enrollments[0]?.count || 0} Enrolled</span>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-foreground">{group.name}</span>
+                                            <span className="text-slate-500 opacity-50">•</span>
+                                            <span className="text-slate-500 font-bold">{group.facilitator ? `${group.facilitator.first_name} ${group.facilitator.surname}` : 'No Lead'}</span>
+                                        </div>
+                                        <span className="text-slate-500">{memberCount} / {capacity} Members</span>
                                     </div>
                                     <div className="w-full h-2 bg-background rounded-full overflow-hidden border border-surface-border p-0.5">
                                         <motion.div
                                             initial={{ width: 0 }}
                                             animate={{ width: `${rate}%` }}
-                                            className={`h-full ${color} rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(0,0,0,0.5)]`}
+                                            className={`h-full ${color} rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(0,0,0,0.3)]`}
                                         ></motion.div>
                                     </div>
                                 </div>
                             );
                         }) : (
-                            <div className="text-center py-10 text-slate-500 text-[10px] uppercase font-black tracking-widest italic">
-                                No active curricula recorded.
+                            <div className="text-center py-20 text-slate-500 text-[10px] uppercase font-black tracking-widest italic opacity-40">
+                                No groups assembled for this curriculum.
                             </div>
                         )}
                     </div>

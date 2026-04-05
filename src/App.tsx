@@ -36,6 +36,7 @@ import { ParticipantProgramView } from '@/features/participant/ParticipantProgra
 import { CellGroupDashboard } from '@/features/cellgroups/CellGroupDashboard';
 import { CellMeetingRegister } from '@/features/cellgroups/CellMeetingRegister';
 import { CellMeetingHistory } from '@/features/cellgroups/CellMeetingHistory';
+import { AttendanceLogs } from '@/features/dashboard/AttendanceLogs';
 
 function App() {
     return (
@@ -120,6 +121,12 @@ function App() {
                         <Route path="/dashboard/qr" element={
                             <RequireRole roles={['platform_admin', 'system_admin', 'program_admin', 'facilitator']}>
                                 <DashboardLayout><QRManagement /></DashboardLayout>
+                            </RequireRole>
+                        } />
+
+                        <Route path="/dashboard/attendance" element={
+                            <RequireRole roles={['platform_admin', 'system_admin', 'program_admin', 'facilitator']}>
+                                <DashboardLayout><AttendanceLogs /></DashboardLayout>
                             </RequireRole>
                         } />
 

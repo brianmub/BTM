@@ -15,6 +15,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { storage, Assignment, AssignmentSubmission, Program } from "@/lib/storage";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AssignmentWithStats extends Assignment {
   programName: string;
@@ -27,6 +28,7 @@ export default function AssignmentManagementScreen() {
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const [assignments, setAssignments] = useState<AssignmentWithStats[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -34,13 +36,22 @@ export default function AssignmentManagementScreen() {
   const [newDescription, setNewDescription] = useState("");
   const [newDueDate, setNewDueDate] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState('');
 
   const loadData = useCallback(async () => {
-    const [allAssignments, submissions, programs] = await Promise.all([
-      storage.getAssignments(),
-      storage.getSubmissions(),
-      storage.getPrograms(),
+    if (!user?.organizationId) return;
+    const [allAssignments, submissions, programs, allSessions] = await Promise.all([
+      storage.getAssignments(user.organizationId),
+      storage.getSubmissions(user.organizationId),
+      storage.getPrograms(user.organizationId),
+      storage.getSessions(user.organizationId),
     ]);
+
+    setSessions(allSessions);
+    if (allSessions.length > 0 && !selectedSessionId) {
+      setSelectedSessionId(allSessions[0].id);
+    }
 
     const assignmentsWithStats: AssignmentWithStats[] = allAssignments.map(assignment => {
       const assignmentSubmissions = submissions.filter(s => s.assignmentId === assignment.id);
@@ -82,7 +93,7 @@ export default function AssignmentManagementScreen() {
     setIsCreating(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    const programs = await storage.getPrograms();
+    const programs = await storage.getPrograms(user?.organizationId);
     const firstProgram = programs[0];
 
     if (!firstProgram) {
@@ -91,13 +102,13 @@ export default function AssignmentManagementScreen() {
       return;
     }
 
-    const newAssignment: Assignment = {
-      id: `assignment_${Date.now()}`,
+    const newAssignment: Omit<Assignment, 'id'> = {
+      sessionId: selectedSessionId || (firstProgram as any).firstSessionId || '',
       programId: firstProgram.id,
-      sessionNumber: 1,
       title: newTitle.trim(),
-      description: newDescription.trim() || undefined,
+      description: newDescription.trim() || '',
       dueDate: newDueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      submissionType: 'text',
     };
 
     await storage.createAssignment(newAssignment);

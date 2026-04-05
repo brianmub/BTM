@@ -32,13 +32,14 @@ export default function ProgramCatalogScreen() {
 
   const loadData = useCallback(async () => {
     await storage.initializeSampleData();
+    const orgId = user?.organizationId;
     const [loadedPrograms, loadedEnrollments] = await Promise.all([
-      storage.getPrograms(),
+      storage.getPrograms(orgId),
       user?.id ? storage.getUserEnrollments(user.id) : Promise.resolve([]),
     ]);
     setPrograms(loadedPrograms.filter(p => p.isActive));
     setEnrollments(loadedEnrollments);
-  }, [user?.id]);
+  }, [user?.id, user?.organizationId]);
 
   useEffect(() => {
     loadData();
@@ -178,7 +179,7 @@ export default function ProgramCatalogScreen() {
         }}
         style={[
           styles.filterChip,
-          filter === value && { borderWidth: 2, borderColor: theme.link },
+          filter === value ? { borderWidth: 2, borderColor: theme.link } : undefined,
         ]}
       >
         <ThemedText

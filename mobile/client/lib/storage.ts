@@ -293,17 +293,19 @@ export const storage = {
     await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETE, "true");
   },
 
-  async getPrograms(): Promise<Program[]> {
+  async getPrograms(organizationId?: string): Promise<Program[]> {
     try {
-      return await fetchApi<Program[]>("/api/programs");
+      const endpoint = organizationId ? `/api/programs?orgId=${organizationId}` : "/api/programs";
+      return await fetchApi<Program[]>(endpoint);
     } catch {
       return [];
     }
   },
 
-  async getEnrollments(): Promise<Enrollment[]> {
+  async getEnrollments(organizationId?: string): Promise<Enrollment[]> {
     try {
-      return await fetchApi<Enrollment[]>("/api/enrollments");
+      const endpoint = organizationId ? `/api/enrollments?orgId=${organizationId}` : "/api/enrollments";
+      return await fetchApi<Enrollment[]>(endpoint);
     } catch {
       return [];
     }
@@ -332,9 +334,10 @@ export const storage = {
     });
   },
 
-  async getSessions(): Promise<Session[]> {
+  async getSessions(organizationId?: string): Promise<Session[]> {
     try {
-      return await fetchApi<Session[]>("/api/sessions");
+      const endpoint = organizationId ? `/api/sessions?orgId=${organizationId}` : "/api/sessions";
+      return await fetchApi<Session[]>(endpoint);
     } catch {
       return [];
     }
@@ -348,9 +351,10 @@ export const storage = {
     }
   },
 
-  async getAssignments(): Promise<Assignment[]> {
+  async getAssignments(organizationId?: string): Promise<Assignment[]> {
     try {
-      return await fetchApi<Assignment[]>("/api/assignments");
+      const endpoint = organizationId ? `/api/assignments?orgId=${organizationId}` : "/api/assignments";
+      return await fetchApi<Assignment[]>(endpoint);
     } catch {
       return [];
     }
@@ -364,9 +368,10 @@ export const storage = {
     await putApi(`/api/sessions/${session.id}`, session);
   },
 
-  async getAttendance(): Promise<AttendanceRecord[]> {
+  async getAttendance(organizationId?: string): Promise<AttendanceRecord[]> {
     try {
-      return await fetchApi<AttendanceRecord[]>("/api/attendance");
+      const endpoint = organizationId ? `/api/attendance?orgId=${organizationId}` : "/api/attendance";
+      return await fetchApi<AttendanceRecord[]>(endpoint);
     } catch {
       return [];
     }
@@ -438,9 +443,10 @@ export const storage = {
     return { success: true, message: "Successfully enrolled in the program!" };
   },
 
-  async getPayments(): Promise<PaymentRecord[]> {
+  async getPayments(organizationId?: string): Promise<PaymentRecord[]> {
     try {
-      return await fetchApi<PaymentRecord[]>("/api/payments");
+      const endpoint = organizationId ? `/api/payments?orgId=${organizationId}` : "/api/payments";
+      return await fetchApi<PaymentRecord[]>(endpoint);
     } catch {
       return [];
     }
@@ -573,9 +579,18 @@ export const storage = {
     }
   },
 
-  async getSubmissions(): Promise<AssignmentSubmission[]> {
+  async getUnassignedParticipants(programId: string): Promise<User[]> {
     try {
-      return await fetchApi<AssignmentSubmission[]>("/api/submissions");
+      return await fetchApi<User[]>(`/api/programs/${programId}/unassigned-participants`);
+    } catch {
+      return [];
+    }
+  },
+
+  async getSubmissions(organizationId?: string): Promise<AssignmentSubmission[]> {
+    try {
+      const endpoint = organizationId ? `/api/submissions?orgId=${organizationId}` : "/api/submissions";
+      return await fetchApi<AssignmentSubmission[]>(endpoint);
     } catch {
       return [];
     }
@@ -680,15 +695,17 @@ export const storage = {
   async checkGraduationEligibility(userId: string, programId: string): Promise<{
     eligible: boolean;
     sessionsConfirmed: number;
+    totalSessions: number;
     sessionsWithPaidPayments: number;
     assignmentsConfirmed: number;
     totalAssignments: number
   }> {
-    const [attendance, payments, assignments, submissions] = await Promise.all([
+    const [attendance, payments, assignments, submissions, sessions] = await Promise.all([
       this.getUserAttendance(userId),
       this.getUserPayments(userId),
       this.getAssignments(),
       this.getUserSubmissions(userId),
+      this.getSessionsByProgram(programId),
     ]);
 
     const confirmedSessions = attendance.filter(
@@ -708,15 +725,16 @@ export const storage = {
     );
 
     const sessionsConfirmed = confirmedSessions.length;
+    const totalSessions = sessions.length;
     const sessionsWithPaidPayments = paidSessionPayments.length;
     const assignmentsConfirmed = confirmedSubmissions.length;
     const totalAssignments = programAssignments.length;
 
-    const eligible = sessionsConfirmed >= 5 &&
+    const eligible = totalSessions > 0 && sessionsConfirmed >= totalSessions &&
       sessionsWithPaidPayments >= sessionsConfirmed &&
       (totalAssignments === 0 || assignmentsConfirmed >= totalAssignments);
 
-    return { eligible, sessionsConfirmed, sessionsWithPaidPayments, assignmentsConfirmed, totalAssignments };
+    return { eligible, sessionsConfirmed, totalSessions, sessionsWithPaidPayments, assignmentsConfirmed, totalAssignments };
   },
 
   async reassignCellMember(userId: string, fromCellId: string, toCellId: string, performedBy: string): Promise<void> {

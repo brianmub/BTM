@@ -177,7 +177,7 @@ export function EnrollmentManager({ programId: propProgramId }: { programId?: st
                                             onClick={async () => {
                                                 setSelectedEnrollment(enrollment);
                                                 const { data } = await supabase
-                                                    .from('payments')
+                                                    .from('payment_records')
                                                     .select('*, user:users(first_name, surname), program:programs(name)')
                                                     .eq('enrollment_id', enrollment.id)
                                                     .order('created_at', { ascending: false });
@@ -324,7 +324,7 @@ function ReceivePaymentModal({ enrollment, profile, onClose, onSuccess }: { enro
             };
 
             const { data: paymentData, error: payError } = await supabase
-                .from('payments')
+                .from('payment_records')
                 .insert([paymentPayload])
                 .select(`
                     *,

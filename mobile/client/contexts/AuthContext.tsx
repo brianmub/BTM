@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const savedUser = await storage.getUser();
       setUser(savedUser);
       // Check onboarding status from user object (comes from backend)
-      setIsOnboardingComplete(savedUser?.is_onboarding_complete === true);
+      setIsOnboardingComplete(savedUser?.isOnboardingComplete === true);
     } catch (error) {
       console.error("Failed to load user:", error);
     } finally {
@@ -38,10 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (newUser: User) => {
     await storage.setUser(newUser);
     setUser(newUser);
+    setIsOnboardingComplete(newUser.isOnboardingComplete === true);
   };
 
   const logout = async () => {
-    await storage.clearUser();
+    await storage.clearAll();
     setUser(null);
     setIsOnboardingComplete(false);
   };
@@ -51,10 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       //Update backend
-      await storage.updateUser(user.id, { is_onboarding_complete: true });
+      await storage.updateUser(user.id, { isOnboardingComplete: true });
 
       // Update local user object
-      const updatedUser = { ...user, is_onboarding_complete: true };
+      const updatedUser = { ...user, isOnboardingComplete: true };
       await storage.setUser(updatedUser);
       setUser(updatedUser);
       setIsOnboardingComplete(true);
@@ -69,6 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const updatedUser = { ...user, ...updates };
     await storage.setUser(updatedUser);
     setUser(updatedUser);
+    if ('isOnboardingComplete' in updates) {
+      setIsOnboardingComplete(updatedUser.isOnboardingComplete === true);
+    }
   };
 
   return (

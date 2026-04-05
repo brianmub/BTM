@@ -40,7 +40,7 @@ export function PaymentsPage() {
         try {
             setLoading(true);
             const { data, error } = await supabase
-                .from('payments')
+                .from('payment_records')
                 .select(`
                     *,
                     user:users(first_name, surname, email, profile_photo_url),
@@ -232,9 +232,13 @@ export function PaymentsPage() {
                         organization={organization}
                         profile={profile}
                         onClose={() => setIsNewPaymentModalOpen(false)}
-                        onSuccess={() => {
-                            setIsNewPaymentModalOpen(false);
-                            fetchPayments();
+                        onSuccess={(newData?: any[]) => {
+                            if (newData) {
+                                setPayments(newData);
+                            } else {
+                                setIsNewPaymentModalOpen(false);
+                                fetchPayments();
+                            }
                         }}
                     />
                 )}
@@ -243,7 +247,7 @@ export function PaymentsPage() {
     );
 }
 
-function NewPaymentModal({ organization, profile, onClose, onSuccess }: { organization: any, profile: any, onClose: () => void, onSuccess: () => void }) {
+function NewPaymentModal({ organization, profile, onClose, onSuccess }: { organization: any, profile: any, onClose: () => void, onSuccess: (data?: any[]) => void }) {
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [users, setUsers] = useState<any[]>([]);
@@ -254,6 +258,7 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess }: { organi
     const [selectedSession, setSelectedSession] = useState<string>('none');
     const [amount, setAmount] = useState(5);
     const [method, setMethod] = useState('cash');
+    const [continuousMode, setContinuousMode] = useState(true);
 
     useEffect(() => {
         if (search.length > 2) {
@@ -332,7 +337,7 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess }: { organi
             } else {
                 // Record general program payment
                 const { error } = await supabase
-                    .from('payments')
+                    .from('payment_records')
                     .insert([{
                         organization_id: organization.id,
                         user_id: selectedUser.id,
@@ -346,11 +351,27 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess }: { organi
                 if (error) throw error;
             }
 
-            onSuccess();
+            if (continuousMode) {
+                // Clear only user-specific data
+                setSelectedUser(null);
+                setSearch('');
+                // Keep selectedProgram, selectedSession, amount, and method for the next entry
+            } else {
+                onSuccess();
+            }
         } catch (err: any) {
             alert('Error: ' + err.message);
         } finally {
             setLoading(false);
+            // Refresh parent list even in continuous mode
+            if (continuousMode) {
+                const { data } = await supabase
+                    .from('payment_records')
+                    .select('*, user:users(first_name, surname, email, profile_photo_url), program:programs(name), session:sessions(name, session_date)')
+                    .eq('organization_id', organization.id)
+                    .order('created_at', { ascending: false });
+                if (data) onSuccess(data); // Modified onSuccess to optionally accept data
+            }
         }
     };
 
@@ -403,6 +424,21 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess }: { organi
                                 <button type="button" onClick={() => setSelectedUser(null)} className="text-[8px] font-black uppercase text-slate-500 underline">Change</button>
                             </div>
                         )}
+                    </div>
+
+                    {/* Continuous Mode Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-background border border-surface-border rounded-2xl">
+                        <div className="flex items-center gap-3">
+                            <History className="w-4 h-4 text-slate-500" />
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Continuous Entry Mode</span>
+                        </div>
+                        <button 
+                            type="button"
+                            onClick={() => setContinuousMode(!continuousMode)}
+                            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${continuousMode ? 'bg-primary border-primary shadow-[0_0_10px_rgba(var(--primary),0.3)]' : 'bg-background border-surface-border'}`}
+                        >
+                            <div className={`w-2 h-2 rounded-full ${continuousMode ? 'bg-white' : 'bg-slate-700'}`}></div>
+                        </button>
                     </div>
 
                     {selectedUser && (

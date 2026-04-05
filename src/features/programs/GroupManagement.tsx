@@ -22,6 +22,7 @@ export function GroupManagement({ programId }: { programId: string }) {
     const [groups, setGroups] = useState<Group[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [manageGroup, setManageGroup] = useState<Group | null>(null);
 
     useEffect(() => {
         if (organization) fetchGroups();
@@ -34,14 +35,13 @@ export function GroupManagement({ programId }: { programId: string }) {
                 .from('program_groups')
                 .select(`
                     *,
-                    facilitator:users (first_name, surname),
+                    facilitator:users!facilitator_id (first_name, surname),
                     members:group_members (count)
                 `)
                 .eq('program_id', programId);
 
             if (error) throw error;
 
-            // Format data to include member count from the join (Supabase count needs handling)
             const formattedGroups = data.map((g: any) => ({
                 ...g,
                 member_count: g.members[0]?.count || 0
@@ -106,25 +106,11 @@ export function GroupManagement({ programId }: { programId: string }) {
                                     </div>
                                 </div>
 
-                                {/* Marital Balance Indicator */}
-                                <div className="space-y-2 pb-2">
-                                    <div className="flex justify-between text-[8px] font-black text-slate-500 uppercase tracking-[0.2em]">
-                                        <span>Marital Balance</span>
-                                        <Heart className="w-2.5 h-2.5 text-pink-500" />
-                                    </div>
-                                    <div className="flex gap-1 h-1.5">
-                                        <div className="flex-1 bg-pink-500/30 rounded-full overflow-hidden relative group/bal">
-                                            <div className="h-full bg-pink-500 w-[60%]"></div>
-                                            <span className="absolute -top-4 left-0 text-[6px] opacity-0 group-hover/bal:opacity-100 transition-opacity font-bold text-pink-400">Married</span>
-                                        </div>
-                                        <div className="flex-1 bg-blue-500/30 rounded-full overflow-hidden relative group/bal2">
-                                            <div className="h-full bg-blue-500 w-[40%]"></div>
-                                            <span className="absolute -top-4 left-0 text-[6px] opacity-0 group-hover/bal2:opacity-100 transition-opacity font-bold text-blue-400">Single</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <Button variant="outline" className="w-full h-10 text-[10px] font-black uppercase tracking-widest bg-background border-surface-border">
+                                <Button 
+                                    variant="outline" 
+                                    className="w-full h-10 text-[10px] font-black uppercase tracking-widest bg-background border-surface-border hover:border-primary/50 transition-all"
+                                    onClick={() => setManageGroup(group)}
+                                >
                                     <UserPlus className="w-3 h-3 mr-2" /> Manage Participants
                                 </Button>
                             </div>
@@ -150,16 +136,45 @@ export function GroupManagement({ programId }: { programId: string }) {
                     }}
                 />
             )}
+
+            {manageGroup && (
+                <ManageParticipantsModal
+                    group={manageGroup}
+                    programId={programId}
+                    organizationId={organization!.id}
+                    onClose={() => setManageGroup(null)}
+                    onSuccess={() => {
+                        setManageGroup(null);
+                        fetchGroups();
+                    }}
+                />
+            )}
         </div>
     );
 }
 
+// ─── Create Group Modal ────────────────────────────────────────────────────────
 function CreateGroupModal({ programId, onClose, onSuccess }: { programId: string, onClose: () => void, onSuccess: () => void }) {
     const { organization } = useOrganization();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [capacity, setCapacity] = useState(20);
+    const [facilitators, setFacilitators] = useState<any[]>([]);
+    const [selectedFacilitator, setSelectedFacilitator] = useState('');
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        fetchFacilitators();
+    }, []);
+
+    const fetchFacilitators = async () => {
+        const { data } = await supabase
+            .from('users')
+            .select('id, first_name, surname')
+            .eq('organization_id', organization!.id)
+            .in('role', ['facilitator', 'program_admin', 'system_admin']); 
+        setFacilitators(data || []);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -170,7 +185,8 @@ function CreateGroupModal({ programId, onClose, onSuccess }: { programId: string
                 program_id: programId,
                 name,
                 description,
-                max_capacity: capacity
+                max_capacity: capacity,
+                facilitator_id: selectedFacilitator || null
             }]);
             if (error) throw error;
             onSuccess();
@@ -203,7 +219,7 @@ function CreateGroupModal({ programId, onClose, onSuccess }: { programId: string
                         />
                     </div>
                     <div>
-                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Target Capacity</label>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3 focus:text-primary transition-colors">Target Capacity</label>
                         <input
                             type="number"
                             required
@@ -212,6 +228,21 @@ function CreateGroupModal({ programId, onClose, onSuccess }: { programId: string
                             className="w-full bg-background border border-surface-border rounded-xl px-4 py-4 text-foreground text-sm outline-none focus:border-primary/30 transition-all font-mono shadow-inner"
                         />
                     </div>
+
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Lead Facilitator</label>
+                        <select
+                            value={selectedFacilitator}
+                            onChange={e => setSelectedFacilitator(e.target.value)}
+                            className="w-full bg-background border border-surface-border rounded-xl px-4 py-4 text-foreground text-sm outline-none focus:border-primary/30 transition-all font-bold shadow-inner"
+                        >
+                            <option value="">Assign Later...</option>
+                            {facilitators.map(f => (
+                                <option key={f.id} value={f.id}>{f.first_name} {f.surname}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     <div>
                         <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Brief Description</label>
                         <textarea
@@ -225,6 +256,156 @@ function CreateGroupModal({ programId, onClose, onSuccess }: { programId: string
                         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Assembly'}
                     </Button>
                 </form>
+            </GlassBox>
+        </div>
+    );
+}
+
+// ─── Manage Participants Modal ────────────────────────────────────────────────
+function ManageParticipantsModal({ 
+    group, programId, organizationId, onClose, onSuccess 
+}: { 
+    group: Group;
+    programId: string;
+    organizationId: string;
+    onClose: () => void;
+    onSuccess: () => void;
+}) {
+    const [search, setSearch] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [members, setMembers] = useState<any[]>([]);
+    const [available, setAvailable] = useState<any[]>([]);
+
+    useEffect(() => {
+        fetchData();
+    }, [group.id, programId]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const { data: memberData } = await supabase
+                .from('group_members')
+                .select('user:users(id, first_name, surname, email)')
+                .eq('group_id', group.id);
+            
+            setMembers(memberData?.map((m: any) => m.user) || []);
+
+            const { data: enrollData } = await supabase
+                .from('enrollments')
+                .select('user:users(id, first_name, surname, email)')
+                .eq('program_id', programId)
+                .eq('status', 'active');
+            
+            const allParticipants = enrollData?.map((e: any) => e.user) || [];
+            const memberIds = new Set(memberData?.map((m: any) => m.user.id));
+            setAvailable(allParticipants.filter(p => !memberIds.has(p.id)));
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const addMember = async (userId: string) => {
+        const { error } = await supabase.from('group_members').insert([{
+            organization_id: organizationId,
+            group_id: group.id,
+            user_id: userId,
+        }]);
+        if (error) alert(error.message);
+        else fetchData();
+    };
+
+    const removeMember = async (userId: string) => {
+        const { error } = await supabase.from('group_members')
+            .delete()
+            .eq('group_id', group.id)
+            .eq('user_id', userId);
+        if (error) alert(error.message);
+        else fetchData();
+    };
+
+    const filteredAvailable = available.filter(p => 
+        `${p.first_name} ${p.surname}`.toLowerCase().includes(search.toLowerCase()) ||
+        p.email?.toLowerCase().includes(search.toLowerCase())
+    );
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+            <GlassBox className="w-full max-w-2xl p-0 bg-surface border-surface-border shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                <div className="p-8 border-b border-surface-border flex justify-between items-start">
+                    <div>
+                        <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Group Roster</h3>
+                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">{group.name} • {members.length} Members</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 text-slate-400 hover:text-foreground transition-colors"><X className="w-6 h-6" /></button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                    <div className="relative group">
+                        <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                        <input 
+                            type="text"
+                            placeholder="Add participants by name or email..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="w-full h-14 bg-background border border-surface-border rounded-2xl pl-12 pr-6 text-sm font-bold text-foreground outline-none focus:border-primary/40 transition-all shadow-inner"
+                        />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                                Current Members <div className="px-2 py-0.5 bg-primary/10 text-primary rounded-full">{members.length}</div>
+                            </h4>
+                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                                {members.map(m => (
+                                    <div key={m.id} className="flex items-center justify-between p-3 bg-background border border-surface-border rounded-xl group/item">
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-black text-foreground uppercase truncate">{m.first_name} {m.surname}</p>
+                                            <p className="text-[10px] text-slate-500 truncate">{m.email}</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => removeMember(m.id)}
+                                            className="p-2 text-slate-400 hover:text-rose-500 transition-colors opacity-0 group-hover/item:opacity-100"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                                {members.length === 0 && (
+                                    <div className="text-center py-10 opacity-30 italic text-xs font-bold uppercase tracking-widest border border-dashed border-surface-border rounded-xl">
+                                        Empty Group
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Available Enrollees</h4>
+                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                                {filteredAvailable.map(p => (
+                                    <div key={p.id} className="flex items-center justify-between p-3 hover:bg-background border border-transparent hover:border-surface-border rounded-xl transition-all cursor-pointer group/avail" onClick={() => addMember(p.id)}>
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-black text-slate-500 group-hover/avail:text-foreground transition-colors uppercase truncate">{p.first_name} {p.surname}</p>
+                                            <p className="text-[10px] opacity-40 truncate">{p.email}</p>
+                                        </div>
+                                        <Plus className="w-4 h-4 text-primary opacity-0 group-hover/avail:opacity-100 transition-opacity" />
+                                    </div>
+                                ))}
+                                {filteredAvailable.length === 0 && (
+                                    <p className="text-center py-10 text-[10px] text-slate-400 font-bold uppercase tracking-widest">No matching enrollees</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-8 border-t border-surface-border bg-background/50">
+                    <Button variant="premium" className="w-full h-12 font-black uppercase tracking-widest text-[10px]" onClick={onSuccess}>
+                        Save Roster & Close
+                    </Button>
+                </div>
             </GlassBox>
         </div>
     );

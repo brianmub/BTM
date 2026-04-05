@@ -89,8 +89,8 @@ export function ParticipantProgramView() {
 
                 // 4. Attendance per session
                 const { data: attendances } = await supabase
-                    .from('attendance')
-                    .select('session_id, status, checkin_time')
+                    .from('attendance_records')
+                    .select('session_id, status, checked_in_at')
                     .eq('user_id', currentProfile.id)
                     .in('session_id', sessionIds);
 
@@ -125,15 +125,15 @@ export function ParticipantProgramView() {
             setCheckingInId(session.id);
             const now = new Date().toISOString();
             const { error } = await supabase
-                .from('attendance')
+                .from('attendance_records')
                 .upsert([{
                     session_id: session.id,
                     user_id: currentProfile.id,
                     organization_id: program.organization_id,
                     checked_in: true,
-                    checkin_time: now,
+                    checked_in_at: now,
+                    entry_time: now,
                     status: 'present',
-                    checkin_method: 'manual',
                 }], { onConflict: 'session_id,user_id' });
             if (error) throw error;
             await fetchAll();
@@ -150,10 +150,10 @@ export function ParticipantProgramView() {
         setRegisterLoading(true);
         try {
             const { data } = await supabase
-                .from('attendance')
-                .select('id, status, checkin_time, checkout_time, user:user_id(first_name, surname, profile_photo_url)')
+                .from('attendance_records')
+                .select('id, status, checked_in_at, exit_time, user:user_id(first_name, surname, profile_photo_url)')
                 .eq('session_id', sessionId)
-                .order('checkin_time', { ascending: true });
+                .order('checked_in_at', { ascending: true });
             setRegisterData(data || []);
         } catch (err) {
             console.error(err);
@@ -505,9 +505,9 @@ export function ParticipantProgramView() {
                                                                 {att ? (
                                                                     <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest">
                                                                         <CheckCircle className="w-3 h-3" /> Checked In
-                                                                        {att.checkin_time && (
+                                                                        {att.checked_in_at && (
                                                                             <span className="font-bold text-slate-400 ml-1">
-                                                                                · {new Date(att.checkin_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                                                · {new Date(att.checked_in_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                                             </span>
                                                                         )}
                                                                     </span>
@@ -644,8 +644,8 @@ export function ParticipantProgramView() {
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-black text-foreground truncate">{name}</p>
                                                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                                                    {rec.checkin_time
-                                                        ? new Date(rec.checkin_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                                                    {rec.checked_in_at
+                                                        ? new Date(rec.checked_in_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
                                                         : '—'}
                                                 </p>
                                             </div>

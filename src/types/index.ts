@@ -102,7 +102,7 @@ export interface Attendance {
     user_id: string;
     session_id: string;
     checked_in: boolean;
-    checkin_time?: string;
+    checked_in_at?: string;
     checkin_method?: string;
     checked_out: boolean;
     checkout_time?: string;

@@ -50,21 +50,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     useEffect(() => {
-        // Check active sessions and sets the user
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            const u = session?.user ?? null;
-            console.log('AuthContext: Initial session user:', u);
-            setUser(u);
-            if (u) fetchProfile(u.id);
-            setLoading(false);
-        });
+        const initializeAuth = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const u = session?.user ?? null;
+                console.log('AuthContext: Initial session user:', u);
+                setUser(u);
+                if (u) {
+                    await fetchProfile(u.id);
+                }
+            } catch (err) {
+                console.error('AuthContext: Initialization error:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        // Listen for changes on auth state (sign in, sign out, etc.)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        initializeAuth();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             const u = session?.user ?? null;
             setUser(u);
-            if (u) fetchProfile(u.id);
-            else {
+            if (u) {
+                await fetchProfile(u.id);
+            } else {
                 setProfile(null);
                 setProfiles([]);
             }

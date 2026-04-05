@@ -22,6 +22,8 @@ interface MemberAttendance {
   isPresent: boolean;
   isPaid: boolean;
   attendanceId?: string;
+  paymentId?: string;
+  entryTime?: string;
 }
 
 function Checkbox({
@@ -98,7 +100,16 @@ export default function AttendanceScreen() {
       setSelectedSession(loadedSessions[0]);
     }
 
-    if (user?.cellId) {
+    if (user?.role === "leader" || user?.role === "facilitator") {
+      const allCells = await storage.getCellGroups();
+      const leaderCell = allCells.find((c) => c.leaderId === user.id);
+      if (leaderCell) {
+        const members = await storage.getCellMembers(leaderCell.id);
+        setCellMembers(members);
+      } else {
+        setCellMembers([]);
+      }
+    } else if (user?.cellId) {
       const members = await storage.getCellMembers(user.cellId);
       setCellMembers(members);
     } else {
@@ -121,8 +132,10 @@ export default function AttendanceScreen() {
       return {
         member,
         isPresent: memberAttendance?.confirmedByLeader || false,
-        isPaid: memberPayment?.isPaid || false,
+        isPaid: memberPayment?.status === 'paid' || memberPayment?.status === 'waived' || false,
         attendanceId: memberAttendance?.id,
+        paymentId: memberPayment?.id,
+        entryTime: memberAttendance?.entryTime,
       };
     });
     setMemberAttendance(attendance);
@@ -175,8 +188,8 @@ export default function AttendanceScreen() {
         confirmedCount++;
       }
       
-      if (ma.isPaid) {
-        await storage.recordPayment(ma.member.id, selectedSession.programId, 50, user.id);
+      if (ma.isPaid && ma.paymentId) {
+        await storage.confirmPayment(ma.paymentId, user.id);
         paidCount++;
       }
     }
@@ -202,6 +215,14 @@ export default function AttendanceScreen() {
           <ThemedText type="body" style={{ fontWeight: "500" }}>
             {item.member.fullName}
           </ThemedText>
+          {item.entryTime && (
+            <View style={styles.arrivalBadge}>
+              <Feather name="clock" size={10} color={theme.textSecondary} />
+              <ThemedText style={[styles.arrivalText, { color: theme.textSecondary }]}>
+                {new Date(item.entryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </ThemedText>
+            </View>
+          )}
         </View>
         <View style={styles.checkboxContainer}>
           <View style={styles.checkboxColumn}>
@@ -286,17 +307,28 @@ export default function AttendanceScreen() {
 
       <View style={[styles.columnHeaders, { borderBottomColor: theme.border }]}>
         <ThemedText type="small" style={[styles.memberHeader, { color: theme.textSecondary }]}>
-          Member
+          Member / Arrival
         </ThemedText>
         <View style={styles.checkboxHeaders}>
           <ThemedText type="small" style={[styles.columnHeader, { color: theme.success }]}>
-            Present
+            Verified
           </ThemedText>
           <ThemedText type="small" style={[styles.columnHeader, { color: theme.accent }]}>
             Paid
           </ThemedText>
         </View>
       </View>
+
+      <Button 
+        variant="secondary" 
+        style={styles.bulkVerifyButton}
+        onPress={() => {
+          setMemberAttendance(prev => prev.map(ma => ma.entryTime ? { ...ma, isPresent: true } : ma));
+          setHasChanges(true);
+        }}
+      >
+        <Feather name="check" size={16} /> Verify All Checked-in
+      </Button>
     </View>
   );
 
@@ -467,8 +499,23 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   emptySubtext: {
-    fontSize: 14,
     marginTop: Spacing.sm,
     textAlign: "center",
   },
+  arrivalBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
+  arrivalText: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
+  bulkVerifyButton: {
+    height: 36,
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.xs,
+  }
 });

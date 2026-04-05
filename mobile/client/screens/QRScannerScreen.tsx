@@ -7,6 +7,7 @@ import {
   Pressable,
 } from "react-native";
 import { CameraView, useCameraPermissions, Camera } from "expo-camera";
+import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
@@ -85,7 +86,35 @@ export default function QRScannerScreen({ navigation, route }: Props) {
     setProcessing(true);
 
     try {
-      const qrData: QRData = JSON.parse(data);
+      let qrData: QRData;
+      
+      try {
+        qrData = JSON.parse(data);
+      } catch (e) {
+        // Handle non-JSON data (naked IDs or legacy formats)
+        let extractedId = data.trim();
+        if (extractedId.startsWith("sess-")) extractedId = extractedId.substring(5);
+        if (extractedId.startsWith("prog-")) extractedId = extractedId.substring(5);
+        
+        // Simple UUID regex check (basic)
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(extractedId);
+        
+        if (!isUuid) {
+          throw new Error("Invalid format");
+        }
+
+        if (mode === "enrollment") {
+          qrData = { type: "enrollment", programId: extractedId };
+        } else {
+          // Default to check-in/out mode if it's a naked ID
+          // Use sessionId from params if the scanned data doesn't match or use scanned data as session ID
+          qrData = { 
+            type: mode, 
+            sessionId: extractedId, 
+            programId: programId // Fallback to programId from route params
+          };
+        }
+      }
       
       if (qrData.type !== mode) {
         setResult({
@@ -100,25 +129,30 @@ export default function QRScannerScreen({ navigation, route }: Props) {
 
       switch (mode) {
         case "enrollment":
-          if (!qrData.programId) {
-            response = { success: false, message: "Invalid enrollment QR code" };
+          const targetProgramId = qrData.programId || programId;
+          if (!targetProgramId) {
+            response = { success: false, message: "Invalid enrollment QR code: No program ID" };
           } else {
-            response = await storage.enrollViaQR(user.id, qrData.programId);
+            response = await storage.enrollViaQR(user.id, targetProgramId);
           }
           break;
 
         case "checkin":
-          if (!qrData.sessionId || !qrData.programId) {
-            response = { success: false, message: "Invalid check-in QR code" };
+          const checkinSessionId = qrData.sessionId || sessionId;
+          const checkinProgramId = qrData.programId || programId;
+          
+          if (!checkinSessionId || !checkinProgramId) {
+            response = { success: false, message: "Invalid check-in QR code: Missing data" };
           } else {
-            await storage.checkInToSession(user.id, qrData.sessionId, qrData.programId);
-            response = { success: true, message: "Successfully checked in! Entry time recorded." };
+            await storage.checkInToSession(user.id, checkinSessionId, checkinProgramId);
+            response = { success: true, message: "Entry time recorded! Your facilitator will verify your presence in the register." };
           }
           break;
 
         case "checkout":
-          if (!qrData.sessionId) {
-            response = { success: false, message: "Invalid check-out QR code" };
+          const checkoutSessionId = qrData.sessionId || sessionId;
+          if (!checkoutSessionId) {
+            response = { success: false, message: "Invalid check-out QR code: No session ID" };
           } else {
             if (sessionDate) {
               const isAvailable = await storage.isCheckoutAvailable(sessionDate);
@@ -129,7 +163,7 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                 return;
               }
             }
-            response = await storage.checkOutOfSession(user.id, qrData.sessionId);
+            response = await storage.checkOutOfSession(user.id, checkoutSessionId);
           }
           break;
 
@@ -137,11 +171,16 @@ export default function QRScannerScreen({ navigation, route }: Props) {
           response = { success: false, message: "Unknown scan mode" };
       }
 
+      if (response.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
       setResult(response);
     } catch (error) {
       setResult({
         success: false,
-        message: "Invalid QR code format. Please try again.",
+        message: `Invalid QR code format. Scanned: "${data.substring(0, 20)}...". Please try again.`,
       });
     }
 
@@ -200,9 +239,15 @@ export default function QRScannerScreen({ navigation, route }: Props) {
           response = { success: false, message: "Unknown scan mode" };
       }
 
+      if (response.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
       setResult(response);
       setScanned(true);
     } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setResult({
         success: false,
         message: "An error occurred. Please try again.",

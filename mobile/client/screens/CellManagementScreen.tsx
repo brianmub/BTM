@@ -26,8 +26,8 @@ interface ProgramCellInfo {
 
 interface CellMemberInfo {
   user: User;
-  cellId: string;
-  cellName: string;
+  cellId?: string;
+  cellName?: string;
 }
 
 export default function CellManagementScreen() {
@@ -95,6 +95,19 @@ export default function CellManagementScreen() {
         }
       }
     }
+
+    try {
+      const unassigned = await storage.getUnassignedParticipants(programCellInfo.program.id);
+      for (const user of unassigned) {
+        members.push({
+          user: user,
+          cellId: "unassigned",
+          cellName: "Not Assigned",
+        });
+      }
+    } catch (err) {
+      console.log("Could not load unassigned", err);
+    }
     
     setCellMembers(members);
   };
@@ -147,7 +160,7 @@ export default function CellManagementScreen() {
     try {
       await storage.reassignCellMember(
         member.user.id,
-        member.cellId,
+        member.cellId || "unassigned",
         targetCellId,
         user?.id || "system"
       );
@@ -319,7 +332,7 @@ export default function CellManagementScreen() {
               Tap on a member to reassign them to a different cell.
             </ThemedText>
 
-            {selectedProgram?.cells.map(cell => (
+            {[{ id: "unassigned", name: "Not Assigned" }, ...(selectedProgram?.cells || [])].map(cell => (
               <View key={cell.id} style={styles.cellSection}>
                 <View style={[styles.cellSectionHeader, { backgroundColor: theme.link + "10" }]}>
                   <Feather name="users" size={16} color={theme.link} />

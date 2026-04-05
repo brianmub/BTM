@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, StyleSheet, ScrollView, Image, Pressable, RefreshControl } from "react-native";
+import { View, StyleSheet, ScrollView, Image, Pressable, RefreshControl, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -13,7 +13,7 @@ import { Card } from "@/components/Card";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { storage, Session, Assignment, Program, Enrollment, AttendanceRecord, AssignmentSubmission } from "@/lib/storage";
+import { storage, Session, Assignment, Program, Enrollment, AttendanceRecord, AssignmentSubmission, PaymentRecord } from "@/lib/storage";
 
 function ProgressBar({ progress, color, trackColor }: { progress: number; color: string; trackColor: string }) {
   return (
@@ -29,6 +29,7 @@ function ProgressBar({ progress, color, trackColor }: { progress: number; color:
 }
 
 export default function ParticipantHomeScreen() {
+  console.log("[DEBUG] ParticipantHomeScreen loaded - v2 with attendance fixes");
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
@@ -40,17 +41,22 @@ export default function ParticipantHomeScreen() {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [userPayments, setUserPayments] = useState<PaymentRecord[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [graduationInfo, setGraduationInfo] = useState<{ eligible: boolean; sessionsConfirmed: number; assignmentsConfirmed: number; totalAssignments: number } | null>(null);
+  const [checkingOut, setCheckingOut] = useState(false);
+  const [graduationInfo, setGraduationInfo] = useState<{ eligible: boolean; sessionsConfirmed: number; totalSessions: number; assignmentsConfirmed: number; totalAssignments: number } | null>(null);
 
   const loadData = useCallback(async () => {
-    const [loadedSessions, loadedAssignments, loadedSubmissions, loadedPrograms, loadedEnrollments, loadedAttendance] = await Promise.all([
-      storage.getSessions(),
-      storage.getAssignments(),
-      storage.getSubmissions(),
-      storage.getPrograms(),
-      storage.getEnrollments(),
-      storage.getAttendance(),
+    if (!user?.organizationId) return;
+
+    const [loadedSessions, loadedAssignments, loadedSubmissions, loadedPrograms, loadedEnrollments, loadedAttendance, loadedPayments] = await Promise.all([
+      storage.getSessions(user.organizationId),
+      storage.getAssignments(user.organizationId),
+      storage.getSubmissions(user.organizationId),
+      storage.getPrograms(user.organizationId),
+      storage.getEnrollments(user.organizationId),
+      storage.getUserAttendance(user.id),
+      storage.getUserPayments(user.id),
     ]);
     setSessions(loadedSessions);
     setAssignments(loadedAssignments);
@@ -58,7 +64,8 @@ export default function ParticipantHomeScreen() {
     setPrograms(loadedPrograms);
     setEnrollments(loadedEnrollments);
     setAttendance(loadedAttendance);
-  }, []);
+    setUserPayments(loadedPayments);
+  }, [user?.id, user?.organizationId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -94,6 +101,30 @@ export default function ParticipantHomeScreen() {
     return dueDate > new Date();
   });
 
+  const activeAttendance = attendance.find(a => a.userId === user?.id && a.checkedIn && !a.exitTime);
+  const activeSession = activeAttendance ? sessions.find(s => s.id === activeAttendance.sessionId) : null;
+
+  const handleCheckout = async () => {
+    if (!activeAttendance || !activeSession || !user) return;
+    
+    try {
+      setCheckingOut(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const result = await storage.checkOutOfSession(user.id, activeSession.id);
+      
+      if (result.success) {
+        Alert.alert("Success", "Successfully checked out! Hope you enjoyed the session.");
+        loadData();
+      } else {
+        Alert.alert("Error", result.message);
+      }
+    } catch (err) {
+      Alert.alert("Error", "FAILED_TO_CHECKOUT");
+    } finally {
+      setCheckingOut(false);
+    }
+  };
+
   useEffect(() => {
     const checkGraduation = async () => {
       if (user?.id && userEnrollment?.programId) {
@@ -104,7 +135,8 @@ export default function ParticipantHomeScreen() {
     checkGraduation();
   }, [user?.id, userEnrollment?.programId, attendance, submissions]);
 
-  const graduationProgress = graduationInfo ? graduationInfo.sessionsConfirmed / 5 : attendedCount / 5;
+  const totalSessions = graduationInfo?.totalSessions || programSessions.length || 5;
+  const graduationProgress = graduationInfo ? graduationInfo.sessionsConfirmed / totalSessions : attendedCount / totalSessions;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -180,6 +212,46 @@ export default function ParticipantHomeScreen() {
         </ThemedText>
       </Animated.View>
 
+      {activeSession && activeAttendance && (
+        <Animated.View entering={FadeInUp.delay(120).duration(500)}>
+          <Card elevation={4} style={[styles.activeSessionCard, { borderColor: theme.success, borderWidth: 2 }]}>
+            <View style={styles.activeSessionHeader}>
+              <View style={[styles.liveDot, { backgroundColor: theme.success }]} />
+              <ThemedText type="small" style={{ color: theme.success, fontWeight: "700", textTransform: "uppercase", letterSpacing: 1 }}>
+                Ongoing Session
+              </ThemedText>
+            </View>
+            
+            <ThemedText type="h3" style={styles.activeSessionTitle}>{activeSession.title}</ThemedText>
+            
+            <View style={styles.activeSessionDetails}>
+              <View style={styles.detailRow}>
+                <Feather name="clock" size={14} color={theme.textSecondary} />
+                <ThemedText type="small" style={{ color: theme.textSecondary, marginLeft: Spacing.xs }}>
+                  Checked in at {activeAttendance.entryTime || activeAttendance.checkedInAt ? 
+                    new Date(activeAttendance.entryTime || activeAttendance.checkedInAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 
+                    "Just now"}
+                </ThemedText>
+              </View>
+            </View>
+
+            <Pressable 
+              onPress={handleCheckout}
+              disabled={checkingOut}
+              style={({ pressed }) => [
+                styles.checkoutButton, 
+                { backgroundColor: theme.error, opacity: pressed || checkingOut ? 0.8 : 1 }
+              ]}
+            >
+              <Feather name="log-out" size={18} color="#FFFFFF" />
+              <ThemedText type="body" style={styles.checkoutButtonText}>
+                {checkingOut ? "Checking out..." : "Check Out Now"}
+              </ThemedText>
+            </Pressable>
+          </Card>
+        </Animated.View>
+      )}
+
       {enrolledPrograms.length > 0 ? (
         <Animated.View entering={FadeInUp.delay(150).duration(500)}>
           <ThemedText type="h3" style={styles.sectionTitle}>
@@ -199,11 +271,30 @@ export default function ParticipantHomeScreen() {
                   </View>
                   <View style={styles.programInfo}>
                     <ThemedText type="h4" numberOfLines={1}>{program.name}</ThemedText>
-                    <View style={styles.statusRow}>
-                      <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-                      <ThemedText type="small" style={{ color: statusColor }}>
-                        {statusText}
-                      </ThemedText>
+                    <View style={styles.statusContainer}>
+                      <View style={styles.statusRow}>
+                        <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+                        <ThemedText type="small" style={{ color: statusColor }}>
+                          {statusText}
+                        </ThemedText>
+                      </View>
+                      
+                      {/* Payment Status Badge */}
+                      {userPayments.some(p => p.programId === program.id) && (
+                        <View style={[
+                          styles.paymentBadge, 
+                          { backgroundColor: userPayments.find(p => p.programId === program.id)?.status === 'paid' ? theme.success + '20' : theme.warning + '20' }
+                        ]}>
+                          <ThemedText type="small" style={{ 
+                            color: userPayments.find(p => p.programId === program.id)?.status === 'paid' ? theme.success : theme.warning,
+                            fontSize: 10,
+                            fontWeight: '800',
+                            textTransform: 'uppercase'
+                          }}>
+                            {userPayments.find(p => p.programId === program.id)?.status}
+                          </ThemedText>
+                        </View>
+                      )}
                     </View>
                   </View>
                 </View>
@@ -236,7 +327,7 @@ export default function ParticipantHomeScreen() {
             <View style={styles.progressText}>
               <ThemedText type="h4">Graduation Progress</ThemedText>
               <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                {attendedCount}/5 sessions confirmed
+                {attendedCount}/{totalSessions} sessions confirmed
               </ThemedText>
             </View>
             <ThemedText type="h3" style={{ color: theme.link }}>
@@ -248,7 +339,7 @@ export default function ParticipantHomeScreen() {
             color={theme.link}
             trackColor={theme.progressTrack}
           />
-          {attendedCount >= 5 ? (
+          {attendedCount >= totalSessions && totalSessions > 0 ? (
             <View style={[styles.eligibleBadge, { backgroundColor: theme.success }]}>
               <Feather name="check-circle" size={14} color="#FFFFFF" />
               <ThemedText type="small" style={{ color: "#FFFFFF", marginLeft: Spacing.xs }}>
@@ -260,7 +351,7 @@ export default function ParticipantHomeScreen() {
               type="small"
               style={{ color: theme.textSecondary, marginTop: Spacing.md }}
             >
-              Attend {5 - attendedCount} more session{5 - attendedCount !== 1 ? "s" : ""} to be eligible
+              Attend {Math.max(0, totalSessions - attendedCount)} more session{totalSessions - attendedCount !== 1 ? "s" : ""} to be eligible
             </ThemedText>
           )}
         </Card>
@@ -402,6 +493,54 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     marginRight: Spacing.sm,
+  },
+  statusContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: Spacing.xs,
+  },
+  paymentBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.xs,
+  },
+  activeSessionCard: {
+    marginBottom: Spacing.xl,
+    padding: Spacing.lg,
+  },
+  activeSessionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: Spacing.sm,
+  },
+  activeSessionTitle: {
+    marginBottom: Spacing.md,
+  },
+  activeSessionDetails: {
+    marginBottom: Spacing.lg,
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  checkoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
+  },
+  checkoutButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
   progressCard: {
     marginBottom: Spacing["2xl"],

@@ -50,8 +50,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             (currentProfile?.organization_id ? null : localStorage.getItem('active_org_slug'));
 
         try {
-            // Select specific columns to avoid crashing if a new column is missing from the DB
-            let query = supabase.from('organizations').select('id, name, slug, contact_email, join_code, primary_color, is_active');
+            // Fetch all columns to satisfy the Organization interface
+            let query = supabase.from('organizations').select('*');
 
             if (effectiveSlug) {
                 console.log('TenantContext: Fetching by slug:', effectiveSlug);
@@ -73,7 +73,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             console.log('TenantContext: Fetch result:', data, error);
 
             if (error) throw error;
-            setOrganization(data);
+            setOrganization(data as Organization);
 
             // If we found the org and it doesn't match the current profile, we might need to sync
             if (data && currentProfile && currentProfile.organization_id !== data.id) {
@@ -101,7 +101,16 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <TenantContext.Provider value={{ organization, currentProfile: currentProfile, loading, error, switchOrganization }}>
-            {children}
+            {loading ? (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100]">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Syncing Organization...</p>
+                    </div>
+                </div>
+            ) : (
+                children
+            )}
         </TenantContext.Provider>
     );
 }

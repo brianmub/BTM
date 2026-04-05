@@ -1,6 +1,8 @@
+// expo-notifications is not fully supported in Expo Go.
+// Listeners and permission checks are stubbed to no-ops.
+// Re-enable when building a standalone/production app.
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import { notificationService, NotificationSettings } from '@/lib/notifications';
 
 interface NotificationContextType {
@@ -17,47 +19,28 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [hasPermission, setHasPermission] = useState(false);
   const [settings, setSettings] = useState<NotificationSettings>({
-    enabled: true,
-    sessionReminders: true,
-    assignmentReminders: true,
-    attendanceAlerts: true,
-    cellUpdates: true,
+    enabled: false,
+    sessionReminders: false,
+    assignmentReminders: false,
+    attendanceAlerts: false,
+    cellUpdates: false,
   });
 
   useEffect(() => {
     loadInitialState();
-    setupNotificationListeners();
+    // Notification listeners skipped – expo-notifications not supported in Expo Go
   }, []);
 
   const loadInitialState = async () => {
     const savedSettings = await notificationService.getSettings();
     setSettings(savedSettings);
-
-    if (Platform.OS !== 'web') {
-      const { status } = await Notifications.getPermissionsAsync();
-      setHasPermission(status === 'granted');
-    }
-  };
-
-  const setupNotificationListeners = () => {
-    const subscription = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notification received:', notification);
-    });
-
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('Notification response:', response);
-    });
-
-    return () => {
-      subscription.remove();
-      responseSubscription.remove();
-    };
+    // Permission check skipped – expo-notifications not supported in Expo Go
+    setHasPermission(false);
   };
 
   const requestPermission = useCallback(async () => {
-    const granted = await notificationService.requestPermissions();
-    setHasPermission(granted);
-    return granted;
+    // Stubbed – expo-notifications not supported in Expo Go
+    return false;
   }, []);
 
   const updateSettings = useCallback(async (newSettings: Partial<NotificationSettings>) => {

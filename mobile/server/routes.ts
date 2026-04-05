@@ -275,9 +275,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ PROGRAMS ============
-  app.get("/api/programs", async (_req: Request, res: Response) => {
+  app.get("/api/programs", async (req: Request, res: Response) => {
     try {
-      const programs = await storage.getPrograms();
+      const orgId = req.query.orgId as string | undefined;
+      const programs = await storage.getPrograms(orgId);
       res.json(programs);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch programs" });
@@ -313,9 +314,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ SESSIONS ============
-  app.get("/api/sessions", async (_req: Request, res: Response) => {
+  app.get("/api/sessions", async (req: Request, res: Response) => {
     try {
-      const sessions = await storage.getSessions();
+      const orgId = req.query.orgId as string | undefined;
+      const sessions = await storage.getSessions(orgId);
       res.json(sessions);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch sessions" });
@@ -359,9 +361,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ ENROLLMENTS ============
-  app.get("/api/enrollments", async (_req: Request, res: Response) => {
+  app.get("/api/enrollments", async (req: Request, res: Response) => {
     try {
-      const enrollments = await storage.getEnrollments();
+      const orgId = req.query.orgId as string | undefined;
+      const enrollments = await storage.getEnrollments(orgId);
       res.json(enrollments);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch enrollments" });
@@ -381,6 +384,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { user_id, program_id } = req.body;
 
+      const user = await storage.getUserById(user_id);
+      if (!user || !user.organization_id) {
+        return res.status(400).json({ error: "User or organization not found" });
+      }
+
       const existing = await storage.getUserEnrollment(user_id, program_id);
       if (existing) {
         return res.status(409).json({ error: "Already enrolled", enrollment: existing });
@@ -389,10 +397,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const enrollment = await storage.createEnrollment({
         user_id,
         program_id,
+        organization_id: user.organization_id,
+        payment_status: 'paid',
         status: 'enrolled',
         sessions_attended: 0,
         assignments_completed: 0,
-      });
+      } as any);
 
       await storage.createAuditLog({
         action: 'enrollment_created',
@@ -403,6 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json(enrollment);
     } catch (error) {
+      console.error("Failed to create enrollment:", error);
       res.status(500).json({ error: "Failed to create enrollment" });
     }
   });
@@ -423,6 +434,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(cells);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch cell groups" });
+    }
+  });
+
+  app.get("/api/programs/:programId/unassigned-participants", async (req: Request<ProgramIdParams>, res: Response) => {
+    try {
+      const participants = await storage.getUnassignedParticipants(req.params.programId);
+      res.json(participants);
+    } catch (error) {
+      console.error("Failed to fetch unassigned participants:", error);
+      res.status(500).json({ error: "Failed to fetch unassigned participants" });
     }
   });
 
@@ -475,13 +496,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { user_id, from_cell_id, to_cell_id, performed_by } = req.body;
 
-      if (!user_id || !from_cell_id || !to_cell_id || !performed_by) {
+      if (!user_id || !to_cell_id || !performed_by) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      await storage.removeCellMember(from_cell_id, user_id);
+      if (from_cell_id && from_cell_id !== "unassigned") {
+        await storage.removeCellMember(from_cell_id, user_id);
+      }
+      
       await storage.addCellMember(to_cell_id, user_id);
-
       await storage.updateEnrollmentCell(user_id, to_cell_id);
 
       await storage.createAuditLog({
@@ -489,7 +512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         performed_by,
         target_user_id: user_id,
         target_cell_id: to_cell_id,
-        details: `Member manually reassigned to different cell`,
+        details: `Member manually assigned to cell`,
       });
 
       res.json({ success: true });
@@ -519,9 +542,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ ASSIGNMENTS ============
-  app.get("/api/assignments", async (_req: Request, res: Response) => {
+  app.get("/api/assignments", async (req: Request, res: Response) => {
     try {
-      const assignments = await storage.getAssignments();
+      const orgId = req.query.orgId as string | undefined;
+      const assignments = await storage.getAssignments(orgId);
       res.json(assignments);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch assignments" });
@@ -547,9 +571,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ SUBMISSIONS ============
-  app.get("/api/submissions", async (_req: Request, res: Response) => {
+  app.get("/api/submissions", async (req: Request, res: Response) => {
     try {
-      const submissions = await storage.getSubmissions();
+      const orgId = req.query.orgId as string | undefined;
+      const submissions = await storage.getSubmissions(orgId);
       res.json(submissions);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch submissions" });
@@ -654,9 +679,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ ATTENDANCE ============
-  app.get("/api/attendance", async (_req: Request, res: Response) => {
+  app.get("/api/attendance", async (req: Request, res: Response) => {
     try {
-      const attendance = await storage.getAttendance();
+      const orgId = req.query.orgId as string | undefined;
+      const attendance = await storage.getAttendance(orgId);
       res.json(attendance);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch attendance" });
@@ -686,10 +712,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { user_id, session_id, program_id } = req.body;
       const now = new Date().toISOString();
 
+      // Get user's organization_id
+      const user = await storage.getUserById(user_id);
+      if (!user?.organization_id) {
+          throw new Error("User does not belong to an organization");
+      }
+
       const record = await storage.upsertAttendance({
         user_id,
         session_id,
         program_id,
+        organization_id: user.organization_id,
         checked_in: true,
         checked_in_at: now,
         entry_time: now,
@@ -772,9 +805,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============ PAYMENTS ============
-  app.get("/api/payments", async (_req: Request, res: Response) => {
+  app.get("/api/payments", async (req: Request, res: Response) => {
     try {
-      const payments = await storage.getPayments();
+      const orgId = req.query.orgId as string | undefined;
+      const payments = await storage.getPayments(orgId);
       res.json(payments);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch payments" });

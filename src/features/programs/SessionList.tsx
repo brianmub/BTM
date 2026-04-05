@@ -56,7 +56,7 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
 
                         // Check attendance for this session
                         const { data: att } = await (await import('@/services/supabase')).supabase
-                            .from('attendance')
+                            .from('attendance_records')
                             .select('*')
                             .eq('session_id', s.id)
                             .eq('user_id', user.id)

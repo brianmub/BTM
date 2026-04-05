@@ -1,0 +1,38 @@
+[
+  {
+    "id": "41978635-b1e0-4170-84fe-c46d06f0b067",
+    "organization_id": "571c8b74-9e85-4540-91dc-6b6462aa75d0",
+    "name": "BTM2026",
+    "description": "BTM",
+    "category": "Foundations",
+    "start_date": "2026-02-23",
+    "end_date": null,
+    "enrollment_fee": 10,
+    "session_fee": 0,
+    "currency": "USD",
+    "max_participants": 0,
+    "min_participants": null,
+    "attendance_required_pct": 80,
+    "assignment_completion_required_pct": 0,
+    "features": {
+      "rsvp_enabled": true,
+      "badges_enabled": true,
+      "payment_required": true,
+      "approval_required": false,
+      "assignments_enabled": true,
+      "qr_checkin_required": true,
+      "certificates_enabled": true
+    },
+    "image_url": null,
+    "status": "active",
+    "is_visible": true,
+    "template_id": null,
+    "created_by": "a04357fe-90db-4f63-900d-873c68f10ebd",
+    "created_at": "2026-02-23T22:18:13.893874+00:00",
+    "updated_at": "2026-02-23T22:18:13.893874+00:00",
+    "is_active": true,
+    "enrollment_start_date": "2026-03-19T11:00:54.242526+00:00",
+    "enrollment_end_date": "2026-04-18T11:00:54.467133+00:00",
+    "program_start_date": "2026-04-23T11:00:54.691299+00:00"
+  }
+]

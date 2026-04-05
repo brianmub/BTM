@@ -41,13 +41,13 @@ export const profileService = {
             supabase.from('enrollments').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).eq('status', 'active'),
 
             // 3. Attendance Stats (for Verification Rate)
-            supabase.from('attendance').select('status').eq('organization_id', organizationId),
+            supabase.from('attendance_records').select('status').eq('organization_id', organizationId),
 
             // 4. Certificates Issued
             supabase.from('certificates').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).eq('is_active', true),
 
             // 5. Total Revenue
-            supabase.from('payments').select('amount').eq('organization_id', organizationId).eq('status', 'completed')
+            supabase.from('payment_records').select('amount').eq('organization_id', organizationId).eq('status', 'paid')
         ]);
 
         const attendance = attStats.data || [];
@@ -67,15 +67,32 @@ export const profileService = {
 
     async getRecentActivity(organizationId: string) {
         const { data, error } = await supabase
-            .from('attendance')
+            .from('attendance_records')
             .select(`
                 *,
                 users (first_name, surname, profile_photo_url),
-                sessions (name)
+                sessions (title)
             `)
             .eq('organization_id', organizationId)
-            .order('checkin_time', { ascending: false })
+            .order('checked_in_at', { ascending: false })
             .limit(5);
+
+        if (error) throw error;
+        return data;
+    },
+
+    async getAttendanceLogs(organizationId: string, limit: number = 100) {
+        const { data, error } = await supabase
+            .from('attendance_records')
+            .select(`
+                *,
+                users:user_id(first_name, surname, profile_photo_url, email, organization_id),
+                sessions:session_id(title:name, session_date),
+                programs:program_id(name)
+            `)
+            .eq('organization_id', organizationId)
+            .order('checked_in_at', { ascending: false })
+            .limit(limit);
 
         if (error) throw error;
         return data;
@@ -87,10 +104,10 @@ export const profileService = {
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
         const { data: attData } = await supabase
-            .from('attendance')
-            .select('checkin_time, status')
+            .from('attendance_records')
+            .select('checked_in_at, status')
             .eq('organization_id', organizationId)
-            .gte('checkin_time', sevenDaysAgo.toISOString());
+            .gte('checked_in_at', sevenDaysAgo.toISOString());
 
         // 2. User Expansion (Last 4 weeks)
         const thirtyDaysAgo = new Date();
@@ -120,6 +137,22 @@ export const profileService = {
         };
     },
 
+    async getGroupStats(programId: string) {
+        const { data, error } = await supabase
+            .from('program_groups')
+            .select(`
+                id,
+                name,
+                facilitator_id,
+                facilitator:users!facilitator_id(first_name, surname),
+                members:group_members(count)
+            `)
+            .eq('program_id', programId);
+        
+        if (error) throw error;
+        return data;
+    },
+
     async getGraduationStatus(programId: string, userId: string) {
         // 1. Fetch Program and total required sessions
         const { data: program } = await supabase
@@ -137,7 +170,7 @@ export const profileService = {
 
         // 2. Fetch Attendance
         const { data: attendance } = await supabase
-            .from('attendance')
+            .from('attendance_records')
             .select('status')
             .eq('user_id', userId)
             .eq('organization_id', program.organization_id);

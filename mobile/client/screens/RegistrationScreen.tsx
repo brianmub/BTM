@@ -74,7 +74,7 @@ export default function RegistrationScreen({ navigation, route }: Props) {
   const { role } = route.params;
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { login, completeOnboarding } = useAuth();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState<FormData>({
     fullName: "",
@@ -116,16 +116,21 @@ export default function RegistrationScreen({ navigation, route }: Props) {
         organizationId: route.params.organizationId,
       });
 
-      await login(createdUser);
-      // navigation.reset or similar call depends on useAuth behavior
-      // For now, follow the existing flow but using signup
-      await completeOnboarding();
-    } catch (error) {
-      Alert.alert("Error", "Failed to create your account. Please try again.");
+      // Mark onboarding complete on the backend & update the user object
+      const updatedUser = { ...createdUser, isOnboardingComplete: true };
+      await dataStorage.updateUser(createdUser.id, { isOnboardingComplete: true });
+      await dataStorage.setUser(updatedUser);
+
+      // Log in with the already-complete user so completeOnboarding isn't needed
+      await login(updatedUser);
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      Alert.alert("Registration Failed", error?.message || "Failed to create your account. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const getRoleTitle = (r: UserRole): string => {
     switch (r) {

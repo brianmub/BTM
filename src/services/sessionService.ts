@@ -29,7 +29,7 @@ export const sessionService = {
     async deleteSession(sessionId: string) {
         // Guard: Check if attendance records exist
         const { count, error: countError } = await supabase
-            .from('attendance')
+            .from('attendance_records')
             .select('*', { count: 'exact', head: true })
             .eq('session_id', sessionId);
 
@@ -47,16 +47,30 @@ export const sessionService = {
     },
 
     async createSession(session: Partial<Session>) {
-        // Generate a unique QR code data if not provided
-        const qrData = session.qr_code_data || `sess-${uuidv4()}`;
-
+        // First, insert with a temporary qr_code_data to let DB generate the ID
+        // (Avoiding NOT NULL constraint violation)
+        const tempQr = `temp-${uuidv4().substring(0, 8)}`;
         const { data, error } = await supabase
             .from('sessions')
-            .insert([{ ...session, qr_code_data: qrData }])
+            .insert([{ ...session, qr_code_data: tempQr }])
             .select()
             .single();
 
         if (error) throw error;
+
+        // If no qr_code_data was provided, update it to use the new ID
+        if (!session.qr_code_data) {
+            const { data: updated, error: updateError } = await supabase
+                .from('sessions')
+                .update({ qr_code_data: `sess-${data.id}`, updated_at: new Date().toISOString() })
+                .eq('id', data.id)
+                .select()
+                .single();
+            
+            if (updateError) throw updateError;
+            return updated as Session;
+        }
+
         return data as Session;
     },
 
@@ -69,7 +83,7 @@ export const sessionService = {
 
         // 2. Check if attendance already exists
         const { data: existing } = await supabase
-            .from('attendance')
+            .from('attendance_records')
             .select('*')
             .eq('session_id', sessionId)
             .eq('user_id', userId)
@@ -77,13 +91,11 @@ export const sessionService = {
 
         if (existing) {
             // Toggle Logic: If checked in but not checked out, clock them out
-            if (existing.checked_in && !existing.checked_out) {
+            if (existing.checked_in && !existing.exit_time) {
                 const { data, error } = await supabase
-                    .from('attendance')
+                    .from('attendance_records')
                     .update({
-                        checked_out: true,
-                        checkout_time: new Date().toISOString(),
-                        checkout_method: 'qr'
+                        exit_time: new Date().toISOString()
                     })
                     .eq('id', existing.id)
                     .select()
@@ -98,15 +110,16 @@ export const sessionService = {
         }
 
         const { data, error } = await supabase
-            .from('attendance')
+            .from('attendance_records')
             .insert([{
                 session_id: sessionId,
                 user_id: userId,
                 organization_id: organizationId,
                 checked_in: true,
-                checkin_time: new Date().toISOString(),
+                checked_in_at: new Date().toISOString(),
+                entry_time: new Date().toISOString(),
                 status: 'present',
-                checkin_method: 'qr'
+                is_verified: false // Initially not verified if self-checked in
             }])
             .select()
             .single();
@@ -145,7 +158,7 @@ export const sessionService = {
 
     async getAttendanceForSession(sessionId: string) {
         const { data, error } = await supabase
-            .from('attendance')
+            .from('attendance_records')
             .select(`
                 *,
                 users (
@@ -203,19 +216,17 @@ export const sessionService = {
 
         if (sessErr) throw sessErr;
 
-        // 3. Record in payments table for receipt
+        // 3. Record in payment_records table for receipt
         const { data: payment } = await supabase
-            .from('payments')
+            .from('payment_records')
             .insert([{
                 organization_id: organizationId,
                 user_id: userId,
                 enrollment_id: enrollment.id,
-                session_enrollment_id: sessEnroll.id,
                 amount: amount,
-                payment_method: method,
-                status: 'completed',
-                receipt_number: `SES-${Date.now().toString().slice(-6)}`,
-                processed_by: processedById
+                status: 'paid',
+                confirmed_by: processedById,
+                confirmed_at: new Date().toISOString()
             }])
             .select(`
                 *,
@@ -225,6 +236,37 @@ export const sessionService = {
             .single();
 
         return payment;
+    },
+
+    async verifyAttendance(attendanceId: string, verifiedById: string) {
+        const { data, error } = await supabase
+            .from('attendance_records')
+            .update({
+                is_verified: true,
+                verified_by: verifiedById,
+                verified_at: new Date().toISOString()
+            })
+            .eq('id', attendanceId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async bulkVerifyAttendance(sessionId: string, verifiedById: string) {
+        const { data, error } = await supabase
+            .from('attendance_records')
+            .update({
+                is_verified: true,
+                verified_by: verifiedById,
+                verified_at: new Date().toISOString()
+            })
+            .eq('session_id', sessionId)
+            .eq('is_verified', false);
+
+        if (error) throw error;
+        return data;
     }
 };
 

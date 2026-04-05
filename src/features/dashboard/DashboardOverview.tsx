@@ -169,13 +169,13 @@ export function DashboardOverview() {
                                                 {activity.users.first_name} {activity.users.surname}
                                             </p>
                                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
-                                                Checked in to <span className="text-primary">{activity.sessions.name}</span>
+                                                Checked in to <span className="text-primary">{activity.sessions.title}</span>
                                             </p>
                                         </div>
                                     </div>
                                     <div className="text-right">
                                         <div className="flex items-center justify-end text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">
-                                            <Clock className="w-3 h-3 mr-2" /> {new Date(activity.checkin_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            <Clock className="w-3 h-3 mr-2" /> {new Date(activity.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </div>
                                         <div className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[8px] font-black uppercase tracking-widest rounded-lg border border-emerald-500/20 text-center">
                                             Verified
