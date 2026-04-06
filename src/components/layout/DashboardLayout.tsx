@@ -35,15 +35,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     const menuItems = [
         { name: 'Overview', icon: <LayoutDashboard className="w-5 h-5" />, path: '/dashboard', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'Programs', icon: <Calendar className="w-5 h-5" />, path: '/dashboard/programs', roles: ['system_admin', 'program_admin', 'facilitator'] },
-        { name: 'Assignments', icon: <FileText className="w-5 h-5" />, path: '/dashboard/assignments', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'Enrollments', icon: <Users className="w-5 h-5" />, path: '/dashboard/enrollments', roles: ['system_admin', 'program_admin', 'facilitator'] },
+        { name: 'Users', icon: <Users className="w-5 h-5" />, path: '/dashboard/users', roles: ['system_admin', 'program_admin'] },
         { name: 'Payments', icon: <Banknote className="w-5 h-5" />, path: '/dashboard/payments', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'Analytics', icon: <TrendingUp className="w-5 h-5" />, path: '/dashboard/analytics', roles: ['system_admin', 'program_admin'] },
         { name: 'Platform Command', icon: <ShieldAlert className="w-5 h-5" />, path: '/platform/admin', roles: ['platform_admin'] },
-        { name: 'QR System', icon: <QrCode className="w-5 h-5" />, path: '/dashboard/qr', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'Attendance', icon: <Activity className="w-5 h-5" />, path: '/dashboard/attendance', roles: ['system_admin', 'program_admin', 'facilitator'] },
-        { name: 'Cell Groups', icon: <UsersRound className="w-5 h-5" />, path: '/dashboard/cell-groups', roles: ['facilitator'] },
-        { name: 'Rewards', icon: <Trophy className="w-5 h-5" />, path: '/dashboard/rewards', roles: ['system_admin', 'program_admin'] },
+        { name: 'Cell Groups', icon: <UsersRound className="w-5 h-5" />, path: '/dashboard/cell-groups', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'User Management', icon: <Settings className="w-5 h-5" />, path: '/dashboard/settings', roles: ['system_admin', 'program_admin'] },
     ];
 

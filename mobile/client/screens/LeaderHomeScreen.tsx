@@ -60,7 +60,6 @@ export default function LeaderHomeScreen({ navigation }: Props) {
     totalMembers: 10,
     attendedToday: 8,
     pendingPayments: 3,
-    assignmentsPending: 4,
   };
 
   if (isPendingApproval || isRejected) {
@@ -120,14 +119,6 @@ export default function LeaderHomeScreen({ navigation }: Props) {
       description: "Record cash payments received",
       color: theme.accent,
       onPress: () => navigation.navigate("AttendanceTab"),
-    },
-    {
-      id: "assignments",
-      icon: "file-text",
-      title: "Review Assignments",
-      description: "Confirm completed assignments",
-      color: theme.success,
-      onPress: () => navigation.navigate("AssignmentsTab"),
     },
     {
       id: "members",
@@ -208,15 +199,6 @@ export default function LeaderHomeScreen({ navigation }: Props) {
             </ThemedText>
             <ThemedText type="small" style={{ color: theme.textSecondary }}>
               Pending
-            </ThemedText>
-          </Card>
-          <Card elevation={1} style={styles.statCard}>
-            <Feather name="file-text" size={20} color="#8B5CF6" />
-            <ThemedText type="h2" style={styles.statNumber}>
-              {stats.assignmentsPending}
-            </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
-              To Review
             </ThemedText>
           </Card>
         </View>

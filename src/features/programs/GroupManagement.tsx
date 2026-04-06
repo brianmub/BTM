@@ -294,7 +294,7 @@ function ManageParticipantsModal({
                 .from('enrollments')
                 .select('user:users(id, first_name, surname, email)')
                 .eq('program_id', programId)
-                .eq('status', 'active');
+                .in('status', ['active', 'enrolled', 'pending']);
             
             const allParticipants = enrollData?.map((e: any) => e.user) || [];
             const memberIds = new Set(memberData?.map((m: any) => m.user.id));

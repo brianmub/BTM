@@ -60,6 +60,7 @@ export function ParticipantDashboard() {
     const navigate = useNavigate();
 
     const [enrollments, setEnrollments] = useState<any[]>([]);
+    const [userGroups, setUserGroups] = useState<Record<string, any>>({}); // program_id -> group_name
     const [nextSessions, setNextSessions] = useState<Record<string, any>>({});
     const [badges, setBadges] = useState<string[]>([]);
     const [xp, setXp] = useState(0);
@@ -98,6 +99,18 @@ export function ParticipantDashboard() {
                 });
                 setNextSessions(map);
             }
+
+            // Fetch user's assigned groups
+            const { data: groupData } = await supabase
+                .from('group_members')
+                .select('group:program_groups(id, name, program_id)')
+                .eq('user_id', currentProfile?.id);
+            
+            const groupMap: Record<string, any> = {};
+            (groupData || []).forEach((g: any) => {
+                if (g.group) groupMap[g.group.program_id] = g.group.name;
+            });
+            setUserGroups(groupMap);
 
             // Compute XP: 50 per enrollment + 25 per badge
             const enrollCount = (enrollmentData || []).length;
@@ -178,7 +191,7 @@ export function ParticipantDashboard() {
                     </div>
 
                     {/* Quick Actions */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3 pb-2 border-b border-white/10">
                         <button
                             onClick={() => navigate(`/portal/${orgSlug}/dashboard/qr`)}
                             className="flex items-center gap-3 bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 rounded-xl px-4 py-3 transition-all"
@@ -188,10 +201,23 @@ export function ParticipantDashboard() {
                         </button>
                         <button
                             onClick={() => navigate(`/portal/${orgSlug}/dashboard/qr`)}
-                            className="flex items-center gap-3 bg-primary/80 hover:bg-primary active:scale-95 border border-primary rounded-xl px-4 py-3 transition-all"
+                            className="flex items-center gap-3 bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 rounded-xl px-4 py-3 transition-all"
                         >
                             <UserCircle2 className="w-5 h-5 text-white" />
                             <span className="text-[10px] font-black text-white uppercase tracking-widest">My ID</span>
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1">
+                        <button
+                            onClick={() => navigate(`/portal/${orgSlug}/dashboard/payments`)}
+                            className="flex items-center justify-between gap-3 bg-primary/80 hover:bg-primary active:scale-95 border border-primary rounded-xl px-4 py-3 transition-all w-full"
+                        >
+                            <div className="flex items-center gap-3">
+                                <Banknote className="w-5 h-5 text-white" />
+                                <span className="text-[10px] font-black text-white uppercase tracking-widest">Financial History</span>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-white/50" />
                         </button>
                     </div>
                 </div>
@@ -299,6 +325,11 @@ export function ParticipantDashboard() {
                                             ) : (
                                                 <span className="flex items-center gap-1 text-[9px] text-emerald-500 font-black uppercase tracking-widest">
                                                     <Clock className="w-3 h-3" /> Active
+                                                </span>
+                                            )}
+                                            {userGroups[enrollment.program_id] && (
+                                                <span className="flex items-center gap-1 text-[9px] text-primary font-black uppercase tracking-widest mt-0.5">
+                                                    <Shield className="w-3 h-3" /> {userGroups[enrollment.program_id]}
                                                 </span>
                                             )}
                                             {nextSessions[enrollment.program_id] && (

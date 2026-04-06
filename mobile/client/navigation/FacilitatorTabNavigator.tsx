@@ -6,6 +6,7 @@ import { BlurView } from "expo-blur";
 import { Platform, StyleSheet } from "react-native";
 
 import FacilitatorHomeScreen from "@/screens/FacilitatorHomeScreen";
+import FacilitatorCellScreen from "@/screens/FacilitatorCellScreen";
 import SessionManagementScreen from "@/screens/SessionManagementScreen";
 import AssignmentManagementScreen from "@/screens/AssignmentManagementScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
@@ -15,8 +16,9 @@ import { useScreenOptions } from "@/hooks/useScreenOptions";
 
 export type FacilitatorTabParamList = {
   HomeTab: undefined;
+  CellTab: undefined;
   SessionsTab: undefined;
-  AssignmentsTab: undefined;
+  AttendanceTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -39,6 +41,21 @@ function HomeStack() {
   );
 }
 
+function CellStack() {
+  const screenOptions = useScreenOptions();
+  const Stack = createNativeStackNavigator();
+
+  return (
+    <Stack.Navigator screenOptions={screenOptions}>
+      <Stack.Screen
+        name="Cell"
+        component={FacilitatorCellScreen}
+        options={{ headerTitle: "My Cell Group" }}
+      />
+    </Stack.Navigator>
+  );
+}
+
 function SessionsStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
@@ -54,16 +71,16 @@ function SessionsStack() {
   );
 }
 
-function AssignmentsStack() {
+function AttendanceStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
   
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
-        name="Assignments"
-        component={AssignmentManagementScreen}
-        options={{ headerTitle: "Assignments" }}
+        name="Attendance"
+        component={FacilitatorCellScreen}
+        options={{ headerTitle: "Verify Attendance" }}
       />
     </Stack.Navigator>
   );
@@ -124,6 +141,16 @@ export default function FacilitatorTabNavigator() {
         }}
       />
       <Tab.Screen
+        name="CellTab"
+        component={CellStack}
+        options={{
+          title: "My Cell",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="users" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="SessionsTab"
         component={SessionsStack}
         options={{
@@ -134,12 +161,12 @@ export default function FacilitatorTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="AssignmentsTab"
-        component={AssignmentsStack}
+        name="AttendanceTab"
+        component={AttendanceStack}
         options={{
-          title: "Tasks",
+          title: "Verify",
           tabBarIcon: ({ color, size }) => (
-            <Feather name="file-text" size={size} color={color} />
+            <Feather name="check-square" size={size} color={color} />
           ),
         }}
       />

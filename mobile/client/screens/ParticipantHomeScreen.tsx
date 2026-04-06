@@ -8,6 +8,7 @@ import { Feather } from "@expo/vector-icons";
 import Animated, { FadeInUp, FadeInRight } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 
+import { useNavigation } from "@react-navigation/native";
 import { ThemedText } from "@/components/ThemedText";
 import { Card } from "@/components/Card";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -29,6 +30,7 @@ function ProgressBar({ progress, color, trackColor }: { progress: number; color:
 }
 
 export default function ParticipantHomeScreen() {
+  const navigation = useNavigation<any>();
   console.log("[DEBUG] ParticipantHomeScreen loaded - v2 with attendance fixes");
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
@@ -36,31 +38,80 @@ export default function ParticipantHomeScreen() {
   const { theme } = useTheme();
   const { user } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [userPayments, setUserPayments] = useState<PaymentRecord[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
-  const [graduationInfo, setGraduationInfo] = useState<{ eligible: boolean; sessionsConfirmed: number; totalSessions: number; assignmentsConfirmed: number; totalAssignments: number } | null>(null);
+  const [graduationInfo, setGraduationInfo] = useState<{ eligible: boolean; sessionsConfirmed: number; totalSessions: number; sessionsWithPaidPayments: number } | null>(null);
+  const [userGroups, setUserGroups] = useState<Record<string, any>>({}); // programId -> groupInfo
+  const [memberPreviews, setMemberPreviews] = useState<Record<string, any>>({}); // programId -> memberInfo
 
   const loadData = useCallback(async () => {
     if (!user?.organizationId) return;
 
-    const [loadedSessions, loadedAssignments, loadedSubmissions, loadedPrograms, loadedEnrollments, loadedAttendance, loadedPayments] = await Promise.all([
+    const [loadedSessions, loadedPrograms, loadedEnrollments, loadedAttendance, loadedPayments] = await Promise.all([
       storage.getSessions(user.organizationId),
-      storage.getAssignments(user.organizationId),
-      storage.getSubmissions(user.organizationId),
       storage.getPrograms(user.organizationId),
       storage.getEnrollments(user.organizationId),
       storage.getUserAttendance(user.id),
       storage.getUserPayments(user.id),
     ]);
+
+    // Fetch cell groups + facilitator info
+    const { data: groupData } = await (await import('../lib/supabase')).supabase
+      .from('group_members')
+      .select(`
+        group:program_groups(
+          id, 
+          name, 
+          program_id,
+          facilitator:facilitator_id(id, first_name, surname)
+        )
+      `)
+      .eq('user_id', user.id);
+
+    const groupMap: Record<string, any> = {};
+    const groupMemberInfo: Record<string, { count: number, others: string[] }> = {};
+
+    if (groupData && groupData.length > 0) {
+      await Promise.all(groupData.map(async (g: any) => {
+        const groupObj = Array.isArray(g.group) ? g.group[0] : g.group;
+        if (groupObj) {
+          groupMap[groupObj.program_id] = {
+            id: groupObj.id,
+            name: groupObj.name,
+            facilitatorName: groupObj.facilitator 
+              ? `${groupObj.facilitator.first_name} ${groupObj.facilitator.surname}`
+              : 'Unassigned'
+          };
+
+          // Fetch other members for this group
+          const { data: members } = await (await import('../lib/supabase')).supabase
+            .from('group_members')
+            .select('users(first_name, surname)')
+            .eq('group_id', groupObj.id)
+            .neq('user_id', user.id)
+            .limit(3);
+
+          const { count } = await (await import('../lib/supabase')).supabase
+            .from('group_members')
+            .select('id', { count: 'exact', head: true })
+            .eq('group_id', groupObj.id)
+            .neq('user_id', user.id);
+
+          groupMemberInfo[groupObj.program_id] = {
+             count: count || 0,
+             others: (members || []).map((m: any) => m.users?.first_name || 'Member')
+          };
+        }
+      }));
+    }
+    
+    setUserGroups(groupMap);
+    setMemberPreviews(groupMemberInfo);
     setSessions(loadedSessions);
-    setAssignments(loadedAssignments);
-    setSubmissions(loadedSubmissions);
     setPrograms(loadedPrograms);
     setEnrollments(loadedEnrollments);
     setAttendance(loadedAttendance);
@@ -87,19 +138,13 @@ export default function ParticipantHomeScreen() {
   const programSessions = sessions.filter(s => s.programId === userEnrollment?.programId);
   
   const confirmedAttendance = attendance.filter(
-    a => a.userId === user?.id && a.confirmedByLeader
+    a => a.userId === user?.id && (a.isVerified || a.confirmedByLeader) && a.programId === userEnrollment?.programId
   );
   const attendedCount = confirmedAttendance.length;
 
   const upcomingSession = programSessions.find(
     (s) => new Date(s.date) > new Date()
   );
-
-  const pendingAssignments = assignments.filter((a) => {
-    if (a.programId !== userEnrollment?.programId) return false;
-    const dueDate = new Date(a.dueDate);
-    return dueDate > new Date();
-  });
 
   const activeAttendance = attendance.find(a => a.userId === user?.id && a.checkedIn && !a.exitTime);
   const activeSession = activeAttendance ? sessions.find(s => s.id === activeAttendance.sessionId) : null;
@@ -133,10 +178,10 @@ export default function ParticipantHomeScreen() {
       }
     };
     checkGraduation();
-  }, [user?.id, userEnrollment?.programId, attendance, submissions]);
+  }, [user?.id, userEnrollment?.programId, attendance]);
 
   const totalSessions = graduationInfo?.totalSessions || programSessions.length || 5;
-  const graduationProgress = graduationInfo ? graduationInfo.sessionsConfirmed / totalSessions : attendedCount / totalSessions;
+  const graduationProgress = totalSessions > 0 ? (graduationInfo ? graduationInfo.sessionsConfirmed / totalSessions : attendedCount / totalSessions) : 0;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -214,11 +259,14 @@ export default function ParticipantHomeScreen() {
 
       {activeSession && activeAttendance && (
         <Animated.View entering={FadeInUp.delay(120).duration(500)}>
-          <Card elevation={4} style={[styles.activeSessionCard, { borderColor: theme.success, borderWidth: 2 }]}>
+          <Card elevation={4} style={[
+            styles.activeSessionCard, 
+            { borderColor: (activeAttendance.isVerified || activeAttendance.confirmedByLeader) ? theme.success : "#F59E0B", borderWidth: 2 }
+          ]}>
             <View style={styles.activeSessionHeader}>
-              <View style={[styles.liveDot, { backgroundColor: theme.success }]} />
-              <ThemedText type="small" style={{ color: theme.success, fontWeight: "700", textTransform: "uppercase", letterSpacing: 1 }}>
-                Ongoing Session
+              <View style={[styles.liveDot, { backgroundColor: activeAttendance.isVerified ? theme.success : "#F59E0B" }]} />
+              <ThemedText type="small" style={{ color: activeAttendance.isVerified ? theme.success : "#F59E0B", fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                {activeAttendance.isVerified ? "Verified Session" : "Awaiting Verification"}
               </ThemedText>
             </View>
             
@@ -233,21 +281,38 @@ export default function ParticipantHomeScreen() {
                     "Just now"}
                 </ThemedText>
               </View>
+              {!activeAttendance.isVerified && (
+                <View style={[styles.detailRow, { marginTop: 4 }]}>
+                  <Feather name="info" size={14} color="#F59E0B" />
+                  <ThemedText type="small" style={{ color: "#F59E0B", marginLeft: Spacing.xs, fontWeight: "600" }}>
+                    Facilitator must verify your presence.
+                  </ThemedText>
+                </View>
+              )}
             </View>
 
-            <Pressable 
-              onPress={handleCheckout}
-              disabled={checkingOut}
-              style={({ pressed }) => [
-                styles.checkoutButton, 
-                { backgroundColor: theme.error, opacity: pressed || checkingOut ? 0.8 : 1 }
-              ]}
-            >
-              <Feather name="log-out" size={18} color="#FFFFFF" />
-              <ThemedText type="body" style={styles.checkoutButtonText}>
-                {checkingOut ? "Checking out..." : "Check Out Now"}
-              </ThemedText>
-            </Pressable>
+            <View style={{ flexDirection: "row", gap: Spacing.sm }}>
+                <Pressable 
+                onPress={handleCheckout}
+                disabled={checkingOut}
+                style={({ pressed }) => [
+                    styles.checkoutButton, 
+                    { backgroundColor: theme.backgroundSecondary, opacity: pressed || checkingOut ? 0.8 : 1, flex: 1, borderWidth: 1, borderColor: theme.border }
+                ]}
+                >
+                <Feather name="log-out" size={16} color={theme.textSecondary} />
+                <ThemedText type="body" style={[styles.checkoutButtonText, { color: theme.textSecondary, fontSize: 13 }]}>
+                    {checkingOut ? "..." : "Check Out"}
+                </ThemedText>
+                </Pressable>
+                
+                {activeAttendance.isVerified && (
+                    <View style={[styles.verifiedBadge, { backgroundColor: theme.success + "15", flex: 1.5, justifyContent: "center", alignItems: "center", borderRadius: BorderRadius.md, flexDirection: "row", gap: 6 }]}>
+                        <Feather name="shield" size={16} color={theme.success} />
+                        <ThemedText style={{ color: theme.success, fontWeight: "800", fontSize: 13 }}>Validated</ThemedText>
+                    </View>
+                )}
+            </View>
           </Card>
         </Animated.View>
       )}
@@ -260,45 +325,87 @@ export default function ParticipantHomeScreen() {
           {enrolledPrograms.map((program, index) => {
             const enrollment = userEnrollments.find(e => e.programId === program.id);
             const statusColor = enrollment?.status === "graduated" ? theme.success : 
-                               enrollment?.status === "assigned" ? theme.success : theme.accent;
+                                enrollment?.status === "assigned" ? theme.success : theme.accent;
             const statusText = enrollment?.status === "graduated" ? "Graduated" :
                               enrollment?.status === "assigned" ? "In Cell Group" : "Enrolled";
             return (
-              <Card key={program.id} elevation={1} style={[styles.programCard, { marginBottom: Spacing.sm }]}>
-                <View style={styles.programHeader}>
-                  <View style={[styles.programIcon, { backgroundColor: theme.link + "20" }]}>
-                    <Feather name="book-open" size={20} color={theme.link} />
-                  </View>
-                  <View style={styles.programInfo}>
-                    <ThemedText type="h4" numberOfLines={1}>{program.name}</ThemedText>
-                    <View style={styles.statusContainer}>
-                      <View style={styles.statusRow}>
-                        <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-                        <ThemedText type="small" style={{ color: statusColor }}>
-                          {statusText}
-                        </ThemedText>
-                      </View>
-                      
-                      {/* Payment Status Badge */}
-                      {userPayments.some(p => p.programId === program.id) && (
-                        <View style={[
-                          styles.paymentBadge, 
-                          { backgroundColor: userPayments.find(p => p.programId === program.id)?.status === 'paid' ? theme.success + '20' : theme.warning + '20' }
-                        ]}>
-                          <ThemedText type="small" style={{ 
-                            color: userPayments.find(p => p.programId === program.id)?.status === 'paid' ? theme.success : theme.warning,
-                            fontSize: 10,
-                            fontWeight: '800',
-                            textTransform: 'uppercase'
-                          }}>
-                            {userPayments.find(p => p.programId === program.id)?.status}
+              <View key={program.id} style={{ marginBottom: Spacing.xl }}>
+                <Card elevation={1} style={styles.programCard}>
+                  <View style={styles.programHeader}>
+                    <View style={[styles.programIcon, { backgroundColor: theme.link + "20" }]}>
+                      <Feather name="book-open" size={20} color={theme.link} />
+                    </View>
+                    <View style={styles.programInfo}>
+                      <ThemedText type="h4" numberOfLines={1}>{program.name}</ThemedText>
+                      <View style={styles.statusContainer}>
+                        <View style={styles.statusRow}>
+                          <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+                          <ThemedText type="small" style={{ color: statusColor, fontWeight: "800", textTransform: 'uppercase' }}>
+                            {statusText}
                           </ThemedText>
                         </View>
-                      )}
+                        
+                        {/* Payment Status Badge */}
+                        {userPayments.some(p => p.programId === program.id) && (
+                          <View style={[
+                            styles.paymentBadge, 
+                            { backgroundColor: userPayments.find(p => p.programId === program.id)?.status === 'paid' ? theme.success + '20' : theme.warning + '20' }
+                          ]}>
+                            <ThemedText type="small" style={{ 
+                              color: userPayments.find(p => p.programId === program.id)?.status === 'paid' ? theme.success : theme.warning,
+                              fontSize: 10,
+                              fontWeight: '800',
+                              textTransform: 'uppercase'
+                            }}>
+                              {userPayments.find(p => p.programId === program.id)?.status}
+                            </ThemedText>
+                          </View>
+                        )}
+                      </View>
                     </View>
                   </View>
-                </View>
-              </Card>
+                </Card>
+
+                {/* New Dedicated Cell Identity Section */}
+                {userGroups[program.id] && (
+                  <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.cellIdentitySection}>
+                    <Pressable 
+                      onPress={() => navigation.navigate('MyCellTab')}
+                      style={({ pressed }) => [
+                        styles.cellIdentityCard,
+                        { borderColor: theme.link + '30', borderStyle: 'dashed', opacity: pressed ? 0.8 : 1 }
+                      ]}
+                    >
+                      <View style={styles.cellIdentityHeader}>
+                        <View>
+                          <ThemedText type="small" style={styles.cellIdentityLabel}>Your Cell Group</ThemedText>
+                          <ThemedText type="h3" style={styles.cellIdentityName}>{userGroups[program.id].name}</ThemedText>
+                        </View>
+                        <View style={styles.facilitatorGroup}>
+                           <ThemedText type="small" style={styles.facilitatorLabel}>Facilitator</ThemedText>
+                           <ThemedText type="body" style={styles.facilitatorName}>{userGroups[program.id].facilitatorName}</ThemedText>
+                        </View>
+                      </View>
+
+                      {memberPreviews[program.id] && memberPreviews[program.id].count > 0 && (
+                        <View style={styles.mateSection}>
+                          <ThemedText type="small" style={styles.mateLabel}>Together with {memberPreviews[program.id].count} cell mates:</ThemedText>
+                          <View style={styles.mateList}>
+                             {memberPreviews[program.id].others.map((name: string, i: number) => (
+                               <View key={i} style={[styles.mateAvatar, { backgroundColor: theme.link + (i === 0 ? '40' : i === 1 ? '25' : '15') }]}>
+                                 <ThemedText style={styles.mateInitial}>{name[0]}</ThemedText>
+                               </View>
+                             ))}
+                             <View style={styles.moreMates}>
+                                <Feather name="arrow-right" size={12} color={theme.textSecondary} />
+                             </View>
+                          </View>
+                        </View>
+                      )}
+                    </Pressable>
+                  </Animated.View>
+                )}
+              </View>
             );
           })}
         </Animated.View>
@@ -327,7 +434,7 @@ export default function ParticipantHomeScreen() {
             <View style={styles.progressText}>
               <ThemedText type="h4">Graduation Progress</ThemedText>
               <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                {attendedCount}/{totalSessions} sessions confirmed
+                {attendedCount}/{totalSessions} sessions verified
               </ThemedText>
             </View>
             <ThemedText type="h3" style={{ color: theme.link }}>
@@ -401,56 +508,6 @@ export default function ParticipantHomeScreen() {
         )}
       </Animated.View>
 
-      <Animated.View entering={FadeInUp.delay(400).duration(500)}>
-        <View style={styles.sectionHeader}>
-          <ThemedText type="h3">Pending Assignments</ThemedText>
-          <Pressable>
-            <ThemedText type="link" style={{ color: theme.link }}>
-              View All
-            </ThemedText>
-          </Pressable>
-        </View>
-        {pendingAssignments.length > 0 ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.assignmentScroll}
-          >
-            {pendingAssignments.map((assignment, index) => (
-              <Animated.View
-                key={assignment.id}
-                entering={FadeInRight.delay(500 + index * 100).duration(400)}
-              >
-                <Card elevation={2} style={styles.assignmentCard}>
-                  <View style={[styles.assignmentBadge, { backgroundColor: theme.accent }]}>
-                    <Feather name="file-text" size={14} color="#FFFFFF" />
-                  </View>
-                  <ThemedText type="h4" numberOfLines={2} style={styles.assignmentTitle}>
-                    {assignment.title}
-                  </ThemedText>
-                  <View style={styles.assignmentDue}>
-                    <Feather name="clock" size={12} color={theme.textSecondary} />
-                    <ThemedText type="small" style={{ color: theme.textSecondary, marginLeft: Spacing.xs }}>
-                      Due {formatDate(assignment.dueDate)}
-                    </ThemedText>
-                  </View>
-                </Card>
-              </Animated.View>
-            ))}
-          </ScrollView>
-        ) : (
-          <View style={styles.emptyState}>
-            <Image
-              source={require("../../assets/images/empty-assignments.png")}
-              style={styles.emptyImageSmall}
-              resizeMode="contain"
-            />
-            <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: "center" }}>
-              No pending assignments
-            </ThemedText>
-          </View>
-        )}
-      </Animated.View>
     </ScrollView>
   );
 }
@@ -504,6 +561,85 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: BorderRadius.xs,
+  },
+  cellIdentitySection: {
+    marginTop: -Spacing.md,
+  },
+  cellIdentityCard: {
+    backgroundColor: 'transparent',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+  },
+  cellIdentityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  cellIdentityLabel: {
+    color: '#64748b',
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  cellIdentityName: {
+    fontSize: 16,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  facilitatorGroup: {
+    alignItems: 'flex-end',
+  },
+  facilitatorLabel: {
+    color: '#64748b',
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  facilitatorName: {
+    fontSize: 12,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  mateSection: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+    paddingTop: Spacing.md,
+  },
+  mateLabel: {
+    color: '#64748b',
+    fontSize: 10,
+    fontWeight: '700',
+    marginBottom: Spacing.sm,
+  },
+  mateList: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  mateAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.xs,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  mateInitial: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#1e293b',
+  },
+  moreMates: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activeSessionCard: {
     marginBottom: Spacing.xl,
@@ -649,5 +785,8 @@ const styles = StyleSheet.create({
   assignmentDue: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  verifiedBadge: {
+    height: 44,
   },
 });

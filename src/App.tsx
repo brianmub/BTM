@@ -33,10 +33,12 @@ import { ParticipantProfile } from '@/features/participant/ParticipantProfile';
 import { ParticipantQR } from '@/features/participant/ParticipantQR';
 import { ParticipantAssignmentsPage } from '@/features/participant/ParticipantAssignmentsPage';
 import { ParticipantProgramView } from '@/features/participant/ParticipantProgramView';
+import { ParticipantPayments } from '@/features/participant/ParticipantPayments';
 import { CellGroupDashboard } from '@/features/cellgroups/CellGroupDashboard';
 import { CellMeetingRegister } from '@/features/cellgroups/CellMeetingRegister';
 import { CellMeetingHistory } from '@/features/cellgroups/CellMeetingHistory';
 import { AttendanceLogs } from '@/features/dashboard/AttendanceLogs';
+import { UserDirectory } from '@/features/dashboard/UserDirectory';
 
 function App() {
     return (
@@ -154,6 +156,12 @@ function App() {
                             </RequireRole>
                         } />
 
+                        <Route path="/dashboard/users" element={
+                            <RequireRole roles={['platform_admin', 'system_admin', 'program_admin']}>
+                                <DashboardLayout><UserDirectory /></DashboardLayout>
+                            </RequireRole>
+                        } />
+
                         {/* Platform Command Center */}
                         <Route path="/platform/admin" element={
                             <RequireRole roles={['platform_admin']}>
@@ -161,19 +169,19 @@ function App() {
                             </RequireRole>
                         } />
 
-                        {/* Cell Groups — Facilitator Only */}
+                        {/* Cell Groups — Management & Facilitator */}
                         <Route path="/dashboard/cell-groups" element={
-                            <RequireRole roles={['facilitator']}>
+                            <RequireRole roles={['system_admin', 'program_admin', 'facilitator']}>
                                 <DashboardLayout><CellGroupDashboard /></DashboardLayout>
                             </RequireRole>
                         } />
                         <Route path="/dashboard/cell-groups/:meetingId" element={
-                            <RequireRole roles={['facilitator']}>
+                            <RequireRole roles={['system_admin', 'program_admin', 'facilitator']}>
                                 <DashboardLayout><CellMeetingRegister /></DashboardLayout>
                             </RequireRole>
                         } />
                         <Route path="/dashboard/cell-groups/:groupId/history" element={
-                            <RequireRole roles={['facilitator']}>
+                            <RequireRole roles={['system_admin', 'program_admin', 'facilitator']}>
                                 <DashboardLayout><CellMeetingHistory /></DashboardLayout>
                             </RequireRole>
                         } />
@@ -185,11 +193,12 @@ function App() {
                         <Route path="/portal/:orgSlug/dashboard/qr" element={<ParticipantLayout><ParticipantQR /></ParticipantLayout>} />
                         <Route path="/portal/:orgSlug/dashboard/assignments" element={<ParticipantLayout><ParticipantAssignmentsPage /></ParticipantLayout>} />
                         <Route path="/portal/:orgSlug/dashboard/program/:programId" element={<ParticipantLayout><ParticipantProgramView /></ParticipantLayout>} />
+                        <Route path="/portal/:orgSlug/dashboard/payments" element={<ParticipantLayout><ParticipantPayments /></ParticipantLayout>} />
 
-                        {/* Cell Groups in mobile portal (facilitator) */}
-                        <Route path="/portal/:orgSlug/dashboard/cell-groups" element={<RequireRole roles={['facilitator']}><ParticipantLayout><CellGroupDashboard /></ParticipantLayout></RequireRole>} />
-                        <Route path="/portal/:orgSlug/dashboard/cell-groups/:meetingId" element={<RequireRole roles={['facilitator']}><ParticipantLayout><CellMeetingRegister /></ParticipantLayout></RequireRole>} />
-                        <Route path="/portal/:orgSlug/dashboard/cell-groups/:groupId/history" element={<RequireRole roles={['facilitator']}><ParticipantLayout><CellMeetingHistory /></ParticipantLayout></RequireRole>} />
+                        {/* Cell Groups in mobile portal (admins + facilitators) */}
+                        <Route path="/portal/:orgSlug/dashboard/cell-groups" element={<RequireRole roles={['system_admin', 'program_admin', 'facilitator']}><ParticipantLayout><CellGroupDashboard /></ParticipantLayout></RequireRole>} />
+                        <Route path="/portal/:orgSlug/dashboard/cell-groups/:meetingId" element={<RequireRole roles={['system_admin', 'program_admin', 'facilitator']}><ParticipantLayout><CellMeetingRegister /></ParticipantLayout></RequireRole>} />
+                        <Route path="/portal/:orgSlug/dashboard/cell-groups/:groupId/history" element={<RequireRole roles={['system_admin', 'program_admin', 'facilitator']}><ParticipantLayout><CellMeetingHistory /></ParticipantLayout></RequireRole>} />
                     </Routes>
                 </Router>
             </TenantProvider>

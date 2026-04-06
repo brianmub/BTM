@@ -1,219 +1,277 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/services/supabase';
 import { useOrganization } from '@/hooks/useOrganization';
-import { Loader2, Search, Filter, CheckCircle2, XCircle, Banknote, MoreVertical, Printer } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Loader2, Search, Filter, CheckCircle2, XCircle, Banknote, MoreVertical, Printer, History, Users, RefreshCw, UserPlus, ShieldCheck, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { useParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ReceiptModal } from '@/components/shared/ReceiptModal';
-import { History } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
-interface Enrollment {
+interface Participant {
     id: string;
-    user: {
-        id: string;
-        first_name: string;
-        surname: string;
-        email: string;
-        phone_number?: string;
-        marital_status?: string;
-        residential_address?: string;
-    };
-    program: {
-        id: string;
-        name: string;
-        enrollment_fee: number;
-    };
-    status: string;
-    payment_status: string;
-    amount_due: number;
-    amount_paid: number;
-    enrolled_at: string;
+    first_name: string;
+    surname: string;
+    email: string;
+    role: string;
+    enrollments: any[];
 }
 
-export function EnrollmentManager({ programId: propProgramId }: { programId?: string }) {
-    const { programId: urlProgramId } = useParams();
-    const programId = propProgramId || urlProgramId;
+export function EnrollmentManager() {
     const { organization } = useOrganization();
     const { profile } = useAuth();
-    const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+    const { orgSlug } = useParams();
+
+    const [participants, setParticipants] = useState<Participant[]>([]);
+    const [programs, setPrograms] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedEnrollment, setSelectedEnrollment] = useState<Enrollment | null>(null);
-    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [enrollUser, setEnrollUser] = useState<Participant | null>(null);
+    const [selectedEnrollment, setSelectedEnrollment] = useState<any | null>(null);
+    const [latestPayment, setLatestPayment] = useState<any>(null);
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-    const [latestPayment, setLatestPayment] = useState<any>(null);
     const [payments, setPayments] = useState<any[]>([]);
 
     useEffect(() => {
-        if (organization) fetchEnrollments();
-    }, [organization, programId]);
+        if (organization) {
+            fetchData();
+        }
+    }, [organization]);
 
-    const fetchEnrollments = async () => {
+    const fetchData = async () => {
         setLoading(true);
         try {
-            let query = supabase
+            // 1. Get ALL Users in Organization
+            const { data: usersData, error: usersError } = await supabase
+                .from('users')
+                .select('id, first_name, surname, email, role')
+                .eq('organization_id', organization!.id);
+
+            if (usersError) throw usersError;
+
+            // 2. Get ALL Enrollments in Organization
+            const { data: enrollData, error: enrollError } = await supabase
                 .from('enrollments')
                 .select(`
-                    id,
-                    status,
-                    payment_status,
-                    amount_due,
-                    amount_paid,
-                    enrolled_at,
-                    user:users (id, first_name, surname, email, phone_number, marital_status, residential_address),
-                    program:programs (id, name, enrollment_fee)
+                    *,
+                    program:programs (id, name)
                 `)
-                .eq('organization_id', organization!.id)
-                .order('enrolled_at', { ascending: false });
+                .eq('organization_id', organization!.id);
 
-            if (programId) {
-                query = query.eq('program_id', programId);
-            }
+            if (enrollError) throw enrollError;
 
-            const { data, error } = await query;
-            if (error) throw error;
+            // 3. Get Programs for Enrollment Modal
+            const { data: progData } = await supabase
+                .from('programs')
+                .select('id, name')
+                .eq('organization_id', organization!.id);
+            setPrograms(progData || []);
 
-            // Fix: Supabase join results can sometimes be typed as arrays
-            const formattedData = (data as any[] || []).map(item => ({
-                ...item,
-                user: Array.isArray(item.user) ? item.user[0] : item.user,
-                program: Array.isArray(item.program) ? item.program[0] : item.program
+            // 4. Merge Data
+            const merged = (usersData || []).map(user => ({
+                ...user,
+                enrollments: (enrollData || []).filter(e => e.user_id === user.id)
             }));
 
-            setEnrollments(formattedData);
+            // Prioritize those who ARE enrolled or have recent activity
+            const sorted = merged.sort((a, b) => {
+                const aVal = a.enrollments.length > 0 ? 0 : 1;
+                const bVal = b.enrollments.length > 0 ? 0 : 1;
+                return aVal - bVal;
+            });
+
+            setParticipants(sorted);
         } catch (err) {
-            console.error('Error fetching enrollments:', err);
+            console.error('Error fetching participant data:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleReceivePayment = (enrollment: Enrollment) => {
-        setSelectedEnrollment(enrollment);
-        setIsPaymentModalOpen(true);
+    const fetchPaymentHistory = async (enrollmentId: string) => {
+        const { data } = await supabase
+            .from('payment_records')
+            .select('*')
+            .eq('enrollment_id', enrollmentId)
+            .order('created_at', { ascending: false });
+        setPayments(data || []);
     };
 
+    const filtered = participants.filter(p => {
+        const name = `${p.first_name} ${p.surname}`.toLowerCase();
+        return name.includes(searchQuery.toLowerCase()) ||
+            p.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+
+    if (!organization) {
+        return (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+                <Users className="w-16 h-16 text-slate-600 mb-4 opacity-50" />
+                <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Organization Not Selected</h3>
+                <p className="text-slate-500 text-xs mt-2 max-w-xs">Please select your organization from your profile.</p>
+            </div>
+        );
+    }
+
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
+        <div className="space-y-8 pb-20">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h2 className="text-2xl font-black text-foreground uppercase tracking-tight">Enrollments & Payments</h2>
-                    <p className="text-slate-500 text-xs">Manage student access and financials</p>
+                    <h2 className="text-2xl font-black text-foreground uppercase tracking-tight">Unified Participant Directory</h2>
+                    <p className="text-slate-500 text-xs uppercase font-bold tracking-widest mt-1">Status and enrollment for all {participants.length} members</p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" className="h-10 text-xs uppercase font-bold">
-                        <Filter className="w-4 h-4 mr-2" /> Filter
-                    </Button>
-                    <Button variant="outline" className="h-10 text-xs uppercase font-bold">
-                        <Printer className="w-4 h-4 mr-2" /> Report
+                <div className="flex gap-4">
+                    <Button
+                        variant="ghost"
+                        className="h-10 px-4 text-slate-500 hover:text-primary transition-colors"
+                        onClick={fetchData}
+                        disabled={loading}
+                    >
+                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
                 </div>
             </div>
 
-            {/* List */}
-            <Card className="p-0 overflow-hidden bg-surface border-surface-border shadow-2xl">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-500">
-                        <thead className="bg-background text-xs uppercase font-black text-foreground tracking-wider">
-                            <tr>
-                                <th className="px-6 py-4">Student</th>
-                                <th className="px-6 py-4">Program</th>
-                                <th className="px-6 py-4">Contact & Status</th>
-                                <th className="px-6 py-4">Finance</th>
-                                <th className="px-6 py-4 text-right">Balance</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-surface-border">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center">
-                                        <Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-500" />
-                                    </td>
-                                </tr>
-                            ) : enrollments.map((enrollment) => (
-                                <tr key={enrollment.id} className="hover:bg-background transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="font-bold text-foreground">{enrollment.user.first_name} {enrollment.user.surname}</div>
-                                        <div className="text-[10px] opacity-60 text-slate-500">{enrollment.user.email}</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="text-xs font-medium text-foreground">{enrollment.program.name}</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col gap-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${enrollment.user.marital_status === 'married' ? 'bg-pink-500/10 text-pink-400' : 'bg-slate-500/10 text-slate-400'
-                                                    }`}>
-                                                    {enrollment.user.marital_status || 'Single'}
-                                                </span>
-                                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${enrollment.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
-                                                    }`}>
-                                                    {enrollment.status}
-                                                </span>
-                                            </div>
-                                            <div className="text-[10px] text-slate-500 font-bold">{enrollment.user.phone_number || 'No Phone'}</div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col gap-1">
-                                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${enrollment.payment_status === 'paid' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
-                                                }`}>
-                                                {enrollment.payment_status === 'paid' && <CheckCircle2 className="w-3 h-3" />}
-                                                {enrollment.payment_status}
-                                            </span>
-                                            <div className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">${enrollment.amount_paid} Paid</div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right font-mono text-foreground">
-                                        ${(enrollment.amount_due - enrollment.amount_paid).toFixed(2)}
-                                    </td>
-                                    <td className="px-6 py-4 text-right space-x-2">
-                                        <Button
-                                            variant="ghost"
-                                            className="h-8 w-8 p-0 text-slate-400 hover:text-foreground"
-                                            onClick={async () => {
-                                                setSelectedEnrollment(enrollment);
-                                                const { data } = await supabase
-                                                    .from('payment_records')
-                                                    .select('*, user:users(first_name, surname), program:programs(name)')
-                                                    .eq('enrollment_id', enrollment.id)
-                                                    .order('created_at', { ascending: false });
-                                                setPayments(data || []);
-                                                setIsHistoryOpen(true);
-                                            }}
-                                        >
-                                            <History className="w-4 h-4" />
-                                        </Button>
-                                        {(enrollment.amount_due - enrollment.amount_paid) > 0 && (
-                                            <Button
-                                                variant="premium"
-                                                className="h-8 text-[10px] px-3 uppercase font-black tracking-widest"
-                                                onClick={() => handleReceivePayment(enrollment)}
-                                            >
-                                                <Banknote className="w-3 h-3 mr-2" /> Pay
-                                            </Button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+            <Card className="p-6 border-surface-border bg-surface shadow-xl">
+                <div className="flex gap-4 mb-8">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Find any user..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full h-14 bg-background border border-surface-border rounded-xl pl-12 pr-4 text-foreground font-bold text-sm outline-none focus:border-primary/40 transition-all shadow-inner"
+                        />
+                    </div>
                 </div>
+
+                {loading ? (
+                    <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="border-b border-surface-border">
+                                    <th className="text-left py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Participant</th>
+                                    <th className="text-left py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Enrollment Status</th>
+                                    <th className="text-center py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Role</th>
+                                    <th className="text-right py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Controls</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filtered.map((p) => (
+                                    <tr key={p.id} className="border-b border-surface-border/50 hover:bg-primary/5 transition-colors group">
+                                        <td className="py-4 px-2">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-[14px] shadow-sm ${p.enrollments.length > 0 ? 'bg-primary/10 text-primary' : 'bg-slate-500/10 text-slate-400'
+                                                    }`}>
+                                                    {(p.first_name?.[0] || '?') + (p.surname?.[0] || '?')}
+                                                </div>
+                                                <div>
+                                                    <p className="text-[13px] font-black text-foreground uppercase tracking-tight leading-none mb-1">{p.first_name} {p.surname}</p>
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{p.email}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-2">
+                                            {p.enrollments.length > 0 ? (
+                                                <div className="flex flex-col gap-1">
+                                                    {p.enrollments.map(e => (
+                                                        <div key={e.id} className="flex items-center gap-2">
+                                                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                                            <span className="text-[10px] font-black text-foreground uppercase tracking-wider">{e.program?.name}</span>
+                                                            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${e.payment_status === 'paid' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
+                                                                }`}>
+                                                                {e.payment_status}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 text-slate-400">
+                                                    <HelpCircle className="w-3 h-3" />
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest italic opacity-60">Not Enrolled</span>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="py-4 px-2 text-center">
+                                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest inline-flex items-center gap-1.5 ${p.role === 'system_admin' ? 'bg-rose-500/10 text-rose-400' :
+                                                p.role === 'program_admin' ? 'bg-primary/10 text-primary' :
+                                                    'bg-slate-500/10 text-slate-400'
+                                                }`}>
+                                                {p.role === 'system_admin' && <ShieldCheck className="w-3 h-3" />}
+                                                {p.role.replace('_', ' ')}
+                                            </span>
+                                        </td>
+                                        <td className="py-4 px-2 text-right">
+                                            <div className="flex justify-end items-center gap-1">
+                                                {p.enrollments.length > 0 ? (
+                                                    <div className="flex gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="h-10 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-primary transition-all"
+                                                            onClick={() => {
+                                                                const e = p.enrollments[0]; // Simple for now
+                                                                setSelectedEnrollment(e);
+                                                                fetchPaymentHistory(e.id);
+                                                                setIsHistoryOpen(true);
+                                                            }}
+                                                        >
+                                                            <History className="w-4 h-4 mr-2" /> Audit
+                                                        </Button>
+                                                        <div className="w-px h-6 bg-surface-border mx-1" />
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="h-10 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 transition-all"
+                                                            onClick={() => setSelectedEnrollment(p.enrollments[0])}
+                                                        >
+                                                            <Banknote className="w-4 h-4 mr-2" /> Financials
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <Button
+                                                        variant="united"
+                                                        className="h-10 px-4 text-[9px] font-black uppercase tracking-widest"
+                                                        onClick={() => setEnrollUser(p)}
+                                                    >
+                                                        <UserPlus className="w-4 h-4 mr-2" /> Enroll Now
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </Card>
 
-            {isPaymentModalOpen && selectedEnrollment && (
+            {enrollUser && (
+                <EnrollUserModal
+                    user={enrollUser}
+                    programs={programs}
+                    onClose={() => setEnrollUser(null)}
+                    onSuccess={() => {
+                        setEnrollUser(null);
+                        fetchData();
+                    }}
+                />
+            )}
+
+            {selectedEnrollment && !isHistoryOpen && (
                 <ReceivePaymentModal
                     enrollment={selectedEnrollment}
                     profile={profile}
-                    onClose={() => setIsPaymentModalOpen(false)}
+                    onClose={() => setSelectedEnrollment(null)}
                     onSuccess={(payment) => {
-                        setIsPaymentModalOpen(false);
+                        setSelectedEnrollment(null);
                         setLatestPayment(payment);
                         setIsReceiptModalOpen(true);
-                        fetchEnrollments();
+                        fetchData();
                     }}
                 />
             )}
@@ -228,215 +286,159 @@ export function EnrollmentManager({ programId: propProgramId }: { programId?: st
             )}
 
             {isHistoryOpen && selectedEnrollment && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-md p-4">
-                    <div className="bg-surface border border-surface-border rounded-2xl w-full max-w-lg p-6 shadow-2xl overflow-hidden">
-                        <div className="flex justify-between items-center mb-6">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-md p-4">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-surface border border-surface-border rounded-2xl w-full max-w-lg p-8 shadow-2xl relative flex flex-col"
+                    >
+                        <div className="flex justify-between items-center mb-8 shrink-0">
                             <div>
-                                <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Payment History</h3>
-                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{selectedEnrollment.user.first_name} {selectedEnrollment.user.surname}</p>
+                                <h3 className="text-2xl font-black text-foreground uppercase tracking-tight leading-none mb-1">Financial History</h3>
+                                <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{selectedEnrollment.user?.first_name || 'Student'} Auditing</p>
                             </div>
                             <button onClick={() => setIsHistoryOpen(false)} className="text-slate-500 hover:text-foreground"><XCircle className="w-6 h-6" /></button>
                         </div>
-
-                        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                            {payments.length > 0 ? payments.map((p) => (
+                        <div className="flex-1 space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                            {payments.map((p) => (
                                 <div key={p.id} className="bg-background border border-surface-border rounded-xl p-4 flex items-center justify-between group hover:border-primary/30 transition-all">
                                     <div className="space-y-1">
-                                        <div className="text-sm font-black text-foreground">${p.amount.toFixed(2)}</div>
-                                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                            {new Date(p.created_at).toLocaleDateString()} • {p.payment_method}
-                                        </div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{new Date(p.created_at).toLocaleDateString()}</p>
+                                        <p className="text-sm font-black text-foreground uppercase">{p.payment_method}</p>
                                     </div>
-                                    <Button
-                                        variant="outline"
-                                        className="h-8 text-[9px] font-black uppercase tracking-widest border-surface-border bg-background opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={() => {
-                                            setLatestPayment(p);
-                                            setIsReceiptModalOpen(true);
-                                        }}
-                                    >
-                                        View Receipt
-                                    </Button>
+                                    <div className="text-right">
+                                        <p className="text-sm font-black text-emerald-400">+${p.amount.toFixed(2)}</p>
+                                    </div>
                                 </div>
-                            )) : (
-                                <div className="text-center py-10 text-slate-500 text-sm italic font-medium">
-                                    No payments recorded yet.
-                                </div>
-                            )}
+                            ))}
                         </div>
-
-                        <div className="mt-8 pt-6 border-t border-surface-border">
-                            <Button variant="ghost" className="w-full text-slate-400 font-bold uppercase tracking-widest text-[10px]" onClick={() => setIsHistoryOpen(false)}>
-                                Done
-                            </Button>
-                        </div>
-                    </div>
+                        <Button variant="ghost" className="w-full mt-6 uppercase font-black" onClick={() => setIsHistoryOpen(false)}>Done</Button>
+                    </motion.div>
                 </div>
             )}
         </div>
     );
 }
 
-function ReceivePaymentModal({ enrollment, profile, onClose, onSuccess }: { enrollment: Enrollment, profile: any, onClose: () => void, onSuccess: (payment: any) => void }) {
+// ─── Enroll User Modal ──────────────────────────────────────────────────────
+function EnrollUserModal({ user, programs, onClose, onSuccess }: { user: Participant, programs: any[], onClose: () => void, onSuccess: () => void }) {
     const { organization } = useOrganization();
-    const [amount, setAmount] = useState(enrollment.amount_due - enrollment.amount_paid);
-    const [method, setMethod] = useState('cash');
-    const [reference, setReference] = useState('');
-    const [sessionId, setSessionId] = useState<string>('none');
-    const [sessions, setSessions] = useState<any[]>([]);
+    const { profile } = useAuth();
+    const [programId, setProgramId] = useState(programs[0]?.id || '');
+    const [due, setDue] = useState(10);
+    const [paid, setPaid] = useState(0);
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        const fetchSessions = async () => {
-            const { data } = await supabase
-                .from('sessions')
-                .select('*')
-                .eq('program_id', enrollment.program.id)
-                .order('session_date', { ascending: true });
-            setSessions(data || []);
-        };
-        fetchSessions();
-    }, [enrollment.program.id]);
-
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleEnroll = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-
         try {
-            if (sessionId !== 'none') {
-                const { sessionService } = await import('@/services/sessionService');
-                const p = await sessionService.recordSessionPayment(sessionId, enrollment.user.id, organization!.id, amount, method, profile.id);
-                onSuccess(p);
-                return;
-            }
-
-            // 1. Record General Payment (Existing Logic)
-            const paymentPayload = {
-                organization_id: organization!.id,
-                user_id: enrollment.user.id,
-                enrollment_id: enrollment.id,
-                amount: amount,
-                payment_method: method,
-                transaction_reference: reference || `MANUAL-${Date.now()}`,
-                status: 'completed',
-                receipt_number: `RCP-${Date.now().toString().slice(-6)}`,
-                processed_by: profile.id
-            };
-
-            const { data: paymentData, error: payError } = await supabase
-                .from('payment_records')
-                .insert([paymentPayload])
-                .select(`
-                    *,
-                    user:users(first_name, surname),
-                    program:programs(name)
-                `)
-                .single();
-
-            if (payError) throw payError;
-
-            // 2. Update Enrollment
-            const newPaid = enrollment.amount_paid + amount;
-            const newStatus = newPaid >= enrollment.amount_due ? 'paid' : 'partial';
-            const { error: enrollError } = await supabase
+            const { error } = await supabase
                 .from('enrollments')
-                .update({
-                    amount_paid: newPaid,
-                    payment_status: newStatus,
-                    status: newStatus === 'paid' ? 'active' : enrollment.status
-                })
-                .eq('id', enrollment.id);
+                .insert([{
+                    organization_id: organization!.id,
+                    user_id: user.id,
+                    program_id: programId,
+                    amount_due: due,
+                    amount_paid: paid,
+                    payment_status: paid >= due ? 'paid' : (paid > 0 ? 'partial' : 'unpaid'),
+                    status: 'active',
+                    enrolled_by: profile!.id
+                }]);
 
-            if (enrollError) throw enrollError;
-
-            onSuccess(paymentData);
-
+            if (error) throw error;
+            onSuccess();
         } catch (err: any) {
-            alert('Error: ' + err.message);
+            alert(err.message);
         } finally {
             setLoading(false);
         }
     };
 
     return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="bg-surface border border-surface-border rounded-3xl w-full max-w-md p-10 shadow-2xl">
+                <div className="mb-8">
+                    <h2 className="text-2xl font-black text-foreground uppercase">{user.first_name} {user.surname}</h2>
+                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-1">Enroll in a Program</p>
+                </div>
+                <form onSubmit={handleEnroll} className="space-y-6">
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-2">Target Program</label>
+                        <select value={programId} onChange={e => setProgramId(e.target.value)} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-bold">
+                            {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase mb-2">Fee Total</label>
+                            <input type="number" value={due} onChange={e => setDue(Number(e.target.value))} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-bold" />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase mb-2">Initial Paid</label>
+                            <input type="number" value={paid} onChange={e => setPaid(Number(e.target.value))} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-bold" />
+                        </div>
+                    </div>
+                    <div className="flex gap-4">
+                        <Button variant="ghost" onClick={onClose} className="flex-1 font-black">Cancel</Button>
+                        <Button type="submit" variant="united" className="flex-1 font-black h-14" disabled={loading}>{loading ? '...' : 'Confirm'}</Button>
+                    </div>
+                </form>
+            </motion.div>
+        </div>
+    );
+}
+
+// ─── Receive Payment Modal ────────────────────────────────────────────────────
+function ReceivePaymentModal({ enrollment, profile, onClose, onSuccess }: { enrollment: any, profile: any, onClose: () => void, onSuccess: (payment: any) => void }) {
+    const { organization } = useOrganization();
+    const [amount, setAmount] = useState(enrollment.amount_due - enrollment.amount_paid);
+    const [method, setMethod] = useState('cash');
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const { data: paymentData, error: payError } = await supabase
+                .from('payment_records')
+                .insert([{
+                    organization_id: organization!.id,
+                    user_id: enrollment.user_id,
+                    enrollment_id: enrollment.id,
+                    amount: amount,
+                    payment_method: method,
+                    status: 'completed',
+                    processed_by: profile.id
+                }])
+                .select(`*, user:users(first_name, surname), program:programs(name)`)
+                .single();
+
+            if (payError) throw payError;
+
+            const newPaid = enrollment.amount_paid + amount;
+            await supabase.from('enrollments').update({
+                amount_paid: newPaid,
+                payment_status: newPaid >= enrollment.amount_due ? 'paid' : 'partial'
+            }).eq('id', enrollment.id);
+
+            onSuccess(paymentData);
+        } catch (err: any) { alert(err.message); }
+        finally { setLoading(false); }
+    };
+
+    return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md p-4">
-            <div className="bg-surface border border-surface-border rounded-2xl w-full max-w-md p-6 shadow-2xl">
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Receive Payment</h3>
-                    <button onClick={onClose} className="text-slate-500 hover:text-foreground"><XCircle className="w-6 h-6" /></button>
-                </div>
-
-                <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-6">
-                    <div className="flex justify-between text-sm mb-1">
-                        <span className="text-slate-500">Student:</span>
-                        <span className="text-foreground font-bold">{enrollment.user.first_name} {enrollment.user.surname}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Outstanding:</span>
-                        <span className="text-rose-500 font-bold">${(enrollment.amount_due - enrollment.amount_paid).toFixed(2)}</span>
-                    </div>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Amount ($)</label>
-                        <input
-                            type="number"
-                            value={amount}
-                            onChange={e => setAmount(Number(e.target.value))}
-                            className="w-full bg-background border border-surface-border rounded-lg p-3 text-foreground font-mono text-lg focus:border-primary/50 outline-none"
-                            max={enrollment.amount_due - enrollment.amount_paid}
-                            min={0.01}
-                            step="0.01"
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Assign to Session (Optional)</label>
-                        <select
-                            value={sessionId}
-                            onChange={e => {
-                                setSessionId(e.target.value);
-                                if (e.target.value !== 'none') setAmount(5); // Default session fee
-                            }}
-                            className="w-full bg-background border border-surface-border rounded-lg p-3 text-foreground text-sm focus:border-primary/50 outline-none"
-                        >
-                            <option value="none" className="bg-surface text-foreground">General Program Fee</option>
-                            {sessions.map(s => (
-                                <option key={s.id} value={s.id} className="bg-surface text-foreground">{s.name} ({new Date(s.session_date).toLocaleDateString()})</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Payment Method</label>
-                        <select
-                            value={method}
-                            onChange={e => setMethod(e.target.value)}
-                            className="w-full bg-background border border-surface-border rounded-lg p-3 text-foreground text-sm focus:border-primary/50 outline-none"
-                        >
-                            <option value="cash" className="bg-surface text-foreground">Cash</option>
-                            <option value="ecocash" className="bg-surface text-foreground">EcoCash</option>
-                            <option value="swipe" className="bg-surface text-foreground">Swipe / Bank Card</option>
-                            <option value="bank_transfer" className="bg-surface text-foreground">Bank Transfer</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Reference / Notes (Optional)</label>
-                        <input
-                            type="text"
-                            value={reference}
-                            onChange={e => setReference(e.target.value)}
-                            placeholder="e.g. Transaction ID or Receipt Book #"
-                            className="w-full bg-background border border-surface-border rounded-lg p-3 text-foreground text-sm focus:border-primary/50 outline-none"
-                        />
-                    </div>
-
-                    <Button type="submit" variant="premium" className="w-full h-12 uppercase font-black tracking-widest mt-4" disabled={loading}>
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Payment'}
-                    </Button>
+            <div className="bg-surface border border-surface-border rounded-2xl w-full max-w-md p-8 shadow-2xl">
+                <h3 className="text-xl font-black mb-6 uppercase">Transact: {enrollment.program?.name}</h3>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <input type="number" value={amount} onChange={e => setAmount(Number(e.target.value))} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-black text-lg" />
+                    <select value={method} onChange={e => setMethod(e.target.value)} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-bold">
+                        <option value="cash">Cash</option>
+                        <option value="swipe">Swipe</option>
+                    </select>
+                    <Button type="submit" variant="premium" className="w-full h-14 font-black" disabled={loading}>Confirm Payment</Button>
+                    <Button variant="ghost" onClick={onClose} className="w-full font-bold">Cancel</Button>
                 </form>
             </div>
         </div>

@@ -7,6 +7,7 @@ import {
     Award,
     TrendingUp,
     QrCode,
+    UsersRound,
     ChevronRight,
     Sparkles,
     Activity,
@@ -23,6 +24,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/hooks/useOrganization';
 import { profileService } from '@/services/profileService';
+import { supabase } from '@/services/supabase';
 
 export function DashboardOverview() {
     const navigate = useNavigate();
@@ -32,7 +34,7 @@ export function DashboardOverview() {
     const [stats, setStats] = useState({
         programs: 0,
         participants: 0,
-        verificationRate: '100%',
+        cellGroups: 0,
         certificates: 0,
         revenue: 0
     });
@@ -48,11 +50,12 @@ export function DashboardOverview() {
     const fetchDashboardData = async () => {
         try {
             setLoading(true);
-            const [s, a] = await Promise.all([
+            const [s, a, groupsRes] = await Promise.all([
                 profileService.getStats(organization!.id),
-                profileService.getRecentActivity(organization!.id)
+                profileService.getRecentActivity(organization!.id),
+                supabase.from('program_groups').select('id', { count: 'exact', head: true }).eq('organization_id', organization!.id)
             ]);
-            setStats(s as any);
+            setStats({ ...(s as any), cellGroups: groupsRes.count ?? 0 });
             setActivities(a);
         } catch (err) {
             console.error(err);
@@ -64,7 +67,7 @@ export function DashboardOverview() {
     const statCards = [
         { label: 'Active Curriculums', value: stats.programs, icon: <Calendar className="w-5 h-5" />, accent: 'from-primary/20 to-primary/5', iconBg: 'bg-primary/15 border-primary/20 text-primary', trend: '+2 this month', trendColor: 'text-primary bg-primary/10' },
         { label: 'Total Participants', value: stats.participants, icon: <Users className="w-5 h-5" />, accent: 'from-amber-500/20 to-amber-500/5', iconBg: 'bg-amber-500/15 border-amber-500/20 text-amber-400', trend: '+14% growth', trendColor: 'text-amber-400 bg-amber-500/10' },
-        { label: 'Verification Rate', value: stats.verificationRate, icon: <QrCode className="w-5 h-5" />, accent: 'from-emerald-500/20 to-emerald-500/5', iconBg: 'bg-emerald-500/15 border-emerald-500/20 text-emerald-400', trend: 'Optimal', trendColor: 'text-emerald-400 bg-emerald-500/10' },
+        { label: 'Cell Groups', value: stats.cellGroups, icon: <UsersRound className="w-5 h-5" />, accent: 'from-emerald-500/20 to-emerald-500/5', iconBg: 'bg-emerald-500/15 border-emerald-500/20 text-emerald-400', trend: 'Live count', trendColor: 'text-emerald-400 bg-emerald-500/10' },
         { label: 'Total Revenue', value: `$${stats.revenue.toLocaleString()}`, icon: <Banknote className="w-5 h-5" />, accent: 'from-blue-500/20 to-blue-500/5', iconBg: 'bg-blue-500/15 border-blue-500/20 text-blue-400', trend: 'Live Sync', trendColor: 'text-blue-400 bg-blue-500/10' },
     ];
 

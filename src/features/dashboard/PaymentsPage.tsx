@@ -43,9 +43,9 @@ export function PaymentsPage() {
                 .from('payment_records')
                 .select(`
                     *,
-                    user:users(first_name, surname, email, profile_photo_url),
-                    program:programs(name),
-                    session:sessions(name, session_date)
+                    user:user_id(first_name, surname, email, profile_photo_url),
+                    program:program_id(name),
+                    session:session_id(name, session_date)
                 `)
                 .eq('organization_id', organization!.id)
                 .order('created_at', { ascending: false });
@@ -240,6 +240,10 @@ export function PaymentsPage() {
                                 fetchPayments();
                             }
                         }}
+                        onOpenReceipt={(payment) => {
+                            setSelectedPayment(payment);
+                            setIsReceiptModalOpen(true);
+                        }}
                     />
                 )}
             </AnimatePresence>
@@ -247,18 +251,25 @@ export function PaymentsPage() {
     );
 }
 
-function NewPaymentModal({ organization, profile, onClose, onSuccess }: { organization: any, profile: any, onClose: () => void, onSuccess: (data?: any[]) => void }) {
+function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenReceipt }: { 
+    organization: any, 
+    profile: any, 
+    onClose: () => void, 
+    onSuccess: (data?: any[]) => void,
+    onOpenReceipt: (payment: any) => void
+}) {
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [users, setUsers] = useState<any[]>([]);
     const [selectedUser, setSelectedUser] = useState<any>(null);
-    const [programs, setPrograms] = useState<any[]>([]);
-    const [selectedProgram, setSelectedProgram] = useState<string>('');
+    const [userEnrollments, setUserEnrollments] = useState<any[]>([]);
     const [sessions, setSessions] = useState<any[]>([]);
-    const [selectedSession, setSelectedSession] = useState<string>('none');
-    const [amount, setAmount] = useState(5);
+    const [selectedSessionData, setSelectedSessionData] = useState<string>(''); // Format: programId:sessionId or programId:none
+    const [amount, setAmount] = useState(10);
     const [method, setMethod] = useState('cash');
     const [continuousMode, setContinuousMode] = useState(true);
+    const [lastPayment, setLastPayment] = useState<any>(null);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     useEffect(() => {
         if (search.length > 2) {
@@ -268,111 +279,201 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess }: { organi
     }, [search]);
 
     const searchUsers = async () => {
-        const { data } = await supabase
-            .from('users')
-            .select('id, first_name, surname, email')
-            .or(`first_name.ilike.%${search}%,surname.ilike.%${search}%,email.ilike.%${search}%`)
-            .limit(5);
-        setUsers(data || []);
+        if (!search.trim()) return;
+
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .select('id, first_name, surname, email')
+                .eq('organization_id', organization.id)
+                .or(`first_name.ilike.%${search}%,surname.ilike.%${search}%,email.ilike.%${search}%`)
+                .limit(10);
+            
+            if (error) throw error;
+            setUsers(data || []);
+        } catch (err) {
+            console.error('Search error:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
         if (selectedUser) {
-            fetchUserEnrollments();
+            fetchUserFinancialData();
         }
     }, [selectedUser]);
 
-    const fetchUserEnrollments = async () => {
-        const { data } = await supabase
-            .from('enrollments')
-            .select(`
-                id,
-                program:programs(id, name)
-            `)
-            .eq('user_id', selectedUser.id)
-            .eq('organization_id', organization.id)
-            .eq('status', 'active');
+    const fetchUserFinancialData = async () => {
+        setLoading(true);
+        try {
+            // 1. Get user's current enrollments
+            const { data: enrollments } = await supabase
+                .from('enrollments')
+                .select('id, program_id')
+                .eq('user_id', selectedUser.id);
+            setUserEnrollments(enrollments || []);
 
-        setPrograms(data?.map(e => ({
-            id: e.id,
-            progId: (e.program as any).id,
-            name: (e.program as any).name
-        })) || []);
-    };
+            // 2. Get ALL programs for the organization
+            const { data: allPrograms, error: progError } = await supabase
+                .from('programs')
+                .select('id, name')
+                .eq('organization_id', organization.id);
 
-    useEffect(() => {
-        if (selectedProgram) {
-            fetchSessions();
+            if (progError) throw progError;
+
+            if (!allPrograms || allPrograms.length === 0) {
+                setSessions([{ label: 'No Programs Configured', key: 'none:none', disabled: true }]);
+                return;
+            }
+
+            // 3. Get ALL sessions for the organization
+            const { data: allSessions } = await supabase
+                .from('sessions')
+                .select('id, name, session_date, program_id')
+                .eq('organization_id', organization.id)
+                .order('session_date', { ascending: true });
+
+            // 4. Flatten into a selectable list
+            const combined: any[] = [];
+            for (const prog of allPrograms) {
+                const isEnrolled = (enrollments || []).some(e => e.program_id === prog.id);
+                
+                // Add sessions for this program
+                const progSessions = (allSessions || []).filter(s => s.program_id === prog.id);
+                for (const s of progSessions) {
+                    combined.push({
+                        label: `${s.name} (${prog.name})`,
+                        programId: prog.id,
+                        sessionId: s.id,
+                        key: `${prog.id}:${s.id}`
+                    });
+                }
+
+                // Add general fee option
+                combined.push({
+                    label: `General Enrollment Fee (${prog.name})`,
+                    programId: prog.id,
+                    sessionId: 'none',
+                    key: `${prog.id}:none`
+                });
+            }
+
+            setSessions(combined.length > 0 ? combined : [{ label: 'No Sessions or Programs Found', key: 'none:none', disabled: true }]);
+            if (combined.length > 0) {
+                setSelectedSessionData((prev: string) => combined.find(c => c.key === prev) ? prev : combined[0].key);
+            }
+        } catch (err) {
+            console.error('Error fetching financial data:', err);
+        } finally {
+            setLoading(false);
         }
-    }, [selectedProgram]);
-
-    const fetchSessions = async () => {
-        const prog = programs.find(p => p.id === selectedProgram);
-        if (!prog) return;
-
-        const { data } = await supabase
-            .from('sessions')
-            .select('id, name, session_date')
-            .eq('program_id', prog.progId)
-            .order('session_date', { ascending: true });
-        setSessions(data || []);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!selectedUser || !organization || !profile) {
+            alert('Error: Missing session context (User/Org/Profile). Please re-open the modal.');
+            return;
+        }
+        if (!selectedSessionData || selectedSessionData === 'none' || selectedSessionData === 'none:none') {
+            alert('Please select a program or session first.');
+            return;
+        }
+
         setLoading(true);
 
         try {
             const { sessionService } = await import('@/services/sessionService');
+            const { programService } = await import('@/services/programService');
+            const [programId, sessionId] = selectedSessionData.split(':');
+            
+            // 1. Resolve Enrollment (Create if missing)
+            let enrollment = userEnrollments.find(e => e.program_id === programId);
+            
+            if (!enrollment) {
+                const resp = await programService.enrollInProgram(
+                    programId,
+                    selectedUser.id,
+                    organization.id,
+                    'paid'
+                );
+                enrollment = { id: resp.id, program_id: programId };
+            }
 
-            if (selectedSession !== 'none') {
-                await sessionService.recordSessionPayment(
-                    selectedSession,
+            let paymentRecord: any;
+
+            if (sessionId !== 'none') {
+                paymentRecord = await sessionService.recordSessionPayment(
+                    sessionId,
                     selectedUser.id,
                     organization.id,
                     amount,
                     method,
                     profile.id
                 );
+                if (!paymentRecord) throw new Error('Failed to record session payment - no record returned.');
+                
+                // recordSessionPayment doesn't return the full join often, let's fetch it specifically
+                const { data: fullRecord } = await supabase
+                    .from('payment_records')
+                    .select('*, user:user_id(first_name, surname, email, profile_photo_url), program:program_id(name), session:session_id(name, session_date)')
+                    .eq('id', paymentRecord.id)
+                    .single();
+                paymentRecord = fullRecord || paymentRecord;
             } else {
                 // Record general program payment
-                const { error } = await supabase
+                const { data, error } = await supabase
                     .from('payment_records')
                     .insert([{
                         organization_id: organization.id,
                         user_id: selectedUser.id,
-                        enrollment_id: selectedProgram,
+                        enrollment_id: enrollment.id,
                         amount,
                         payment_method: method,
-                        status: 'completed',
+                        status: 'paid',
                         receipt_number: `GEN-${Date.now().toString().slice(-6)}`,
-                        processed_by: profile.id
-                    }]);
+                        confirmed_by: profile.id,
+                        confirmed_at: new Date().toISOString()
+                    }])
+                    .select('*, user:user_id(first_name, surname, email, profile_photo_url), program:program_id(name)')
+                    .single();
                 if (error) throw error;
+                paymentRecord = data;
             }
 
-            if (continuousMode) {
-                // Clear only user-specific data
-                setSelectedUser(null);
-                setSearch('');
-                // Keep selectedProgram, selectedSession, amount, and method for the next entry
-            } else {
-                onSuccess();
-            }
+            setLastPayment(paymentRecord);
+            setShowSuccess(true);
+            
+            // Refresh parent list immediately
+            const { data: updatedPayments } = await supabase
+                .from('payment_records')
+                .select('*, user:user_id(first_name, surname, email, profile_photo_url), program:program_id(name), session:session_id(name, session_date)')
+                .eq('organization_id', organization.id)
+                .order('created_at', { ascending: false });
+            if (updatedPayments) onSuccess(updatedPayments);
+            
         } catch (err: any) {
             alert('Error: ' + err.message);
         } finally {
             setLoading(false);
-            // Refresh parent list even in continuous mode
-            if (continuousMode) {
-                const { data } = await supabase
-                    .from('payment_records')
-                    .select('*, user:users(first_name, surname, email, profile_photo_url), program:programs(name), session:sessions(name, session_date)')
-                    .eq('organization_id', organization.id)
-                    .order('created_at', { ascending: false });
-                if (data) onSuccess(data); // Modified onSuccess to optionally accept data
-            }
         }
+    };
+
+    const handleContinue = async (clearUser = true) => {
+        if (clearUser) {
+            setSelectedUser(null);
+            setSearch('');
+            setUserEnrollments([]);
+            setSessions([]);
+        } else {
+            // Keep user, but refresh their financial data to show new enrollment status
+            if (selectedUser) fetchUserFinancialData();
+        }
+        
+        setShowSuccess(false);
+        setLastPayment(null);
     };
 
     return (
@@ -384,47 +485,111 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess }: { organi
             >
                 <div className="flex justify-between items-center">
                     <div>
-                        <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Financial Input</h3>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Manual transaction override protocol</p>
+                        <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">
+                            {showSuccess ? 'Payment Recorded' : 'Payment Entry'}
+                        </h3>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
+                            {showSuccess ? 'Transaction validated & recorded' : 'Record a payment for a participant session'}
+                        </p>
                     </div>
                     <button onClick={onClose} className="text-slate-500 hover:text-foreground transition-colors"><XCircle className="w-8 h-8" /></button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* User Search */}
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Student Search</label>
-                        {!selectedUser ? (
-                            <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <input
-                                    className="w-full h-14 bg-background border border-surface-border rounded-2xl pl-12 pr-6 text-sm font-bold text-foreground outline-none focus:bg-surface focus:border-primary/30"
-                                    placeholder="Search by name or email..."
-                                    value={search}
-                                    onChange={e => setSearch(e.target.value)}
-                                />
-                                {users.length > 0 && search.length > 2 && (
-                                    <div className="absolute top-16 left-0 right-0 bg-surface border border-surface-border rounded-2xl p-2 z-10 shadow-2xl">
-                                        {users.map(u => (
-                                            <button
-                                                key={u.id}
-                                                type="button"
-                                                className="w-full text-left p-3 hover:bg-background rounded-xl transition-colors text-sm font-bold text-slate-600"
-                                                onClick={() => setSelectedUser(u)}
-                                            >
-                                                {u.first_name} {u.surname} <span className="text-[10px] opacity-60 italic">{u.email}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
+                {showSuccess ? (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-8 py-4"
+                    >
+                        <div className="flex flex-col items-center justify-center p-8 bg-emerald-500/10 border border-emerald-500/20 rounded-[24px] text-center">
+                            <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mb-4">
+                                <Banknote className="w-8 h-8 text-white" />
                             </div>
-                        ) : (
-                            <div className="flex justify-between items-center p-4 bg-primary/10 border border-primary/20 rounded-2xl">
-                                <span className="font-black text-primary text-sm">{selectedUser.first_name} {selectedUser.surname}</span>
-                                <button type="button" onClick={() => setSelectedUser(null)} className="text-[8px] font-black uppercase text-slate-500 underline">Change</button>
+                            <h4 className="text-xl font-black text-foreground uppercase tracking-tight">Payment Recorded</h4>
+                            <p className="text-xs font-bold text-slate-500 mt-2">
+                                Receipt <strong>#{lastPayment?.receipt_number}</strong> has been generated for {lastPayment?.user?.first_name}.
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <Button 
+                                variant="premium" 
+                                className="h-16 font-black uppercase tracking-widest text-[11px]"
+                                onClick={() => {
+                                    if (lastPayment) onOpenReceipt(lastPayment);
+                                }}
+                            >
+                                <Printer className="w-4 h-4 mr-2" /> Produce Official Receipt
+                            </Button>
+                            
+                            <div className="grid grid-cols-2 gap-3 mt-2">
+                                <Button 
+                                    variant="outline"
+                                    className="h-14 font-black uppercase tracking-widest text-[10px] bg-background border-surface-border text-slate-500 hover:text-foreground"
+                                    onClick={() => handleContinue(false)}
+                                >
+                                    <Plus className="w-4 h-4 mr-2" /> Another Session
+                                </Button>
+                                <Button 
+                                    variant="outline"
+                                    className="h-14 font-black uppercase tracking-widest text-[10px] bg-background border-surface-border text-slate-500 hover:text-foreground"
+                                    onClick={() => handleContinue(true)}
+                                >
+                                    <User className="w-4 h-4 mr-2" /> New Student
+                                </Button>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    </motion.div>
+                ) : (
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* User Search */}
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Student Search</label>
+                            {!selectedUser ? (
+                                <div className="relative">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input
+                                        className="w-full h-14 bg-background border border-surface-border rounded-2xl pl-12 pr-6 text-sm font-bold text-foreground outline-none focus:bg-surface focus:border-primary/30"
+                                        placeholder="Search by name or email..."
+                                        value={search}
+                                        onChange={e => setSearch(e.target.value)}
+                                    />
+                                    {search.length > 2 && (
+                                        <div className="absolute top-16 left-0 right-0 bg-surface border border-surface-border rounded-2xl p-2 z-10 shadow-2xl space-y-1">
+                                            {loading && users.length === 0 ? (
+                                                <div className="p-4 text-center">
+                                                    <Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" />
+                                                </div>
+                                            ) : users.length > 0 ? (
+                                                users.map(u => (
+                                                    <button
+                                                        key={u.id}
+                                                        type="button"
+                                                        className="w-full text-left p-4 hover:bg-background rounded-xl transition-colors text-sm font-bold text-foreground flex justify-between items-center group"
+                                                        onClick={() => setSelectedUser(u)}
+                                                    >
+                                                        <div>
+                                                            <div>{u.first_name} {u.surname}</div>
+                                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{u.email}</div>
+                                                        </div>
+                                                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors" />
+                                                    </button>
+                                                ))
+                                            ) : !loading && (
+                                                <div className="p-4 text-xs font-bold text-slate-500 text-center uppercase tracking-widest italic">
+                                                    No participant found matching "{search}"
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex justify-between items-center p-4 bg-primary/10 border border-primary/20 rounded-2xl">
+                                    <span className="font-black text-primary text-sm uppercase tracking-tight">{selectedUser.first_name} {selectedUser.surname}</span>
+                                    <button type="button" onClick={() => setSelectedUser(null)} className="text-[10px] font-black uppercase text-primary underline underline-offset-4 hover:text-primary/70 transition-colors">Change Participant</button>
+                                </div>
+                            )}
+                        </div>
 
                     {/* Continuous Mode Toggle */}
                     <div className="flex items-center justify-between p-4 bg-background border border-surface-border rounded-2xl">
@@ -443,73 +608,64 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess }: { organi
 
                     {selectedUser && (
                         <>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Target Program</label>
-                                <select
-                                    className="w-full h-14 bg-white/5 border border-white/5 rounded-2xl px-6 text-sm font-bold text-white outline-none"
-                                    value={selectedProgram}
-                                    onChange={e => setSelectedProgram(e.target.value)}
-                                    required
-                                >
-                                    <option value="">Select Enrollment...</option>
-                                    {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                </select>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Payment Allocation (Session/Fee)</label>
+                                    <select
+                                        className="w-full h-14 bg-background border border-surface-border rounded-2xl px-6 text-sm font-bold text-foreground outline-none uppercase tracking-widest text-[10px] appearance-none cursor-pointer hover:bg-surface focus:border-primary/40 transition-all font-sans"
+                                        value={selectedSessionData}
+                                        onChange={e => setSelectedSessionData(e.target.value)}
+                                        required
+                                    >
+                                        <option value="" disabled>Select session or fee...</option>
+                                        {sessions.map(s => (
+                                            <option key={s.key} value={s.key} disabled={s.disabled}>
+                                                {s.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Amount ($)</label>
+                                    <input
+                                        type="number"
+                                        className="w-full h-14 bg-background border border-surface-border rounded-2xl px-6 text-sm font-bold text-foreground outline-none focus:bg-surface focus:border-primary/30 transition-all"
+                                        value={amount}
+                                        onChange={e => setAmount(Number(e.target.value))}
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Tender Method</label>
+                                    <select
+                                        className="w-full h-14 bg-background border border-surface-border rounded-2xl px-6 text-sm font-bold text-foreground outline-none font-black uppercase tracking-widest text-[10px] appearance-none cursor-pointer hover:bg-surface focus:border-primary/40 transition-all"
+                                        value={method}
+                                        onChange={e => setMethod(e.target.value)}
+                                    >
+                                        <option value="cash">💵 Hard Cash</option>
+                                        <option value="ecocash">📱 EcoCash</option>
+                                        <option value="swipe">💳 POS Swipe</option>
+                                        <option value="bank_transfer">🏛️ Bank EFT</option>
+                                    </select>
+                                </div>
                             </div>
 
-                            {selectedProgram && (
-                                <>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Session Lock</label>
-                                            <select
-                                                className="w-full h-14 bg-white/5 border border-white/5 rounded-2xl px-6 text-sm font-bold text-white outline-none"
-                                                value={selectedSession}
-                                                onChange={e => setSelectedSession(e.target.value)}
-                                            >
-                                                <option value="none">General Fee</option>
-                                                {sessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                            </select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Amount ($)</label>
-                                            <input
-                                                type="number"
-                                                className="w-full h-14 bg-white/5 border border-white/5 rounded-2xl px-6 text-sm font-bold text-white outline-none"
-                                                value={amount}
-                                                onChange={e => setAmount(Number(e.target.value))}
-                                                step="0.01"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Tender Method</label>
-                                        <select
-                                            className="w-full h-14 bg-background border border-surface-border rounded-2xl px-6 text-sm font-bold text-foreground outline-none font-black uppercase tracking-widest text-[10px]"
-                                            value={method}
-                                            onChange={e => setMethod(e.target.value)}
-                                        >
-                                            <option value="cash">💵 Hard Cash</option>
-                                            <option value="ecocash">📱 EcoCash / Mobile</option>
-                                            <option value="swipe">💳 POS / Swipe</option>
-                                            <option value="bank_transfer">🏛️ Bank EFT</option>
-                                        </select>
-                                    </div>
-
-                                    <Button
-                                        type="submit"
-                                        variant="premium"
-                                        className="w-full h-16 font-black uppercase tracking-widest text-xs"
-                                        disabled={loading}
-                                    >
-                                        {loading ? <Loader2 className="animate-spin" /> : 'Execute Financial Entry'}
-                                    </Button>
-                                </>
-                            )}
+                            <Button
+                                type="submit"
+                                variant="premium"
+                                className="w-full h-16 font-black uppercase tracking-widest text-xs"
+                                disabled={loading}
+                            >
+                                {loading ? <Loader2 className="animate-spin" /> : 'Execute Financial Entry'}
+                            </Button>
                         </>
                     )}
                 </form>
+            )}
             </motion.div>
         </div>
     );

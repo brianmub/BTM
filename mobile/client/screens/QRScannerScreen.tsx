@@ -141,11 +141,14 @@ export default function QRScannerScreen({ navigation, route }: Props) {
           const checkinSessionId = qrData.sessionId || sessionId;
           const checkinProgramId = qrData.programId || programId;
           
-          if (!checkinSessionId || !checkinProgramId) {
-            response = { success: false, message: "Invalid check-in QR code: Missing data" };
+          if (!checkinSessionId || !checkinProgramId || !user.organizationId) {
+            response = { success: false, message: "Invalid check-in QR: Missing session or organization data" };
           } else {
-            await storage.checkInToSession(user.id, checkinSessionId, checkinProgramId);
-            response = { success: true, message: "Entry time recorded! Your facilitator will verify your presence in the register." };
+            await storage.checkInToSession(user.id, checkinSessionId, checkinProgramId, user.organizationId);
+            response = { 
+              success: true, 
+              message: "Entry time recorded! Please wait for your facilitator to verify your presence in the digital register." 
+            };
           }
           break;
 
@@ -210,11 +213,11 @@ export default function QRScannerScreen({ navigation, route }: Props) {
           break;
 
         case "checkin":
-          if (sessionId && programId) {
-            await storage.checkInToSession(user.id, sessionId, programId);
-            response = { success: true, message: "Successfully checked in! Entry time recorded." };
+          if (sessionId && programId && user.organizationId) {
+            await storage.checkInToSession(user.id, sessionId, programId, user.organizationId);
+            response = { success: true, message: "Simulated check-in successful! Awaiting facilitator verification." };
           } else {
-            response = { success: false, message: "No session specified" };
+            response = { success: false, message: "No session or organization specified" };
           }
           break;
 

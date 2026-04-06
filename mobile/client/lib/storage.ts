@@ -109,10 +109,13 @@ export interface AttendanceRecord {
   programId: string;
   userId: string;
   checkedIn: boolean;
+  isVerified: boolean;
+  confirmedByLeader: boolean;
   checkedInAt?: string;
   entryTime?: string;
   exitTime?: string;
-  confirmedByLeader: boolean;
+  verifiedBy?: string;
+  verifiedAt?: string;
   confirmedAt?: string;
 }
 
@@ -379,8 +382,15 @@ export const storage = {
 
   async getUserAttendance(userId: string): Promise<AttendanceRecord[]> {
     try {
-      return await fetchApi<AttendanceRecord[]>(`/api/users/${userId}/attendance`);
-    } catch {
+      const { data, error } = await (await import('./supabase')).supabase
+        .from('attendance_records')
+        .select('*')
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      return snakeToCamel(data || []);
+    } catch (err) {
+      console.error('getUserAttendance error:', err);
       return [];
     }
   },
@@ -393,8 +403,22 @@ export const storage = {
     }
   },
 
-  async checkInToSession(userId: string, sessionId: string, programId: string): Promise<void> {
-    await postApi("/api/attendance/check-in", { userId, sessionId, programId });
+  async checkInToSession(userId: string, sessionId: string, programId: string, organizationId: string): Promise<void> {
+    const { error } = await (await import('./supabase')).supabase
+      .from('attendance_records')
+      .upsert([{
+        user_id: userId,
+        session_id: sessionId,
+        program_id: programId,
+        organization_id: organizationId,
+        checked_in: true,
+        checked_in_at: new Date().toISOString(),
+        entry_time: new Date().toISOString(),
+        status: 'present',
+        is_verified: false
+      }], { onConflict: 'user_id,session_id' });
+    
+    if (error) throw error;
   },
 
   async checkOutOfSession(userId: string, sessionId: string): Promise<{ success: boolean; message: string }> {
@@ -697,19 +721,15 @@ export const storage = {
     sessionsConfirmed: number;
     totalSessions: number;
     sessionsWithPaidPayments: number;
-    assignmentsConfirmed: number;
-    totalAssignments: number
   }> {
-    const [attendance, payments, assignments, submissions, sessions] = await Promise.all([
+    const [attendance, payments, sessions] = await Promise.all([
       this.getUserAttendance(userId),
       this.getUserPayments(userId),
-      this.getAssignments(),
-      this.getUserSubmissions(userId),
       this.getSessionsByProgram(programId),
     ]);
 
     const confirmedSessions = attendance.filter(
-      a => a.programId === programId && a.confirmedByLeader
+      a => a.programId === programId && (a.isVerified || a.confirmedByLeader)
     );
 
     const sessionIdsAttended = new Set(confirmedSessions.map(s => s.sessionId));
@@ -719,22 +739,16 @@ export const storage = {
         (p.status === 'paid' || p.status === 'waived')
     );
 
-    const programAssignments = assignments.filter(a => a.programId === programId);
-    const confirmedSubmissions = submissions.filter(
-      s => programAssignments.some(a => a.id === s.assignmentId) && s.isConfirmed
-    );
 
     const sessionsConfirmed = confirmedSessions.length;
     const totalSessions = sessions.length;
     const sessionsWithPaidPayments = paidSessionPayments.length;
-    const assignmentsConfirmed = confirmedSubmissions.length;
-    const totalAssignments = programAssignments.length;
 
-    const eligible = totalSessions > 0 && sessionsConfirmed >= totalSessions &&
-      sessionsWithPaidPayments >= sessionsConfirmed &&
-      (totalAssignments === 0 || assignmentsConfirmed >= totalAssignments);
+    const eligible = totalSessions > 0 && 
+                     sessionsConfirmed >= totalSessions &&
+                     sessionsWithPaidPayments >= sessionsConfirmed;
 
-    return { eligible, sessionsConfirmed, totalSessions, sessionsWithPaidPayments, assignmentsConfirmed, totalAssignments };
+    return { eligible, sessionsConfirmed, totalSessions, sessionsWithPaidPayments };
   },
 
   async reassignCellMember(userId: string, fromCellId: string, toCellId: string, performedBy: string): Promise<void> {

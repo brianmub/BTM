@@ -105,6 +105,7 @@ export interface AttendanceRecord {
   checked_in_at?: string;
   entry_time?: string;
   exit_time?: string;
+  is_verified: boolean;
   confirmed_by_leader: boolean;
   confirmed_at?: string;
 }

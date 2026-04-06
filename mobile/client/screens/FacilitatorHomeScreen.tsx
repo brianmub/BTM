@@ -40,17 +40,15 @@ export default function FacilitatorHomeScreen({ navigation }: Props) {
   const [stats, setStats] = useState({
     totalSessions: 0,
     upcomingSessions: 0,
-    totalAssignments: 0,
     activePrograms: 0,
   });
   const [nextSession, setNextSession] = useState<Session | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user?.organizationId) return;
-    const [sessions, programs, assignments] = await Promise.all([
+    const [sessions, programs] = await Promise.all([
       storage.getSessions(user.organizationId),
       storage.getPrograms(user.organizationId),
-      storage.getAssignments(user.organizationId),
     ]);
 
     const now = new Date();
@@ -64,7 +62,6 @@ export default function FacilitatorHomeScreen({ navigation }: Props) {
     setStats({
       totalSessions: sessions.length,
       upcomingSessions: upcomingSessions.length,
-      totalAssignments: assignments.length,
       activePrograms: activePrograms.length,
     });
     setNextSession(sortedUpcoming[0] || null);
@@ -93,20 +90,12 @@ export default function FacilitatorHomeScreen({ navigation }: Props) {
       onPress: () => navigation.navigate("SessionsTab"),
     },
     {
-      id: "assignments",
-      icon: "file-text",
-      title: "Manage Assignments",
-      description: "Create and track assignments",
-      color: theme.success,
-      onPress: () => navigation.navigate("AssignmentsTab"),
-    },
-    {
       id: "materials",
       icon: "folder",
       title: "Session Materials",
       description: "Upload resources and materials",
       color: theme.accent,
-      onPress: () => {},
+      onPress: () => { },
     },
     {
       id: "announcements",
@@ -114,7 +103,7 @@ export default function FacilitatorHomeScreen({ navigation }: Props) {
       title: "Announcements",
       description: "Send updates to participants",
       color: "#8B5CF6",
-      onPress: () => {},
+      onPress: () => { },
     },
   ];
 
@@ -180,15 +169,7 @@ export default function FacilitatorHomeScreen({ navigation }: Props) {
               Upcoming
             </ThemedText>
           </Card>
-          <Card elevation={1} style={[styles.statCard, { backgroundColor: theme.accent + "15" }]}>
-            <Feather name="file-text" size={24} color={theme.accent} />
-            <ThemedText type="h2" style={{ color: theme.accent, marginTop: Spacing.sm }}>
-              {stats.totalAssignments}
-            </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
-              Assignments
-            </ThemedText>
-          </Card>
+
           <Card elevation={1} style={[styles.statCard, { backgroundColor: "#8B5CF6" + "15" }]}>
             <Feather name="book-open" size={24} color="#8B5CF6" />
             <ThemedText type="h2" style={{ color: "#8B5CF6", marginTop: Spacing.sm }}>

@@ -217,24 +217,27 @@ export const sessionService = {
         if (sessErr) throw sessErr;
 
         // 3. Record in payment_records table for receipt
-        const { data: payment } = await supabase
+        const { data: payment, error: payErr } = await supabase
             .from('payment_records')
-            .insert([{
+            .upsert([{
                 organization_id: organizationId,
                 user_id: userId,
                 enrollment_id: enrollment.id,
+                session_id: sessionId,
                 amount: amount,
                 status: 'paid',
                 confirmed_by: processedById,
-                confirmed_at: new Date().toISOString()
-            }])
+                confirmed_at: new Date().toISOString(),
+                receipt_number: `SES-${Date.now().toString().slice(-6)}`
+            }], { onConflict: 'session_id, user_id' })
             .select(`
                 *,
-                user:users(first_name, surname),
-                program:programs(name)
+                user:user_id(first_name, surname),
+                program:program_id(name)
             `)
             .single();
 
+        if (payErr) throw payErr;
         return payment;
     },
 

@@ -38,7 +38,7 @@ export const profileService = {
             supabase.from('programs').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).eq('is_active', true),
 
             // 2. Total Participants (Enrollments)
-            supabase.from('enrollments').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).eq('status', 'active'),
+            supabase.from('enrollments').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).in('status', ['active', 'enrolled', 'pending']),
 
             // 3. Attendance Stats (for Verification Rate)
             supabase.from('attendance_records').select('status').eq('organization_id', organizationId),
@@ -86,7 +86,18 @@ export const profileService = {
             .from('attendance_records')
             .select(`
                 *,
-                users:user_id(first_name, surname, profile_photo_url, email, organization_id),
+                users:user_id(
+                    id,
+                    first_name, 
+                    surname, 
+                    profile_photo_url, 
+                    email, 
+                    organization_id,
+                    group_members(
+                        group_id,
+                        program_groups:group_id(name)
+                    )
+                ),
                 sessions:session_id(title:name, session_date),
                 programs:program_id(name)
             `)
@@ -95,7 +106,44 @@ export const profileService = {
             .limit(limit);
 
         if (error) throw error;
-        return data;
+
+        // Fetch payment status for these sessions/users in bulk
+        // We link attendance_records -> session_enrollments via enrollments
+        // Since session_enrollments has session_id and enrollment_id (which maps to user_id)
+        const userIds = [...new Set((data || []).map(l => l.user_id))];
+        const sessionIds = [...new Set((data || []).map(l => l.session_id))];
+
+        const { data: payments } = await supabase
+            .from('session_enrollments')
+            .select(`
+                payment_status,
+                session_id,
+                enrollments!inner(user_id)
+            `)
+            .in('session_id', sessionIds)
+            .in('enrollments.user_id', userIds);
+
+        // Map payment status back to logs
+        const flattened = (data || []).map((log: any) => {
+            const userGroups = log.users?.group_members || [];
+            const groupRecord = userGroups.find((gm: any) => gm.group_id === log.group_id) 
+                             || userGroups[0];
+            
+            // Find specific payment for this user and session
+            const paymentRecord = (payments || []).find(p => 
+                p.session_id === log.session_id && 
+                (p.enrollments as any).user_id === log.user_id
+            );
+
+            return {
+                ...log,
+                group_name: groupRecord?.program_groups?.name || 'Unassigned',
+                group_id: groupRecord?.group_id || null,
+                payment_status: paymentRecord?.payment_status || 'unpaid'
+            };
+        });
+
+        return flattened;
     },
 
     async getAnalytics(organizationId: string) {
@@ -198,6 +246,17 @@ export const profileService = {
             assignmentsPercent: Math.min(assignmentsPercent, 100),
             isEligible: attendancePercent >= 80 && assignmentsPercent >= 50
         };
+    },
+
+    async getUserPayments(userId: string) {
+        const { data, error } = await supabase
+            .from('payment_records')
+            .select('*, program:program_id(name), session:session_id(name, session_date)')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data;
     }
 };
 

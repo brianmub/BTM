@@ -7,7 +7,6 @@ import { Platform, StyleSheet } from "react-native";
 
 import ParticipantHomeScreen from "@/screens/ParticipantHomeScreen";
 import SessionsScreen from "@/screens/SessionsScreen";
-import AssignmentsScreen from "@/screens/AssignmentsScreen";
 import ProgramCatalogScreen from "@/screens/ProgramCatalogScreen";
 import MyCellScreen from "@/screens/MyCellScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
@@ -19,7 +18,6 @@ export type ParticipantTabParamList = {
   HomeTab: undefined;
   ProgramsTab: undefined;
   SessionsTab: undefined;
-  AssignmentsTab: undefined;
   MyCellTab: undefined;
   ProfileTab: undefined;
 };
@@ -58,20 +56,6 @@ function SessionsStack() {
   );
 }
 
-function AssignmentsStack() {
-  const screenOptions = useScreenOptions();
-  const Stack = createNativeStackNavigator();
-  
-  return (
-    <Stack.Navigator screenOptions={screenOptions}>
-      <Stack.Screen
-        name="Assignments"
-        component={AssignmentsScreen}
-        options={{ headerTitle: "Assignments" }}
-      />
-    </Stack.Navigator>
-  );
-}
 
 function ProgramsStack() {
   const screenOptions = useScreenOptions();
@@ -178,12 +162,12 @@ export default function ParticipantTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="AssignmentsTab"
-        component={AssignmentsStack}
+        name="MyCellTab"
+        component={MyCellStack}
         options={{
-          title: "Tasks",
+          title: "My Cell",
           tabBarIcon: ({ color, size }) => (
-            <Feather name="file-text" size={size} color={color} />
+            <Feather name="users" size={size} color={color} />
           ),
         }}
       />

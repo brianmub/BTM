@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
     Activity,
@@ -27,6 +27,8 @@ export function AttendanceLogs() {
     const [groups, setGroups] = useState<any[]>([]);
     const [selectedProgram, setSelectedProgram] = useState('all');
     const [selectedGroup, setSelectedGroup] = useState('all');
+    const [selectedSession, setSelectedSession] = useState('all');
+    const [availableSessions, setAvailableSessions] = useState<any[]>([]);
 
     useEffect(() => {
         if (organization?.id) {
@@ -46,6 +48,19 @@ export function AttendanceLogs() {
                 .select('id, name')
                 .eq('organization_id', organization!.id);
             setPrograms(progs || []);
+
+            // Fetch all groups for the organization initially
+            const { data: allGroups } = await (await import('@/services/supabase')).supabase
+                .from('program_groups')
+                .select('id, name, program_id')
+                .in('program_id', (progs || []).map((p: any) => p.id));
+            setGroups(allGroups || []);
+            // Fetch all sessions for the organization initially
+            const { data: allSessions } = await (await import('@/services/supabase')).supabase
+                .from('sessions')
+                .select('id, name, program_id')
+                .in('program_id', (progs || []).map((p: any) => p.id));
+            setAvailableSessions(allSessions || []);
         } catch (err) {
             console.error('Failed to fetch attendance logs:', err);
         } finally {
@@ -54,29 +69,39 @@ export function AttendanceLogs() {
     };
 
     const fetchGroups = async (programId: string) => {
-        if (programId === 'all') {
-            setGroups([]);
-            return;
-        }
-        const { data } = await (await import('@/services/supabase')).supabase
+        const { data: progs } = await (await import('@/services/supabase')).supabase
+            .from('programs')
+            .select('id')
+            .eq('organization_id', organization!.id);
+            
+        let query = (await import('@/services/supabase')).supabase
             .from('program_groups')
-            .select('id, name')
-            .eq('program_id', programId);
+            .select('id, name, program_id');
+            
+        if (programId !== 'all') {
+            query = query.eq('program_id', programId);
+        } else {
+            query = query.in('program_id', (progs || []).map((p: any) => p.id));
+        }
+
+        const { data } = await query;
         setGroups(data || []);
     };
 
     const exportToCSV = () => {
-        const headers = ['Date', 'Name', 'Email', 'Program', 'Session', 'Check-in', 'Check-out', 'Status', 'Verified'];
+        const headers = ['Date', 'Name', 'Email', 'Group', 'Program', 'Session', 'Check-in', 'Check-out', 'Status', 'Verified', 'Payment Status'];
         const csvRows = filteredLogs.map(log => [
             new Date(log.checked_in_at).toLocaleDateString(),
             `${log.users?.first_name} ${log.users?.surname}`,
             log.users?.email,
+            log.group_name || 'N/A',
             log.programs?.name,
             log.sessions?.title,
             new Date(log.entry_time || log.checked_in_at).toLocaleTimeString(),
             log.exit_time ? new Date(log.exit_time).toLocaleTimeString() : 'N/A',
             log.exit_time ? 'Completed' : 'Ongoing',
-            log.is_verified ? 'Yes' : 'No'
+            log.is_verified ? 'Yes' : 'No',
+            log.payment_status?.toUpperCase() || 'UNPAID'
         ]);
 
         const csvContent = [headers, ...csvRows].map(e => e.join(",")).join("\n");
@@ -91,20 +116,28 @@ export function AttendanceLogs() {
         document.body.removeChild(link);
     };
 
-    const filteredLogs = logs.filter(log => {
-        const query = searchTerm.toLowerCase();
-        const matchesSearch = (
-            `${log.users?.first_name} ${log.users?.surname}`.toLowerCase().includes(query) ||
-            log.users?.email?.toLowerCase().includes(query) ||
-            log.sessions?.title?.toLowerCase().includes(query) ||
-            log.programs?.name?.toLowerCase().includes(query)
-        );
+    const filteredLogs = useMemo(() => {
+        return logs.filter(log => {
+            const query = searchTerm.toLowerCase();
+            const fullName = `${log.users?.first_name || ''} ${log.users?.surname || ''}`.toLowerCase();
+            const email = log.users?.email?.toLowerCase() || '';
+            const groupName = log.group_name?.toLowerCase() || '';
+            const sessionTitle = log.sessions?.title?.toLowerCase() || '';
 
-        const matchesProgram = selectedProgram === 'all' || log.program_id === selectedProgram;
-        // Note: group_id might need to be joined in getAttendanceLogs or mapped here 
-        // For now we assume if it's in the log or we filter by user's group
-        return matchesSearch && matchesProgram;
-    });
+            const matchesSearch = (
+                fullName.includes(query) ||
+                email.includes(query) ||
+                groupName.includes(query) ||
+                sessionTitle.includes(query)
+            );
+
+            const matchesProgram = selectedProgram === 'all' || log.program_id === selectedProgram;
+            const matchesGroup = selectedGroup === 'all' || log.group_id === selectedGroup;
+            const matchesSession = selectedSession === 'all' || log.session_id === selectedSession;
+            
+            return matchesSearch && matchesProgram && matchesGroup && matchesSession;
+        });
+    }, [logs, searchTerm, selectedProgram, selectedGroup, selectedSession]);
 
     return (
         <div className="space-y-12 pb-20">
@@ -150,31 +183,28 @@ export function AttendanceLogs() {
                 </div>
                 <div className="flex gap-4 w-full lg:w-auto">
                     <select 
-                        value={selectedProgram}
-                        onChange={(e) => {
-                            setSelectedProgram(e.target.value);
-                            fetchGroups(e.target.value);
-                        }}
+                        value={selectedSession}
+                        onChange={(e) => setSelectedSession(e.target.value)}
                         className="h-[60px] bg-background/50 border border-surface-border rounded-2xl px-6 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary/40 min-w-[180px]"
                     >
-                        <option value="all">Every Program</option>
-                        {programs.map(p => (
-                            <option key={p.id} value={p.id}>{p.name}</option>
+                        <option value="all">Every Session</option>
+                        {availableSessions
+                            .filter(s => selectedProgram === 'all' || s.program_id === selectedProgram)
+                            .map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                    </select>
+
+                    <select 
+                        value={selectedGroup}
+                        onChange={(e) => setSelectedGroup(e.target.value)}
+                        className="h-[60px] bg-background/50 border border-surface-border rounded-2xl px-6 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary/40 min-w-[180px]"
+                    >
+                        <option value="all">Every Cohort</option>
+                        {groups.map(g => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
                         ))}
                     </select>
-                    
-                    {groups.length > 0 && (
-                        <select 
-                            value={selectedGroup}
-                            onChange={(e) => setSelectedGroup(e.target.value)}
-                            className="h-[60px] bg-background/50 border border-surface-border rounded-2xl px-6 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary/40 min-w-[180px]"
-                        >
-                            <option value="all">All Cohorts</option>
-                            {groups.map(g => (
-                                <option key={g.id} value={g.id}>{g.name}</option>
-                            ))}
-                        </select>
-                    )}
                 </div>
             </Card>
 
@@ -212,31 +242,18 @@ export function AttendanceLogs() {
                                         </div>
 
                                         {/* Participant Info */}
-                                        <div className="min-w-[200px]">
-                                            <h4 className="text-sm font-black text-foreground uppercase tracking-tight group-hover:text-primary transition-colors">
+                                        <div className="flex flex-col">
+                                            <p className="text-sm font-black text-foreground uppercase tracking-tight group-hover:text-primary transition-colors">
                                                 {log.users?.first_name} {log.users?.surname}
-                                            </h4>
-                                            <p className="text-[10px] text-slate-500 font-bold tracking-widest mt-0.5 lowercase italic">
-                                                {log.users?.email}
                                             </p>
+                                            <div className="flex items-center gap-3 mt-1">
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{log.users?.email}</p>
+                                                <span className="w-1 h-1 bg-slate-400 rounded-full"></span>
+                                                <p className="text-[10px] text-primary font-black uppercase tracking-widest">{log.group_name}</p>
+                                            </div>
                                         </div>
 
                                         {/* Session Info */}
-                                        <div className="flex-1 border-l border-surface-border pl-6">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Calendar className="w-3 h-3 text-primary" />
-                                                <span className="text-[10px] font-black text-foreground uppercase tracking-widest truncate">
-                                                    {log.sessions?.title || 'Unknown Session'}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] px-2 py-0.5 bg-background border border-surface-border rounded-md">
-                                                    {log.programs?.name || 'General'}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        {/* Arrival & Departure */}
                                         <div className="flex flex-col items-end shrink-0 sm:min-w-[160px] border-l border-surface-border pl-6">
                                             <div className="flex items-center gap-3 mb-2">
                                                 <div className="flex flex-col items-end">

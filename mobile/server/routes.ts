@@ -727,6 +727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         checked_in_at: now,
         entry_time: now,
         confirmed_by_leader: false,
+        is_verified: false,
       });
 
       // Auto-create pending payment record if not exists
@@ -785,6 +786,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const record = await storage.updateAttendance(req.params.id, {
         confirmed_by_leader: true,
+        is_verified: true,
         confirmed_at: now,
       });
 
