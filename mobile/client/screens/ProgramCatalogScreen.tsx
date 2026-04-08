@@ -31,14 +31,21 @@ export default function ProgramCatalogScreen() {
   const [enrollingProgramId, setEnrollingProgramId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    await storage.initializeSampleData();
+    // Matches the Home Screen logic exactly
     const orgId = user?.organizationId;
-    const [loadedPrograms, loadedEnrollments] = await Promise.all([
-      storage.getPrograms(orgId),
-      user?.id ? storage.getUserEnrollments(user.id) : Promise.resolve([]),
-    ]);
-    setPrograms(loadedPrograms.filter(p => p.isActive));
-    setEnrollments(loadedEnrollments);
+    if (!user?.id || !orgId) return;
+
+    try {
+      const [loadedPrograms, loadedEnrollments] = await Promise.all([
+        storage.getPrograms(orgId),
+        storage.getEnrollments(orgId),
+      ]);
+      setPrograms(loadedPrograms.filter(p => p.isActive));
+      const userEnrollments = loadedEnrollments.filter(e => e.userId === user.id);
+      setEnrollments(userEnrollments);
+    } catch (err) {
+      console.error("Catalog load error:", err);
+    }
   }, [user?.id, user?.organizationId]);
 
   useEffect(() => {
@@ -53,7 +60,7 @@ export default function ProgramCatalogScreen() {
   };
 
   const isEnrolled = (programId: string): boolean => {
-    return enrollments.some(e => e.programId === programId);
+    return enrollments.some(e => (e.programId === programId || (e as any).program_id === programId));
   };
 
   const isEnrollmentOpen = (program: Program): boolean => {
@@ -69,7 +76,7 @@ export default function ProgramCatalogScreen() {
       if (enrollment?.status === "graduated") {
         return { text: "Graduated", color: theme.success };
       }
-      return { text: "Enrolled", color: theme.link };
+      return { text: "Active Participant", color: theme.success };
     }
     if (isEnrollmentOpen(program)) {
       return { text: "Open for Enrollment", color: theme.success };
@@ -85,6 +92,12 @@ export default function ProgramCatalogScreen() {
   const handleEnroll = async (program: Program) => {
     if (!user?.id) return;
     
+    // Check if already enrolled to prevent duplicates
+    if (isEnrolled(program.id)) {
+      Alert.alert("Already Enrolled", "You are already a participant in this program.");
+      return;
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setEnrollingProgramId(program.id);
     
@@ -93,6 +106,7 @@ export default function ProgramCatalogScreen() {
       await loadData();
       Alert.alert("Success", `You have been enrolled in ${program.name}!`);
     } catch (error) {
+      console.error("Enrollment error:", error);
       Alert.alert("Error", "Failed to enroll. Please try again.");
     } finally {
       setEnrollingProgramId(null);

@@ -143,7 +143,7 @@ export default function FacilitatorHomeScreen({ navigation }: Props) {
       >
         <Animated.View entering={FadeInUp.delay(100).duration(500)}>
           <ThemedText type="h2">
-            {getGreeting()}, {user?.fullName.split(" ")[0]}
+            {getGreeting()}, {user?.fullName?.split(" ")[0] || "Facilitator"}
           </ThemedText>
           <ThemedText type="body" style={{ color: theme.textSecondary, marginTop: Spacing.xs }}>
             Here's your facilitator overview

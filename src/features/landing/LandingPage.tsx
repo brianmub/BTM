@@ -7,19 +7,19 @@ import { Smartphone, CreditCard, Award, ArrowRight, CheckCircle2, Sparkles, Zap,
 export function LandingPage() {
     const features = [
         {
-            icon: <Smartphone className="w-8 h-8 text-indigo-400" />,
+            icon: <Smartphone className="w-8 h-8 text-primary" />,
             title: "Mobile-First Experience",
             desc: "QR code check-ins and robust offline mode designed for seamless operations in any environment.",
             badge: "Seamless"
         },
         {
-            icon: <CreditCard className="w-8 h-8 text-pink-400" />,
+            icon: <CreditCard className="w-8 h-8 text-primary" />,
             title: "Integrated Payments",
             desc: "Instant EcoCash and mobile money integration for zero-friction registration and fee collection.",
             badge: "Automated"
         },
         {
-            icon: <Award className="w-8 h-8 text-amber-400" />,
+            icon: <Award className="w-8 h-8 text-amber-500" />,
             title: "Digital Recognition",
             desc: "Automated certificates and spiritual growth milestones to celebrate every step of the journey.",
             badge: "Engaging"
@@ -28,19 +28,19 @@ export function LandingPage() {
 
     const plans = [
         {
-            name: "Starter",
+            name: "Foundation",
             price: "15",
             features: ["Up to 50 participants", "1 active program", "Basic reporting", "Email support"],
             isPopular: false
         },
         {
-            name: "Professional",
+            name: "Cathedral",
             price: "40",
             features: ["200 participants", "Unlimited programs", "Advanced reporting", "Custom branding", "Priority support"],
             isPopular: true
         },
         {
-            name: "Enterprise",
+            name: "Global Impact",
             price: "100",
             features: ["Unlimited participants", "API access", "White-label options", "Dedicated manager", "Custom development"],
             isPopular: false
@@ -48,217 +48,239 @@ export function LandingPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-50 overflow-hidden font-sans">
+        <div className="min-h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans theme-lite">
             <Navbar />
 
             {/* Hero Section */}
-            <section className="relative min-h-[90vh] flex flex-col justify-center items-center px-6 pt-32 pb-20">
-                {/* Immersive Background Elements */}
-                <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-                    <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px] animate-pulse-subtle"></div>
-                    <div className="absolute bottom-[10%] right-[-5%] w-[35%] h-[35%] bg-pink-500/10 rounded-full blur-[120px] animate-pulse"></div>
-                    <div className="absolute top-[20%] right-[10%] w-[20%] h-[20%] bg-blue-500/5 rounded-full blur-[100px]"></div>
+            <section className="relative min-h-[100vh] flex flex-col justify-center items-center px-6 pt-32 pb-20 overflow-hidden text-center">
+                {/* Immersive Background Elements - Elite Lite Theme */}
+                <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10 bg-slate-50">
+                    {/* Softer, More Professional Glowing Elements */}
+                    <div className="absolute top-[-5%] left-[-5%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[140px] animate-pulse"></div>
+                    <div className="absolute bottom-[5%] right-[-5%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-pulse-subtle"></div>
+                    
+                    {/* Perspective Grid Background - Subtle for Light Mode */}
+                    <div className="absolute inset-0 opacity-[0.1]" 
+                         style={{ backgroundImage: 'linear-gradient(rgba(218, 41, 28, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(218, 41, 28, 0.1) 1px, transparent 1px)', 
+                                 backgroundSize: '80px 80px',
+                                 perspective: '1200px',
+                                 transform: 'rotateX(60deg) translateY(-200px)' }}></div>
                 </div>
 
-                <div className="container mx-auto relative z-10">
-                    <div className="max-w-5xl mx-auto text-center">
+                <div className="container mx-auto relative z-10 text-center">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 1 }}
+                        className="mb-8 inline-flex items-center gap-3 bg-primary/5 border border-primary/10 px-6 py-2 rounded-full backdrop-blur-xl"
+                    >
+                        <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Now Live: v2.0 Enterprise Release</span>
+                    </motion.div>
 
-                        <motion.h1
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, delay: 0.2 }}
-                            className="text-5xl md:text-8xl font-black text-white mb-10 tracking-tighter leading-[0.9] uppercase"
-                        >
-                            Revolutionize Your <br />
-                            Digital Ministry
-                        </motion.h1>
+                    <motion.h1
+                        initial={{ opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                        className="text-6xl md:text-9xl font-united mb-10 tracking-tighter italic leading-[0.85] text-slate-950"
+                    >
+                        Digitize Your <br />
+                        <span className="text-primary italic">Spiritual</span> Authority
+                    </motion.h1>
 
-                        <motion.p
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, delay: 0.4 }}
-                            className="text-lg md:text-xl text-slate-400 mb-16 max-w-2xl mx-auto leading-relaxed font-bold uppercase tracking-wide"
-                        >
-                            Empower your discipleship journey with automated check-ins, seamless payments, and spiritual growth gamification.
-                        </motion.p>
+                    <motion.p
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, delay: 0.4 }}
+                        className="text-lg md:text-xl text-slate-600 mb-16 max-w-2xl mx-auto leading-relaxed font-bold uppercase tracking-widest opacity-90"
+                    >
+                        Command your ministry with absolute precision. Unified check-ins, automated ledger processing, and global participant tracking.
+                    </motion.p>
 
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, delay: 0.6 }}
-                            className="grid sm:flex gap-6 justify-center items-center"
-                        >
-                            <Button size="lg" variant="premium" className="px-12 h-18 text-lg font-black uppercase tracking-widest shadow-2xl shadow-indigo-500/40" onClick={() => window.location.href = '/signup'}>
-                                Start Free Trial <ArrowRight className="ml-3 w-6 h-6" />
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, delay: 0.6 }}
+                        className="grid sm:flex gap-6 justify-center items-center"
+                    >
+                        <Button size="lg" variant="premium" className="px-12 h-20 text-lg font-black uppercase tracking-widest shadow-[0_20px_50px_-12px_rgba(218,41,28,0.4)] hover:scale-105 active:scale-95 transition-all" onClick={() => window.location.href = '/signup'}>
+                            Enforce Digital Scale <ArrowRight className="ml-3 w-6 h-6" />
+                        </Button>
+                        <a href="#demo" className="contents">
+                            <Button size="lg" variant="outline" className="px-12 h-20 text-lg font-black uppercase tracking-widest border-primary/10 bg-white shadow-xl shadow-primary/5 hover:bg-white hover:border-primary/50 transition-all font-united text-slate-900">
+                                Audit Demo
                             </Button>
-                            <a href="#demo" className="contents">
-                                <Button size="lg" variant="outline" className="px-12 h-18 text-lg font-black uppercase tracking-widest border-white/10 bg-white/5 backdrop-blur-lg hover:bg-white/10 transition-all">
-                                    Watch Demo
-                                </Button>
-                            </a>
-                        </motion.div>
-                    </div>
+                        </a>
+                    </motion.div>
                 </div>
-
-
             </section>
 
-            {/* Features Grid */}
-            <section id="features" className="py-32 relative px-6">
-                <div className="container mx-auto">
-                    <div className="text-center mb-24 max-w-3xl mx-auto">
-                        <h2 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight">Built for Impact</h2>
-                        <p className="text-slate-400 text-lg font-medium">Everything you need to manage membership classes and leadership training in the palm of your hand.</p>
+            {/* Features Grid - Glass Lite Style */}
+            <section id="features" className="py-40 relative px-6 bg-white border-y border-slate-100">
+                <div className="container mx-auto text-center">
+                    <div className="text-center mb-32 max-w-3xl mx-auto">
+                        <div className="text-primary text-[10px] font-black uppercase tracking-[0.5em] mb-4">Core Infrastructure</div>
+                        <h2 className="text-5xl md:text-6xl font-united mb-8 tracking-tighter italic text-slate-950 text-center">Engineered for Dominance</h2>
+                        <p className="text-slate-500 text-lg font-bold uppercase tracking-widest opacity-80 text-center">High-performance tools for modern church administration and participant growth tracking.</p>
                     </div>
 
-                    <div className="grid lg:grid-cols-3 gap-10">
+                    <div className="grid lg:grid-cols-3 gap-10 text-left">
                         {features.map((f, i) => (
                             <motion.div
                                 key={i}
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 40 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
-                                transition={{ delay: i * 0.2 }}
+                                transition={{ delay: i * 0.15 }}
                             >
-                                <GlassBox className="h-full group hover:bg-white/10 transition-colors border-white/5 hover:border-white/20">
-                                    <div className="bg-slate-900/50 w-16 h-16 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+                                <div className="glass-lite p-12 h-full group hover:border-primary/50 hover:bg-white transition-all duration-500 rounded-[3rem] border border-slate-200/50">
+                                    <div className="bg-primary/5 w-20 h-20 rounded-3xl flex items-center justify-center mb-10 group-hover:bg-primary/10 group-hover:scale-110 transition-all shadow-2xl shadow-primary/5">
                                         {f.icon}
                                     </div>
-                                    <div className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4">{f.badge}</div>
-                                    <h3 className="text-2xl font-bold text-white mb-4 leading-tight">{f.title}</h3>
-                                    <p className="text-slate-400 leading-relaxed font-medium">{f.desc}</p>
-                                </GlassBox>
+                                    <div className="text-[10px] font-black text-primary uppercase tracking-[0.4em] mb-6">{f.badge} Audit</div>
+                                    <h3 className="text-3xl font-united mb-6 tracking-tighter italic text-slate-900">{f.title}</h3>
+                                    <p className="text-slate-500 leading-relaxed font-bold uppercase text-xs tracking-widest opacity-80 group-hover:opacity-100 transition-opacity">{f.desc}</p>
+                                </div>
                             </motion.div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* Social Proof Section (Demo) */}
-            <section id="demo" className="py-32 bg-slate-900/30 relative">
-                <div className="container mx-auto px-6">
+            {/* Social Proof Section (Demo) - Elite Elite Accents */}
+            <section id="demo" className="py-40 bg-slate-50 relative border-b border-slate-100">
+                <div className="container mx-auto px-6 text-center">
                     <div className="flex flex-col lg:flex-row items-center gap-20">
-                        <div className="lg:w-1/2">
-                            <h2 className="text-4xl md:text-5xl font-black text-white mb-10 tracking-tight leading-tight">
-                                Trusted by Leading Ministries Across the Continent
+                        <div className="lg:w-1/2 text-left">
+                            <h2 className="text-5xl md:text-6xl font-united mb-12 tracking-tighter leading-[0.9] italic text-slate-950">
+                                Continental Standard for <span className="text-primary">Ministry Logistics</span>
                             </h2>
-                            <div className="space-y-8">
+                            <div className="space-y-10">
                                 {[
-                                    { icon: <Zap className="text-indigo-400" />, title: "Instant Infrastructure", desc: "Deploy your entire church program portal in less than 5 minutes." },
-                                    { icon: <Shield className="text-pink-400" />, title: "Enterprise Security", desc: "Bank-grade encryption for all member data and financial transactions." }
+                                    { icon: <Zap className="text-primary" />, title: "Instant Infrastructure", desc: "Deploy your entire ministry network and session tracking in less than 300 seconds." },
+                                    { icon: <Shield className="text-primary" />, title: "Ecclesial Intelligence", desc: "Bank-grade ledger encryption for all financial records and participant confidentiality." }
                                 ].map((item, i) => (
-                                    <div key={i} className="flex space-x-6">
-                                        <div className="flex-shrink-0 w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
+                                    <div key={i} className="flex space-x-8 group">
+                                        <div className="flex-shrink-0 w-16 h-16 bg-white rounded-2xl flex items-center justify-center border border-slate-200 group-hover:border-primary/40 transition-colors shadow-xl shadow-slate-900/5">
                                             {item.icon}
                                         </div>
                                         <div>
-                                            <h4 className="text-xl font-bold text-white mb-2">{item.title}</h4>
-                                            <p className="text-slate-400 font-medium">{item.desc}</p>
+                                            <h4 className="text-2xl font-united italic mb-3 tracking-tighter text-slate-900 group-hover:text-primary transition-colors">{item.title}</h4>
+                                            <p className="text-slate-500 font-bold uppercase text-xs tracking-widest leading-relaxed opacity-90">{item.desc}</p>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                        <div className="lg:w-1/2 relative">
-                            <div className="absolute inset-0 bg-indigo-500/20 blur-[100px] rounded-full"></div>
-                            <Card className="relative z-10 p-2 bg-white/5 border-white/10 overflow-hidden">
-                                <div className="bg-slate-900 border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl">
-                                    <div className="h-8 bg-slate-800/50 border-b border-slate-700/50 flex items-center px-4 space-x-2">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/20"></div>
-                                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20"></div>
-                                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/20"></div>
+                        <div className="lg:w-1/2 relative group">
+                            <div className="absolute inset-0 bg-primary/10 blur-[120px] rounded-full opacity-30 group-hover:opacity-50 transition-opacity"></div>
+                            <div className="relative z-10 glass-lite p-4 rounded-[3rem] overflow-hidden group-hover:scale-[1.02] transition-transform duration-700 border border-slate-200 shadow-2xl shadow-slate-900/5">
+                                <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-[0_32px_64px_-12px_rgba(15,23,42,0.1)]">
+                                    <div className="h-10 bg-slate-50 border-b border-slate-200 flex items-center px-6 space-x-2">
+                                        <div className="w-3 h-3 rounded-full bg-primary animate-pulse"></div>
+                                        <div className="w-3 h-3 rounded-full bg-slate-300"></div>
+                                        <div className="w-3 h-3 rounded-full bg-slate-300"></div>
+                                        <div className="flex-1 text-center font-black text-[9px] text-slate-400 uppercase tracking-widest pl-10">ADMIN_PANEL_ENCRYPTED_SESSION</div>
                                     </div>
-                                    <div className="p-4 grid grid-cols-4 gap-4 h-64">
-                                        <div className="col-span-1 border-r border-slate-700/30 pr-4 space-y-3 hidden sm:block">
-                                            <div className="h-2 w-2/3 bg-slate-700/50 rounded animate-pulse"></div>
-                                            <div className="h-2 w-full bg-slate-800 rounded"></div>
-                                            <div className="h-2 w-3/4 bg-slate-800 rounded"></div>
-                                            <div className="h-2 w-5/6 bg-slate-800 rounded"></div>
+                                    <div className="p-8 grid grid-cols-4 gap-8 h-80 bg-white text-left">
+                                        <div className="col-span-1 border-r border-slate-100 pr-6 space-y-4 hidden sm:block">
+                                            <div className="h-2.5 w-2/3 bg-primary/10 rounded animate-pulse"></div>
+                                            <div className="h-2.5 w-full bg-slate-100 rounded"></div>
+                                            <div className="h-2.5 w-3/4 bg-slate-100 rounded"></div>
+                                            <div className="h-2.5 w-5/6 bg-slate-100 rounded"></div>
                                         </div>
-                                        <div className="col-span-3 space-y-4">
-                                            <div className="flex gap-3">
-                                                <div className="h-20 w-1/3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg"></div>
-                                                <div className="h-20 w-1/3 bg-pink-500/10 border border-pink-500/20 rounded-lg"></div>
-                                                <div className="h-20 w-1/3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg"></div>
-                                            </div>
-                                            <div className="h-32 bg-slate-800/30 rounded-lg border border-slate-700/30 relative overflow-hidden">
-                                                <div className="absolute inset-0 flex items-end">
-                                                    <div className="w-full h-24 bg-gradient-to-t from-indigo-500/10 to-transparent"></div>
+                                        <div className="col-span-3 space-y-6">
+                                            <div className="flex gap-4">
+                                                <div className="h-24 w-1/3 bg-primary/5 border border-primary/10 rounded-2xl flex items-center justify-center">
+                                                    <div className="h-10 w-10 bg-primary/10 rounded-full animate-bounce"></div>
                                                 </div>
-                                                <svg className="absolute bottom-0 left-0 w-full h-full text-indigo-500/50" viewBox="0 0 100 40" preserveAspectRatio="none">
+                                                <div className="h-24 w-1/3 bg-slate-50 border border-slate-200 rounded-2xl"></div>
+                                                <div className="h-24 w-1/3 bg-slate-50 border border-slate-200 rounded-2xl"></div>
+                                            </div>
+                                            <div className="h-40 bg-slate-50 rounded-2xl border border-slate-100 relative overflow-hidden p-6 text-left">
+                                                <div className="h-2 w-1/3 bg-slate-200 rounded mb-4"></div>
+                                                <div className="h-2 w-1/2 bg-slate-200 rounded mb-4"></div>
+                                                <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-primary/5 to-transparent"></div>
+                                                <svg className="absolute bottom-0 left-0 w-full h-32 text-primary/10" viewBox="0 0 100 40" preserveAspectRatio="none">
                                                     <path d="M0,40 Q25,35 50,20 T100,10 V40 H0 Z" fill="currentColor" />
-                                                    <path d="M0,40 Q25,35 50,20 T100,10" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                                                    <path d="M0,40 Q25,35 50,20 T100,10" fill="none" stroke="currentColor" strokeWidth="1" />
                                                 </svg>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </Card>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Pricing */}
-            <section id="pricing" className="py-32 px-6">
-                <div className="container mx-auto">
-                    <div className="text-center mb-24 uppercase tracking-[0.3em] font-black text-slate-500 text-sm">Investment for growth</div>
-                    <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {/* Pricing - United Red on White Background */}
+            <section id="pricing" className="py-40 px-6 bg-white relative">
+                <div className="container mx-auto text-center">
+                    <div className="text-center mb-32">
+                        <div className="text-primary text-[10px] font-black uppercase tracking-[0.5em] mb-4">Investment Roadmap</div>
+                        <h2 className="text-5xl md:text-7xl font-united italic tracking-tighter text-slate-950">Global Scaling Options</h2>
+                    </div>
+                    
+                    <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto text-left">
                         {plans.map((p, i) => (
-                            <Card key={i} className={`flex flex-col p-12 h-full ${p.isPopular ? 'bg-indigo-600/10 border-indigo-500/30 ring-1 ring-indigo-500/20' : 'bg-white/5 border-white/10'}`}>
+                            <div key={i} className={`flex flex-col p-12 h-full transition-all duration-500 rounded-[3rem] ${p.isPopular ? 'bg-primary/5 border-2 border-primary/30 shadow-[0_32px_64px_-16px_rgba(218,41,28,0.15)]' : 'glass-lite border border-slate-200 hover:border-primary/20'}`}>
                                 {p.isPopular && (
-                                    <div className="bg-indigo-500 text-white text-[10px] font-black px-4 py-1 rounded-full w-fit mb-8 tracking-[0.2em] uppercase">Most Professional</div>
+                                    <div className="bg-primary text-white text-[10px] font-black px-6 py-2 rounded-full w-fit mb-10 tracking-[0.4em] uppercase shadow-lg shadow-primary/20">Most Vetted Choice</div>
                                 )}
-                                <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tight">{p.name}</h3>
+                                <h3 className="text-3xl font-united italic text-slate-900 mb-4 tracking-tighter">{p.name}</h3>
                                 <div className="flex items-baseline mb-12">
-                                    <span className="text-6xl font-black text-white">${p.price}</span>
-                                    <span className="text-slate-500 ml-2 font-bold uppercase text-xs tracking-widest">/mo</span>
+                                    <span className="text-7xl font-united tracking-tighter text-slate-950">${p.price}</span>
+                                    <span className="text-slate-400 ml-3 font-black uppercase text-[10px] tracking-widest opacity-60">monthly asset</span>
                                 </div>
-                                <ul className="space-y-6 mb-12 flex-1">
+                                <ul className="space-y-6 mb-16 flex-1">
                                     {p.features.map((feat, j) => (
-                                        <li key={j} className="flex items-center text-slate-400 font-bold text-sm">
-                                            <CheckCircle2 className="w-5 h-5 text-indigo-400 mr-4 flex-shrink-0" />
+                                        <li key={j} className="flex items-center text-slate-600 font-bold text-[11px] uppercase tracking-widest leading-relaxed">
+                                            <CheckCircle2 className="w-4 h-4 text-primary mr-5 flex-shrink-0" />
                                             {feat}
                                         </li>
                                     ))}
                                 </ul>
-                                <Button variant={p.isPopular ? 'premium' : 'outline'} className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10">
-                                    Choose Plan
+                                <Button variant={p.isPopular ? 'premium' : 'outline'} className={`w-full h-18 text-[11px] font-black uppercase tracking-widest rounded-2xl ${!p.isPopular ? 'border-slate-200 text-slate-900 hover:bg-slate-50' : ''}`}>
+                                    Initialize Plan
                                 </Button>
-                            </Card>
+                            </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* CTA */}
-            <section className="py-40 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-premium opacity-10"></div>
+            {/* CTA - Bold United Red Lite */}
+            <section className="py-52 relative overflow-hidden bg-slate-50 text-center">
+                <div className="absolute inset-0 bg-primary/10 opacity-30 blur-[160px] animate-pulse"></div>
                 <div className="container mx-auto px-6 text-center relative z-10">
-                    <h2 className="text-5xl md:text-7xl font-black text-white mb-10 tracking-tighter">Ready to digitize?</h2>
-                    <Button size="lg" variant="premium" className="px-16 h-20 text-xl font-black shadow-2xl shadow-indigo-500/40">
-                        Get Started Now
+                    <h2 className="text-6xl md:text-9xl font-united italic mb-16 tracking-tighter leading-none uppercase text-slate-950">Ready to <span className="text-primary italic">Manifest</span>?</h2>
+                    <Button size="lg" variant="premium" className="px-20 h-24 text-2xl font-black uppercase tracking-[0.2em] shadow-[0_20px_60px_-10px_rgba(218,41,28,0.5)] rounded-full hover:scale-105 active:scale-95 transition-all">
+                        Execute Access Now
                     </Button>
                 </div>
             </section>
 
-            {/* Footer */}
-            <footer className="py-20 border-t border-white/5 bg-slate-950 px-6">
+            {/* Footer - Minimalist Lite */}
+            <footer className="py-24 border-t border-slate-200 bg-white px-6 text-center">
                 <div className="container mx-auto text-center">
-                    <div className="flex items-center justify-center space-x-3 mb-10 opacity-50 grayscale hover:grayscale-0 transition-all">
-                        <div className="text-3xl text-indigo-400 italic font-black">CP</div>
-                        <h2 className="text-xl font-bold text-white tracking-widest">KINGDOMCONNECT</h2>
+                    <div className="flex items-center justify-center space-x-4 mb-16 opacity-40 grayscale hover:grayscale-0 transition-all duration-700">
+                        <div className="text-4xl text-primary italic font-black">KC</div>
+                        <h2 className="text-2xl font-united italic text-slate-900 tracking-widest">KINGDOMCONNECT</h2>
                     </div>
-                    <div className="flex justify-center space-x-12 mb-12 text-xs font-black uppercase tracking-widest text-slate-500">
-                        <a href="#" className="hover:text-indigo-400 transition-colors">Privacy</a>
-                        <a href="#" className="hover:text-indigo-400 transition-colors">Terms</a>
-                        <a href="#" className="hover:text-indigo-400 transition-colors">Support</a>
+                    <div className="flex justify-center space-x-16 mb-16 text-[10px] font-black uppercase tracking-[0.5em] text-slate-400">
+                        <a href="#" className="hover:text-primary transition-colors">Privacy_Ledger</a>
+                        <a href="#" className="hover:text-slate-900 transition-colors">Global_Terms</a>
+                        <a href="#" className="hover:text-primary transition-colors">Audit_Support</a>
                     </div>
-                    <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-                        © 2026 Etechzim. Crafted with excellence.
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em]">
+                        © 2026 Kingdom Connect Logistics. Crafted by Etechzim Excellence.
                     </div>
                 </div>
             </footer>
         </div>
     );
 }
+
+

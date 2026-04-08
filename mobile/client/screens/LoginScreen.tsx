@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, TextInput, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
+import { View, StyleSheet, TextInput, KeyboardAvoidingView, Platform, ScrollView, Alert, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -23,6 +23,7 @@ export default function LoginScreen({ navigation }: Props) {
     const { login } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     const handleLogin = async () => {
@@ -57,7 +58,7 @@ export default function LoginScreen({ navigation }: Props) {
                     </View>
                     <ThemedText type="h1" style={styles.title}>Welcome Back</ThemedText>
                     <ThemedText type="body" style={{ color: theme.textSecondary, textAlign: "center" }}>
-                        Sign in to continue to BTM
+                        Sign in to continue to BE THAT MAN
                     </ThemedText>
                 </Animated.View>
 
@@ -78,18 +79,30 @@ export default function LoginScreen({ navigation }: Props) {
                     />
 
                     <ThemedText type="h4" style={styles.label}>Password</ThemedText>
-                    <TextInput
-                        value={password}
-                        onChangeText={setPassword}
-                        placeholder="Enter your password"
-                        placeholderTextColor={theme.textSecondary}
-                        secureTextEntry
-                        autoComplete="password"
-                        style={[
-                            styles.input,
-                            { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border },
-                        ]}
-                    />
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholder="Enter your password"
+                            placeholderTextColor={theme.textSecondary}
+                            secureTextEntry={!showPassword}
+                            autoComplete="password"
+                            style={[
+                                styles.input,
+                                { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border, flex: 1, marginBottom: 0 },
+                            ]}
+                        />
+                        <Pressable 
+                            onPress={() => setShowPassword(!showPassword)}
+                            style={styles.eyeIcon}
+                        >
+                            <Feather 
+                                name={showPassword ? "eye-off" : "eye"} 
+                                size={20} 
+                                color={theme.textSecondary} 
+                            />
+                        </Pressable>
+                    </View>
 
                     <Button onPress={handleLogin} disabled={isLoading} style={styles.button}>
                         {isLoading ? "Signing in..." : "Sign In"}
@@ -157,5 +170,17 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         marginTop: Spacing.xl,
+    },
+    passwordContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: Spacing.xl,
+    },
+    eyeIcon: {
+        position: "absolute",
+        right: Spacing.lg,
+        height: "100%",
+        justifyContent: "center",
+        paddingLeft: Spacing.md,
     },
 });

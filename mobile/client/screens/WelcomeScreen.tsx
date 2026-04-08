@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, Dimensions, ImageBackground } from "react-native";
+import { View, StyleSheet, Dimensions, ImageBackground, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient";
@@ -26,69 +26,33 @@ export default function WelcomeScreen({ navigation }: Props) {
     navigation.navigate("JoinCode" as any);
   };
 
+  const handleSignIn = () => {
+    // Navigate to Login (usually via navigation.getParent() or direct navigate)
+    navigation.navigate("Login" as any);
+  };
+
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={["#DA291C", "#8B0000", "#0D0D0D"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      />
-
-      <View style={styles.patternOverlay}>
-        {[...Array(20)].map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.patternLine,
-              {
-                top: `${i * 5}%`,
-                opacity: 0.03 + (i * 0.005),
-              },
-            ]}
-          />
-        ))}
-      </View>
-
+    <View style={[styles.container, { backgroundColor: '#0D0D0D' }]}>
       <View
         style={[
           styles.content,
-          { paddingTop: insets.top + Spacing["6xl"], paddingBottom: insets.bottom + Spacing.xl },
+          { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.xl },
         ]}
       >
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(800)}
-          style={styles.logoContainer}
-        >
-          <View style={styles.logoCircle}>
-            <View style={styles.logoInner}>
-              <Feather name="shield" size={48} color="#DA291C" />
-            </View>
-          </View>
-        </Animated.View>
-
         <View style={styles.textContainer}>
-          <Animated.View entering={FadeInUp.delay(400).duration(600)}>
-            <ThemedText type="h1" style={styles.title}>
-              BTM
-            </ThemedText>
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.delay(500).duration(600)}>
-            <ThemedText type="h3" style={styles.tagline}>
-              BASIC TRAINING FOR MINISTRY
-            </ThemedText>
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.delay(600).duration(600)}>
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <View style={styles.dividerDiamond} />
-              <View style={styles.dividerLine} />
+          <Animated.View entering={FadeInDown.delay(100).duration(800)} style={{ alignItems: 'center', marginBottom: Spacing.xl }}>
+            <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: theme.link + '20', alignItems: 'center', justifyContent: 'center' }}>
+              <Feather name="shield" size={48} color={theme.link} />
             </View>
           </Animated.View>
 
-          <Animated.View entering={FadeInUp.delay(700).duration(600)}>
+          <Animated.View entering={FadeInUp.delay(200).duration(800)}>
+            <ThemedText type="h1" style={styles.title}>
+              BE THAT MAN
+            </ThemedText>
+          </Animated.View>
+
+          <Animated.View entering={FadeInUp.delay(600).duration(800)}>
             <ThemedText type="body" style={styles.subtitle}>
               Train. Lead. Transform.
             </ThemedText>
@@ -100,20 +64,28 @@ export default function WelcomeScreen({ navigation }: Props) {
           style={styles.buttonContainer}
         >
           <Button onPress={handleGetStarted} style={styles.button}>
-            Enter
+            Join
           </Button>
+
+          <View style={{ marginTop: Spacing.md, alignItems: 'center' }}>
+            <Pressable onPress={handleSignIn}>
+              <ThemedText type="body" style={{ color: '#A0A0A0', textDecorationLine: 'underline' }}>
+                Already have an account? Sign In
+              </ThemedText>
+            </Pressable>
+          </View>
 
           <View style={styles.featureRow}>
             <View style={styles.featureItem}>
-              <Feather name="users" size={16} color="#FFD700" />
+              <Feather name="users" size={16} color="#A0A0A0" />
               <ThemedText type="small" style={styles.featureText}>Cell Groups</ThemedText>
             </View>
             <View style={styles.featureItem}>
-              <Feather name="calendar" size={16} color="#FFD700" />
+              <Feather name="calendar" size={16} color="#A0A0A0" />
               <ThemedText type="small" style={styles.featureText}>Sessions</ThemedText>
             </View>
             <View style={styles.featureItem}>
-              <Feather name="award" size={16} color="#FFD700" />
+              <Feather name="award" size={16} color="#A0A0A0" />
               <ThemedText type="small" style={styles.featureText}>Graduate</ThemedText>
             </View>
           </View>
@@ -181,14 +153,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontSize: 64,
-    fontWeight: "800",
-    color: "#0D0D0D",
+    fontSize: 42,
+    fontWeight: "900",
+    color: "#DA291C",
     textAlign: "center",
-    letterSpacing: 8,
-    textShadowColor: "rgba(218, 41, 28, 0.3)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    letterSpacing: 2,
+    lineHeight: 52,
   },
   tagline: {
     color: "#FFD700",

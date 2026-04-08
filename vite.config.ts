@@ -6,7 +6,11 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   server: {
-    allowedHosts: ["kingdomconnect.co.zw"]
+    allowedHosts: ["kingdomconnect.co.zw"],
+    proxy: {
+      '/api': 'http://localhost:5000',
+      '/uploads': 'http://localhost:5000',
+    }
   },
   resolve: {
     alias: {

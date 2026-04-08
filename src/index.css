@@ -83,3 +83,19 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
 }
+
+.glass-lite {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.05);
+}
+
+.theme-lite {
+  --color-background: #F8FAFC;
+  --color-foreground: #0F172A;
+  --color-primary: #DA291C;
+  --color-surface: rgba(255, 255, 255, 0.85);
+  --color-surface-border: rgba(15, 23, 42, 0.08);
+}
+

@@ -168,34 +168,12 @@ export default function RoleSelectionScreen({ navigation, route }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={["#DA291C", "#8B0000", "#0D0D0D"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      />
-
-      <View style={styles.patternOverlay}>
-        {[...Array(20)].map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.patternLine,
-              {
-                top: `${i * 5}%`,
-                opacity: 0.03 + (i * 0.005),
-              },
-            ]}
-          />
-        ))}
-      </View>
-
+    <View style={[styles.container, { backgroundColor: '#0D0D0D' }]}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + Spacing["3xl"], paddingBottom: insets.bottom + Spacing.xl },
+          { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.xl },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -205,19 +183,19 @@ export default function RoleSelectionScreen({ navigation, route }: Props) {
               onPress={() => navigation.goBack()}
               style={styles.backButton}
             >
-              <Feather name="arrow-left" size={24} color="#FFFFFF" />
+              <Feather name="arrow-left" size={24} color="#DA291C" />
             </Pressable>
           </View>
           
           <View style={styles.titleSection}>
-            <ThemedText type="h1" style={styles.title}>
+            <ThemedText type="h1" style={[styles.title, { color: '#DA291C' }]}>
               Choose Your Path
             </ThemedText>
             <ThemedText
               type="body"
               style={[styles.subtitle, { color: theme.textSecondary }]}
             >
-              Select your role to personalize your experience
+              Select your role to join the mission
             </ThemedText>
           </View>
         </Animated.View>

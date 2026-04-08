@@ -63,8 +63,17 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
         </ThemedText>
 
         <ThemedText type="body" style={styles.message}>
-          Please reload the app to continue.
+          {error.message}
         </ThemedText>
+
+        <Pressable
+          onPress={() => setIsModalVisible(true)}
+          style={{ marginBottom: Spacing.md }}
+        >
+          <ThemedText type="small" style={{ color: theme.link }}>
+            Show Details
+          </ThemedText>
+        </Pressable>
 
         <Pressable
           onPress={handleRestart}
@@ -86,59 +95,57 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
         </Pressable>
       </View>
 
-      {__DEV__ ? (
-        <Modal
-          visible={isModalVisible}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setIsModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <ThemedView style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <ThemedText type="h2" style={styles.modalTitle}>
-                  Error Details
-                </ThemedText>
-                <Pressable
-                  onPress={() => setIsModalVisible(false)}
-                  style={({ pressed }) => [
-                    styles.closeButton,
-                    { opacity: pressed ? 0.6 : 1 },
-                  ]}
-                >
-                  <Feather name="x" size={24} color={theme.text} />
-                </Pressable>
-              </View>
-
-              <ScrollView
-                style={styles.modalScrollView}
-                contentContainerStyle={styles.modalScrollContent}
-                showsVerticalScrollIndicator
+      <Modal
+        visible={isModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <ThemedView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <ThemedText type="h2" style={styles.modalTitle}>
+                Error Details
+              </ThemedText>
+              <Pressable
+                onPress={() => setIsModalVisible(false)}
+                style={({ pressed }) => [
+                  styles.closeButton,
+                  { opacity: pressed ? 0.6 : 1 },
+                ]}
               >
-                <View
+                <Feather name="x" size={24} color={theme.text} />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              style={styles.modalScrollView}
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator
+            >
+              <View
+                style={[
+                  styles.errorContainer,
+                  { backgroundColor: theme.backgroundDefault },
+                ]}
+              >
+                <Text
                   style={[
-                    styles.errorContainer,
-                    { backgroundColor: theme.backgroundDefault },
+                    styles.errorText,
+                    {
+                      color: theme.text,
+                      fontFamily: Fonts?.mono || "monospace",
+                    },
                   ]}
+                  selectable
                 >
-                  <Text
-                    style={[
-                      styles.errorText,
-                      {
-                        color: theme.text,
-                        fontFamily: Fonts?.mono || "monospace",
-                      },
-                    ]}
-                    selectable
-                  >
-                    {formatErrorDetails()}
-                  </Text>
-                </View>
-              </ScrollView>
-            </ThemedView>
-          </View>
-        </Modal>
-      ) : null}
+                  {formatErrorDetails()}
+                </Text>
+              </View>
+            </ScrollView>
+          </ThemedView>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }

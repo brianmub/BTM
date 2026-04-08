@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
+import { Pressable } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -13,6 +14,7 @@ import { Spacing, BorderRadius } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { storage, PaymentRecord, Program } from '@/lib/storage';
+import { ReceiptModal } from '@/components/ReceiptModal';
 
 interface PaymentWithProgram extends PaymentRecord {
   programName: string;
@@ -26,6 +28,9 @@ export default function PaymentHistoryScreen() {
   const [payments, setPayments] = useState<PaymentWithProgram[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [totalPaid, setTotalPaid] = useState(0);
+  const [isReceiptVisible, setIsReceiptVisible] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [orgData, setOrgData] = useState<any>(null);
 
   const loadData = async () => {
     if (!user) return;
@@ -45,9 +50,14 @@ export default function PaymentHistoryScreen() {
     ));
 
     const total = allPayments
-      .filter(p => p.isPaid)
+      .filter(p => p.isPaid || p.status === 'paid')
       .reduce((sum, p) => sum + p.amount, 0);
     setTotalPaid(total);
+
+    if (user.organizationId && !orgData) {
+      const org = await storage.getOrganization(user.organizationId);
+      setOrgData(org);
+    }
   };
 
   useFocusEffect(
@@ -63,7 +73,7 @@ export default function PaymentHistoryScreen() {
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Pending';
+    if (!dateString) return 'Awaiting Conf.';
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -99,11 +109,36 @@ export default function PaymentHistoryScreen() {
                 type="small"
                 style={{ color: item.isPaid ? theme.success : theme.warning, fontWeight: '600' }}
               >
-                {item.isPaid ? 'Paid' : 'Pending'}
+                {item.isPaid ? 'Paid' : 'Awaiting Conf.'}
               </ThemedText>
             </View>
           </View>
         </View>
+        {item.isPaid || item.status === 'paid' ? (
+          <Pressable 
+            onPress={() => {
+              setSelectedPayment({
+                receiptNumber: item.receiptNumber || `REC-${item.id.slice(0, 8)}`,
+                amount: item.amount,
+                paymentMethod: item.paymentMethod || 'cash',
+                createdAt: item.confirmedAt || item.id,
+                userName: user?.fullName || 'Participant',
+                programName: item.programName,
+                organizationName: orgData?.name || 'Kingdom Connect'
+              });
+              setIsReceiptVisible(true);
+            }}
+            style={({ pressed }) => [
+              styles.receiptButton,
+              { backgroundColor: pressed ? theme.backgroundSecondary : 'transparent' }
+            ]}
+          >
+            <Feather name="file-text" size={14} color={theme.primary} />
+            <ThemedText type="small" style={{ color: theme.primary, marginLeft: 4, fontWeight: '700' }}>
+              VIEW RECEIPT
+            </ThemedText>
+          </Pressable>
+        ) : null}
       </Card>
     </Animated.View>
   );
@@ -156,6 +191,13 @@ export default function PaymentHistoryScreen() {
           </Card>
         }
       />
+      {selectedPayment && (
+        <ReceiptModal
+          isVisible={isReceiptVisible}
+          onClose={() => setIsReceiptVisible(false)}
+          payment={selectedPayment}
+        />
+      )}
     </ThemedView>
   );
 }
@@ -212,5 +254,14 @@ const styles = StyleSheet.create({
   emptyCard: {
     alignItems: 'center',
     paddingVertical: Spacing['3xl'],
+  },
+  receiptButton: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

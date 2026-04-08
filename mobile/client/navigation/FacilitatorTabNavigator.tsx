@@ -27,14 +27,14 @@ const Tab = createBottomTabNavigator<FacilitatorTabParamList>();
 function HomeStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
         name="Home"
         component={FacilitatorHomeScreen}
         options={{
-          headerTitle: () => <HeaderTitle title="BTM" />,
+          headerTitle: () => <HeaderTitle title="BE THAT MAN" />,
         }}
       />
     </Stack.Navigator>
@@ -59,7 +59,7 @@ function CellStack() {
 function SessionsStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
@@ -74,7 +74,7 @@ function SessionsStack() {
 function AttendanceStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
@@ -89,7 +89,7 @@ function AttendanceStack() {
 function ProfileStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen

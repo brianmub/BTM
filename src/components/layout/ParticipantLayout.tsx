@@ -28,7 +28,6 @@ export function ParticipantLayout({ children }: { children: React.ReactNode }) {
         { name: 'Discover', icon: <Compass className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard/browse` },
         { name: 'Payments', icon: <Banknote className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard/payments` },
         ...(isFacilitator ? [{ name: 'Groups', icon: <UsersRound className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard/cell-groups` }] : []),
-        { name: 'Tasks', icon: <FileText className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard/assignments` },
         { name: 'Profile', icon: <User className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard/profile` },
     ];
 

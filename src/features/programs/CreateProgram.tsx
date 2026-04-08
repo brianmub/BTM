@@ -60,7 +60,6 @@ export function CreateProgram() {
                 attendance_required_pct: 80,
                 // Nested features (this is where these toggles belong)
                 features: {
-                    assignments_enabled: true,
                     certificates_enabled: true,
                     badges_enabled: true,
                     qr_checkin_required: formData.qr_checkin_required,

@@ -59,29 +59,7 @@ export default function JoinCodeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={["#DA291C", "#8B0000", "#0D0D0D"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      />
-
-      <View style={styles.patternOverlay}>
-        {[...Array(20)].map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.patternLine,
-              {
-                top: `${i * 5}%`,
-                opacity: 0.03 + (i * 0.005),
-              },
-            ]}
-          />
-        ))}
-      </View>
-
+    <View style={[styles.container, { backgroundColor: '#0D0D0D' }]}>
       <StatusBar style="light" />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView
@@ -93,8 +71,8 @@ export default function JoinCodeScreen() {
               entering={FadeInDown.delay(200).duration(800)}
               style={styles.header}
             >
-              <View style={styles.iconCircle}>
-                <Feather name="hash" size={32} color="#DA291C" />
+              <View style={[styles.iconCircle, { backgroundColor: theme.link + "20" }]}>
+                <Feather name="hash" size={32} color={theme.link} />
               </View>
               <ThemedText type="h1" style={styles.title}>
                 Join Organization
@@ -110,9 +88,9 @@ export default function JoinCodeScreen() {
             >
               <View style={styles.inputWrapper}>
                 <TextInput
-                  style={[styles.input, { borderColor: code.length === 6 ? "#FFD700" : "rgba(255,255,255,0.1)" }]}
+                  style={[styles.input, { borderColor: code.length === 6 ? "#DA291C" : "#333", backgroundColor: '#1A1A1A' }]}
                   placeholder="000000"
-                  placeholderTextColor="rgba(255,255,255,0.2)"
+                  placeholderTextColor="rgba(255,255,255,0.1)"
                   autoCapitalize="characters"
                   autoCorrect={false}
                   maxLength={6}
@@ -132,12 +110,12 @@ export default function JoinCodeScreen() {
                 disabled={code.length !== 6 || loading}
                 style={styles.button}
               >
-                Continue
+                Join
               </Button>
 
               <Pressable
                 onPress={() => navigation.goBack()}
-                style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.7 : 1 }]}
+                style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.7 : 1, alignItems: 'center' }]}
               >
                 <ThemedText style={styles.backButtonText}>Back to Welcome</ThemedText>
               </Pressable>

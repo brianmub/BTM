@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Users, Layout, ShieldCheck, Search, Filter, MoreVertical, Ban, CheckCircle, ExternalLink, Trash2, Pencil, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { GlassBox, Card } from '@/components/ui/Card';

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { Organization } from '@/types';
 
 export const platformService = {
     /**

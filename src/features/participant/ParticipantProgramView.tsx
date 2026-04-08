@@ -26,11 +26,10 @@ import {
     X,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { ParticipantAssignments } from './ParticipantAssignments';
 import { CelebrationModal } from '@/components/shared/CelebrationModal';
 import { programService } from '@/services/programService';
 
-type Tab = 'overview' | 'sessions' | 'tasks';
+type Tab = 'overview' | 'sessions';
 
 export function ParticipantProgramView() {
     const { programId, orgSlug } = useParams();
@@ -90,7 +89,7 @@ export function ParticipantProgramView() {
                 // 4. Attendance per session
                 const { data: attendances } = await supabase
                     .from('attendance_records')
-                    .select('session_id, status, checked_in_at')
+                    .select('session_id, status, checked_in_at, confirmed_by_leader, is_verified')
                     .eq('user_id', currentProfile.id)
                     .in('session_id', sessionIds);
 
@@ -190,14 +189,16 @@ export function ParticipantProgramView() {
 
     if (!program) return <div className="text-foreground p-10">Program not found.</div>;
 
-    const completedSessions = sessions.filter(s => attendanceMap[s.id]?.status === 'present').length;
+    const completedSessions = sessions.filter(s => {
+        const att = attendanceMap[s.id];
+        return att?.status === 'present' || att?.confirmed_by_leader || att?.is_verified;
+    }).length;
     const totalSessions = sessions.length;
     const progressPct = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
 
     const tabs: { id: Tab; label: string; icon: any; locked?: boolean }[] = [
         { id: 'overview', label: 'Overview', icon: Info },
         { id: 'sessions', label: 'Sessions', icon: Calendar, locked: !enrollment },
-        { id: 'tasks', label: 'Tasks', icon: Award, locked: !enrollment },
     ];
 
     return (
@@ -378,21 +379,15 @@ export function ParticipantProgramView() {
                                         {program.attendance_required_pct ?? 80}%
                                     </span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Assignments Required</span>
-                                    <span className="text-[10px] font-black text-foreground bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg">
-                                        {program.assignment_completion_required_pct ?? 0}%
-                                    </span>
-                                </div>
                             </div>
                         </GlassBox>
 
                         {/* CTA if not enrolled */}
                         {!enrollment && (
                             <GlassBox className="p-6 bg-primary/5 border-primary/20 shadow-lg border-dashed space-y-4">
-                                <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Join to Access Sessions & Tasks</h4>
+                                <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Join to Access Sessions</h4>
                                 <p className="text-sm text-foreground font-medium">
-                                    Enroll to unlock detailed curriculum sessions, task assignments, and track your progress.
+                                    Enroll to unlock detailed curriculum sessions and track your progress.
                                 </p>
                                 <Button variant="premium" className="w-full h-12 font-black uppercase tracking-widest text-xs" onClick={handleEnroll} disabled={enrolling}>
                                     {enrolling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
@@ -505,7 +500,7 @@ export function ParticipantProgramView() {
                                                                 {att ? (
                                                                     <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest">
                                                                         <CheckCircle className="w-3 h-3" /> Checked In
-                                                                        {att.checked_in_at && (
+                                                                        {att.checked_in_at && att.checked_in_at.startsWith('20') && (
                                                                             <span className="font-bold text-slate-400 ml-1">
                                                                                 · {new Date(att.checked_in_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                                             </span>
@@ -565,15 +560,6 @@ export function ParticipantProgramView() {
                     </motion.div>
                 )}
 
-                {/* TASKS TAB */}
-                {activeTab === 'tasks' && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                    >
-                        <ParticipantAssignments programId={programId!} />
-                    </motion.div>
-                )}
             </div>
 
             {/* Celebration */}
@@ -644,7 +630,7 @@ export function ParticipantProgramView() {
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-black text-foreground truncate">{name}</p>
                                                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                                                    {rec.checked_in_at
+                                                    {rec.checked_in_at && rec.checked_in_at.startsWith('20')
                                                         ? new Date(rec.checked_in_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
                                                         : '—'}
                                                 </p>

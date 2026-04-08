@@ -37,6 +37,7 @@ export default function SignupScreen({ navigation }: Props) {
     const [gender, setGender] = useState<"male" | "female" | null>(null);
     const [maritalStatus, setMaritalStatus] = useState<"married" | "unmarried" | null>(null);
     const [role, setRole] = useState<UserRole | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSignup = async () => {
@@ -126,7 +127,7 @@ export default function SignupScreen({ navigation }: Props) {
                     </View>
                     <ThemedText type="h1" style={styles.title}>Create Account</ThemedText>
                     <ThemedText type="body" style={{ color: theme.textSecondary, textAlign: "center" }}>
-                        Join BTM today
+                        Join BE THAT MAN today
                     </ThemedText>
                 </Animated.View>
 
@@ -174,18 +175,30 @@ export default function SignupScreen({ navigation }: Props) {
                     />
 
                     <ThemedText type="h4" style={styles.label}>Password</ThemedText>
-                    <TextInput
-                        value={password}
-                        onChangeText={setPassword}
-                        placeholder="At least 6 characters"
-                        placeholderTextColor={theme.textSecondary}
-                        secureTextEntry
-                        autoComplete="password-new"
-                        style={[
-                            styles.input,
-                            { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border },
-                        ]}
-                    />
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholder="At least 6 characters"
+                            placeholderTextColor={theme.textSecondary}
+                            secureTextEntry={!showPassword}
+                            autoComplete="password-new"
+                            style={[
+                                styles.input,
+                                { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border, flex: 1, marginBottom: 0 },
+                            ]}
+                        />
+                        <Pressable 
+                            onPress={() => setShowPassword(!showPassword)}
+                            style={styles.eyeIcon}
+                        >
+                            <Feather 
+                                name={showPassword ? "eye-off" : "eye"} 
+                                size={20} 
+                                color={theme.textSecondary} 
+                            />
+                        </Pressable>
+                    </View>
 
                     <ThemedText type="h4" style={styles.label}>Gender</ThemedText>
                     <View style={styles.optionsRow}>
@@ -207,7 +220,7 @@ export default function SignupScreen({ navigation }: Props) {
                     </View>
 
                     <Button onPress={handleSignup} disabled={isLoading} style={styles.button}>
-                        {isLoading ? "Creating Account..." : "Sign Up"}
+                        {isLoading ? "Joining..." : "Join"}
                     </Button>
 
                     <View style={styles.loginRow}>
@@ -290,5 +303,17 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         marginTop: Spacing.xl,
+    },
+    passwordContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: Spacing.lg,
+    },
+    eyeIcon: {
+        position: "absolute",
+        right: Spacing.lg,
+        height: "100%",
+        justifyContent: "center",
+        paddingLeft: Spacing.md,
     },
 });

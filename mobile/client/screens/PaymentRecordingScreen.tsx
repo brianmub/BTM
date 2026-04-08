@@ -16,6 +16,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { storage, User, PaymentRecord, Session, AttendanceRecord, PaymentStatus } from "@/lib/storage";
+import { ReceiptModal } from "@/components/ReceiptModal";
 
 interface ParticipantPayment {
   user: User;
@@ -39,6 +40,9 @@ export default function PaymentRecordingScreen() {
   const [showUnpaidModal, setShowUnpaidModal] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState<ParticipantPayment | null>(null);
   const [unpaidReason, setUnpaidReason] = useState("");
+  const [isReceiptVisible, setIsReceiptVisible] = useState(false);
+  const [receiptData, setReceiptData] = useState<any>(null);
+  const [orgData, setOrgData] = useState<any>(null);
 
   const loadSessions = useCallback(async () => {
     if (!user) return;
@@ -62,7 +66,11 @@ export default function PaymentRecordingScreen() {
     if (sortedSessions.length > 0 && !selectedSession) {
       setSelectedSession(sortedSessions[0]);
     }
-  }, [user, selectedSession]);
+
+    if (user.organizationId && !orgData) {
+      storage.getOrganization(user.organizationId).then(setOrgData);
+    }
+  }, [user, selectedSession, orgData]);
 
   const loadParticipants = useCallback(async () => {
     if (!user || !selectedSession) return;
@@ -133,6 +141,19 @@ export default function PaymentRecordingScreen() {
     
     try {
       await storage.confirmPayment(participant.payment.id, user.id);
+      
+      // Update local state to show receipt
+      setReceiptData({
+        receiptNumber: participant.payment.receiptNumber || `REC-${participant.payment.id.slice(0, 8)}`,
+        amount: participant.payment.amount || 0,
+        paymentMethod: participant.payment.paymentMethod || 'cash',
+        createdAt: new Date().toISOString(),
+        userName: participant.user.fullName,
+        programName: selectedSession?.title || 'Program',
+        organizationName: orgData?.name || 'Kingdom Connect'
+      });
+      setIsReceiptVisible(true);
+      
       await loadParticipants();
     } catch (error) {
       Alert.alert("Error", "Failed to confirm payment");
@@ -539,6 +560,14 @@ export default function PaymentRecordingScreen() {
           </View>
         </View>
       </Modal>
+
+      {receiptData && (
+        <ReceiptModal
+          isVisible={isReceiptVisible}
+          onClose={() => setIsReceiptVisible(false)}
+          payment={receiptData}
+        />
+      )}
     </ThemedView>
   );
 }

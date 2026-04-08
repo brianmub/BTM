@@ -85,6 +85,8 @@ export default function RegistrationScreen({ navigation, route }: Props) {
     gender: null,
     maritalStatus: null,
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const isFormValid =
     form.fullName.trim().length > 0 &&
@@ -282,38 +284,64 @@ export default function RegistrationScreen({ navigation, route }: Props) {
             <ThemedText type="small" style={styles.label}>
               Password (min 6 characters)
             </ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  borderColor: form.password ? theme.primary : theme.border,
-                },
-              ]}
-              placeholder="Enter your password"
-              placeholderTextColor="#666666"
-              value={form.password}
-              onChangeText={(text) => setForm({ ...form, password: text })}
-              secureTextEntry
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    borderColor: form.password ? theme.primary : theme.border,
+                    flex: 1,
+                  },
+                ]}
+                placeholder="Enter your password"
+                placeholderTextColor="#666666"
+                value={form.password}
+                onChangeText={(text) => setForm({ ...form, password: text })}
+                secureTextEntry={!showPassword}
+              />
+              <Pressable 
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeIcon}
+              >
+                <Feather 
+                  name={showPassword ? "eye-off" : "eye"} 
+                  size={20} 
+                  color="#666666" 
+                />
+              </Pressable>
+            </View>
           </Animated.View>
 
           <Animated.View entering={FadeInUp.delay(300).duration(500)} style={styles.inputGroup}>
             <ThemedText type="small" style={styles.label}>
               Confirm Password
             </ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  borderColor: form.confirmPassword ? (form.password === form.confirmPassword ? theme.primary : "#DA291C") : theme.border,
-                },
-              ]}
-              placeholder="Confirm your password"
-              placeholderTextColor="#666666"
-              value={form.confirmPassword}
-              onChangeText={(text) => setForm({ ...form, confirmPassword: text })}
-              secureTextEntry
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    borderColor: form.confirmPassword ? (form.password === form.confirmPassword ? theme.primary : "#DA291C") : theme.border,
+                    flex: 1,
+                  },
+                ]}
+                placeholder="Confirm your password"
+                placeholderTextColor="#666666"
+                value={form.confirmPassword}
+                onChangeText={(text) => setForm({ ...form, confirmPassword: text })}
+                secureTextEntry={!showConfirmPassword}
+              />
+              <Pressable 
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={styles.eyeIcon}
+              >
+                <Feather 
+                  name={showConfirmPassword ? "eye-off" : "eye"} 
+                  size={20} 
+                  color="#666666" 
+                />
+              </Pressable>
+            </View>
           </Animated.View>
 
           <Animated.View entering={FadeInUp.delay(325).duration(500)} style={styles.inputGroup}>
@@ -505,5 +533,15 @@ const styles = StyleSheet.create({
   button: {
     width: "100%",
     height: 56,
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: Spacing.lg,
+    height: "100%",
+    justifyContent: "center",
   },
 });

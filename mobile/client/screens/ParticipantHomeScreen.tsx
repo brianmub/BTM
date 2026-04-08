@@ -82,7 +82,7 @@ export default function ParticipantHomeScreen() {
           groupMap[groupObj.program_id] = {
             id: groupObj.id,
             name: groupObj.name,
-            facilitatorName: groupObj.facilitator 
+            facilitatorName: groupObj.facilitator
               ? `${groupObj.facilitator.first_name} ${groupObj.facilitator.surname}`
               : 'Unassigned'
           };
@@ -102,13 +102,13 @@ export default function ParticipantHomeScreen() {
             .neq('user_id', user.id);
 
           groupMemberInfo[groupObj.program_id] = {
-             count: count || 0,
-             others: (members || []).map((m: any) => m.users?.first_name || 'Member')
+            count: count || 0,
+            others: (members || []).map((m: any) => m.users?.first_name || 'Member')
           };
         }
       }));
     }
-    
+
     setUserGroups(groupMap);
     setMemberPreviews(groupMemberInfo);
     setSessions(loadedSessions);
@@ -136,9 +136,9 @@ export default function ParticipantHomeScreen() {
   const enrolledPrograms = programs.filter(p => userEnrollments.some(e => e.programId === p.id));
   const currentProgram = programs.find(p => p.id === userEnrollment?.programId);
   const programSessions = sessions.filter(s => s.programId === userEnrollment?.programId);
-  
+
   const confirmedAttendance = attendance.filter(
-    a => a.userId === user?.id && (a.isVerified || a.confirmedByLeader) && a.programId === userEnrollment?.programId
+    a => a.userId === user?.id && (a.isVerified || a.confirmedByLeader) && ((a as any).program_id === userEnrollment?.programId || a.programId === userEnrollment?.programId)
   );
   const attendedCount = confirmedAttendance.length;
 
@@ -151,12 +151,12 @@ export default function ParticipantHomeScreen() {
 
   const handleCheckout = async () => {
     if (!activeAttendance || !activeSession || !user) return;
-    
+
     try {
       setCheckingOut(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const result = await storage.checkOutOfSession(user.id, activeSession.id);
-      
+
       if (result.success) {
         Alert.alert("Success", "Successfully checked out! Hope you enjoyed the session.");
         loadData();
@@ -203,15 +203,16 @@ export default function ParticipantHomeScreen() {
     if (!userEnrollment) return "Not enrolled";
     switch (userEnrollment.status) {
       case "enrolled":
-        return "Enrolled - Awaiting Cell Assignment";
+      case "pending":
+        return "Active Participant";
       case "assigned":
-        return "Assigned to Cell Group";
+        return "Joined Cell Group";
       case "graduated":
         return "Graduated";
       case "incomplete":
         return "Incomplete - Re-enrollment Required";
       default:
-        return "Unknown";
+        return "Active Participant";
     }
   };
 
@@ -260,24 +261,24 @@ export default function ParticipantHomeScreen() {
       {activeSession && activeAttendance && (
         <Animated.View entering={FadeInUp.delay(120).duration(500)}>
           <Card elevation={4} style={[
-            styles.activeSessionCard, 
+            styles.activeSessionCard,
             { borderColor: (activeAttendance.isVerified || activeAttendance.confirmedByLeader) ? theme.success : "#F59E0B", borderWidth: 2 }
           ]}>
             <View style={styles.activeSessionHeader}>
               <View style={[styles.liveDot, { backgroundColor: activeAttendance.isVerified ? theme.success : "#F59E0B" }]} />
               <ThemedText type="small" style={{ color: activeAttendance.isVerified ? theme.success : "#F59E0B", fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                {activeAttendance.isVerified ? "Verified Session" : "Awaiting Verification"}
+                {activeAttendance.isVerified ? "Verified Session" : "Active (Awaiting Lead Scan)"}
               </ThemedText>
             </View>
-            
+
             <ThemedText type="h3" style={styles.activeSessionTitle}>{activeSession.title}</ThemedText>
-            
+
             <View style={styles.activeSessionDetails}>
               <View style={styles.detailRow}>
                 <Feather name="clock" size={14} color={theme.textSecondary} />
                 <ThemedText type="small" style={{ color: theme.textSecondary, marginLeft: Spacing.xs }}>
-                  Checked in at {activeAttendance.entryTime || activeAttendance.checkedInAt ? 
-                    new Date(activeAttendance.entryTime || activeAttendance.checkedInAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 
+                  Checked in at {(activeAttendance.entryTime && activeAttendance.entryTime.startsWith('20')) || (activeAttendance.checkedInAt && activeAttendance.checkedInAt.startsWith('20')) ?
+                    new Date(activeAttendance.entryTime || activeAttendance.checkedInAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) :
                     "Just now"}
                 </ThemedText>
               </View>
@@ -292,26 +293,26 @@ export default function ParticipantHomeScreen() {
             </View>
 
             <View style={{ flexDirection: "row", gap: Spacing.sm }}>
-                <Pressable 
+              <Pressable
                 onPress={handleCheckout}
                 disabled={checkingOut}
                 style={({ pressed }) => [
-                    styles.checkoutButton, 
-                    { backgroundColor: theme.backgroundSecondary, opacity: pressed || checkingOut ? 0.8 : 1, flex: 1, borderWidth: 1, borderColor: theme.border }
+                  styles.checkoutButton,
+                  { backgroundColor: theme.backgroundSecondary, opacity: pressed || checkingOut ? 0.8 : 1, flex: 1, borderWidth: 1, borderColor: theme.border }
                 ]}
-                >
+              >
                 <Feather name="log-out" size={16} color={theme.textSecondary} />
                 <ThemedText type="body" style={[styles.checkoutButtonText, { color: theme.textSecondary, fontSize: 13 }]}>
-                    {checkingOut ? "..." : "Check Out"}
+                  {checkingOut ? "..." : "Check Out"}
                 </ThemedText>
-                </Pressable>
-                
-                {activeAttendance.isVerified && (
-                    <View style={[styles.verifiedBadge, { backgroundColor: theme.success + "15", flex: 1.5, justifyContent: "center", alignItems: "center", borderRadius: BorderRadius.md, flexDirection: "row", gap: 6 }]}>
-                        <Feather name="shield" size={16} color={theme.success} />
-                        <ThemedText style={{ color: theme.success, fontWeight: "800", fontSize: 13 }}>Validated</ThemedText>
-                    </View>
-                )}
+              </Pressable>
+
+              {activeAttendance.isVerified && (
+                <View style={[styles.verifiedBadge, { backgroundColor: theme.success + "15", flex: 1.5, justifyContent: "center", alignItems: "center", borderRadius: BorderRadius.md, flexDirection: "row", gap: 6 }]}>
+                  <Feather name="shield" size={16} color={theme.success} />
+                  <ThemedText style={{ color: theme.success, fontWeight: "800", fontSize: 13 }}>Validated</ThemedText>
+                </View>
+              )}
             </View>
           </Card>
         </Animated.View>
@@ -324,10 +325,10 @@ export default function ParticipantHomeScreen() {
           </ThemedText>
           {enrolledPrograms.map((program, index) => {
             const enrollment = userEnrollments.find(e => e.programId === program.id);
-            const statusColor = enrollment?.status === "graduated" ? theme.success : 
-                                enrollment?.status === "assigned" ? theme.success : theme.accent;
+            const statusColor = (enrollment?.status === "graduated" || enrollment?.status === "assigned" || enrollment?.status === "enrolled" || enrollment?.status === "pending") ? theme.success : theme.accent;
             const statusText = enrollment?.status === "graduated" ? "Graduated" :
-                              enrollment?.status === "assigned" ? "In Cell Group" : "Enrolled";
+              enrollment?.status === "assigned" ? "In Cell Group" :
+                (enrollment?.status === "enrolled" || enrollment?.status === "pending") ? "Active Participant" : "Enrolled";
             return (
               <View key={program.id} style={{ marginBottom: Spacing.xl }}>
                 <Card elevation={1} style={styles.programCard}>
@@ -344,23 +345,8 @@ export default function ParticipantHomeScreen() {
                             {statusText}
                           </ThemedText>
                         </View>
-                        
-                        {/* Payment Status Badge */}
-                        {userPayments.some(p => p.programId === program.id) && (
-                          <View style={[
-                            styles.paymentBadge, 
-                            { backgroundColor: userPayments.find(p => p.programId === program.id)?.status === 'paid' ? theme.success + '20' : theme.warning + '20' }
-                          ]}>
-                            <ThemedText type="small" style={{ 
-                              color: userPayments.find(p => p.programId === program.id)?.status === 'paid' ? theme.success : theme.warning,
-                              fontSize: 10,
-                              fontWeight: '800',
-                              textTransform: 'uppercase'
-                            }}>
-                              {userPayments.find(p => p.programId === program.id)?.status}
-                            </ThemedText>
-                          </View>
-                        )}
+
+
                       </View>
                     </View>
                   </View>
@@ -369,7 +355,7 @@ export default function ParticipantHomeScreen() {
                 {/* New Dedicated Cell Identity Section */}
                 {userGroups[program.id] && (
                   <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.cellIdentitySection}>
-                    <Pressable 
+                    <Pressable
                       onPress={() => navigation.navigate('MyCellTab')}
                       style={({ pressed }) => [
                         styles.cellIdentityCard,
@@ -382,8 +368,8 @@ export default function ParticipantHomeScreen() {
                           <ThemedText type="h3" style={styles.cellIdentityName}>{userGroups[program.id].name}</ThemedText>
                         </View>
                         <View style={styles.facilitatorGroup}>
-                           <ThemedText type="small" style={styles.facilitatorLabel}>Facilitator</ThemedText>
-                           <ThemedText type="body" style={styles.facilitatorName}>{userGroups[program.id].facilitatorName}</ThemedText>
+                          <ThemedText type="small" style={styles.facilitatorLabel}>Facilitator</ThemedText>
+                          <ThemedText type="body" style={styles.facilitatorName}>{userGroups[program.id].facilitatorName}</ThemedText>
                         </View>
                       </View>
 
@@ -391,14 +377,14 @@ export default function ParticipantHomeScreen() {
                         <View style={styles.mateSection}>
                           <ThemedText type="small" style={styles.mateLabel}>Together with {memberPreviews[program.id].count} cell mates:</ThemedText>
                           <View style={styles.mateList}>
-                             {memberPreviews[program.id].others.map((name: string, i: number) => (
-                               <View key={i} style={[styles.mateAvatar, { backgroundColor: theme.link + (i === 0 ? '40' : i === 1 ? '25' : '15') }]}>
-                                 <ThemedText style={styles.mateInitial}>{name[0]}</ThemedText>
-                               </View>
-                             ))}
-                             <View style={styles.moreMates}>
-                                <Feather name="arrow-right" size={12} color={theme.textSecondary} />
-                             </View>
+                            {memberPreviews[program.id].others.map((name: string, i: number) => (
+                              <View key={i} style={[styles.mateAvatar, { backgroundColor: theme.link + (i === 0 ? '40' : i === 1 ? '25' : '15') }]}>
+                                <ThemedText style={styles.mateInitial}>{name[0]}</ThemedText>
+                              </View>
+                            ))}
+                            <View style={styles.moreMates}>
+                              <Feather name="arrow-right" size={12} color={theme.textSecondary} />
+                            </View>
                           </View>
                         </View>
                       )}

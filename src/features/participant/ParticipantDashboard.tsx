@@ -15,7 +15,7 @@ import { motion } from 'framer-motion';
 const BADGE_DEFINITIONS = [
     { id: 'first_step', label: 'First Step', icon: Target, color: 'text-amber-500', bg: 'bg-amber-500/10 border-amber-500/20', desc: 'Joined your first program' },
     { id: 'consistent', label: 'Consistent', icon: Flame, color: 'text-orange-500', bg: 'bg-orange-500/10 border-orange-500/20', desc: 'Attended 5 sessions' },
-    { id: 'scholar', label: 'Scholar', icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10 border-blue-500/20', desc: 'Completed an assignment' },
+    { id: 'scholar', label: 'Scholar', icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10 border-blue-500/20', desc: 'Verified session presence' },
     { id: 'rising', label: 'Rising Star', icon: Star, color: 'text-primary', bg: 'bg-primary/10 border-primary/20', desc: 'Earned 100 Faith Points' },
 ];
 

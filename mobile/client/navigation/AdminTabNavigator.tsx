@@ -13,6 +13,7 @@ import ProfileScreen from "@/screens/ProfileScreen";
 import { HeaderTitle } from "@/components/HeaderTitle";
 import { useTheme } from "@/hooks/useTheme";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type AdminTabParamList = {
   DashboardTab: undefined;
@@ -27,14 +28,14 @@ const Tab = createBottomTabNavigator<AdminTabParamList>();
 function DashboardStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
         name="Dashboard"
         component={AdminDashboardScreen}
         options={{
-          headerTitle: () => <HeaderTitle title="BTM" />,
+          headerTitle: () => <HeaderTitle title="BE THAT MAN" />,
         }}
       />
     </Stack.Navigator>
@@ -44,7 +45,7 @@ function DashboardStack() {
 function ProgramsStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
@@ -59,7 +60,7 @@ function ProgramsStack() {
 function ParticipantsStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
@@ -74,7 +75,7 @@ function ParticipantsStack() {
 function ReportsStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
@@ -89,7 +90,7 @@ function ReportsStack() {
 function ProfileStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
@@ -103,6 +104,7 @@ function ProfileStack() {
 
 export default function AdminTabNavigator() {
   const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -118,6 +120,8 @@ export default function AdminTabNavigator() {
           }),
           borderTopWidth: 0,
           elevation: 0,
+          height: Platform.OS === "android" ? 64 + insets.bottom : 84,
+          paddingBottom: Platform.OS === "android" ? insets.bottom + 10 : 28,
         },
         tabBarBackground: () =>
           Platform.OS === "ios" ? (

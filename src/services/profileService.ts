@@ -226,25 +226,9 @@ export const profileService = {
         const attendedCount = attendance?.filter(a => a.status === 'present').length || 0;
         const attendancePercent = (attendedCount / totalSessions) * 100;
 
-        // 3. Fetch Assignments and Submissions
-        const { data: assignments } = await supabase
-            .from('assignments')
-            .select('id')
-            .eq('organization_id', program.organization_id);
-
-        const { data: submissions } = await supabase
-            .from('assignment_submissions')
-            .select('id')
-            .eq('user_id', userId);
-
-        const totalAssignments = assignments?.length || 0;
-        const submittedCount = submissions?.length || 0;
-        const assignmentsPercent = totalAssignments > 0 ? (submittedCount / totalAssignments) * 100 : 100;
-
         return {
             attendancePercent: Math.min(attendancePercent, 100),
-            assignmentsPercent: Math.min(assignmentsPercent, 100),
-            isEligible: attendancePercent >= 80 && assignmentsPercent >= 50
+            isEligible: attendancePercent >= 80
         };
     },
 

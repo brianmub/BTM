@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 
-const primaryColor = "#DA291C";
-const accentColor = "#FFD700";
+const primaryRed = "#DA291C"; // BTM Red
+const goldColor = "#FFD700";
 
 export const Colors = {
   light: {
@@ -9,31 +9,31 @@ export const Colors = {
     textSecondary: "#A0A0A0",
     buttonText: "#FFFFFF",
     tabIconDefault: "#A0A0A0",
-    tabIconSelected: primaryColor,
-    link: primaryColor,
-    primary: primaryColor,
-    accent: accentColor,
+    tabIconSelected: "#DA291C",
+    link: "#DA291C",
+    primary: "#DA291C",
+    accent: "#000000",
     backgroundRoot: "#0D0D0D",
     backgroundDefault: "#1A1A1A",
     backgroundSecondary: "#252525",
     backgroundTertiary: "#333333",
     card: "#1A1A1A",
     border: "#2A2A2A",
-    success: "#16A34A",
+    success: "#22C55E",
     warning: "#F59E0B",
     error: "#DA291C",
     progressTrack: "#2A2A2A",
-    gold: accentColor,
+    gold: "#FFD700",
   },
   dark: {
     text: "#FFFFFF",
     textSecondary: "#A0A0A0",
     buttonText: "#FFFFFF",
     tabIconDefault: "#A0A0A0",
-    tabIconSelected: primaryColor,
-    link: primaryColor,
-    primary: primaryColor,
-    accent: accentColor,
+    tabIconSelected: "#DA291C",
+    link: "#DA291C",
+    primary: "#DA291C",
+    accent: "#FFD700",
     backgroundRoot: "#0D0D0D",
     backgroundDefault: "#1A1A1A",
     backgroundSecondary: "#252525",
@@ -44,7 +44,7 @@ export const Colors = {
     warning: "#FBBF24",
     error: "#DA291C",
     progressTrack: "#2A2A2A",
-    gold: accentColor,
+    gold: "#FFD700",
   },
 };
 

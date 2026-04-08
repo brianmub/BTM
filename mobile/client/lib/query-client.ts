@@ -13,11 +13,11 @@ export function getApiUrl(): string {
     const debuggerHost = Constants.expoConfig?.hostUri;
     if (debuggerHost) {
       const ip = debuggerHost.split(':')[0];
-      return `http://${ip}:5000`;
+      return `http://${ip}:5173`;
     }
     
     // Ultimate fallback for simulator/emulator
-    return "http://localhost:5000";
+    return "http://localhost:5173";
   }
 
   // Construct URL from the host properly

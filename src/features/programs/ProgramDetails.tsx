@@ -15,7 +15,6 @@ import {
 import { SessionList } from './SessionList';
 import { EnrollmentManager } from './EnrollmentManager';
 import { GroupManagement } from './GroupManagement';
-import { AssignmentManager } from './AssignmentManager';
 
 export function ProgramDetails() {
     const { programId } = useParams();
@@ -54,7 +53,6 @@ export function ProgramDetails() {
 
     const tabs = [
         { id: 'sessions', name: 'Curriculum', icon: Calendar },
-        { id: 'assignments', name: 'Assignments', icon: Info },
         { id: 'students', name: 'Participants', icon: Users },
         { id: 'groups', name: 'Cohorts', icon: Layers },
         { id: 'settings', name: 'Management', icon: Settings },
@@ -105,8 +103,7 @@ export function ProgramDetails() {
             {/* Content Area */}
             <div className="min-h-[60vh]">
                 {activeTab === 'sessions' && <SessionList embedded={true} />}
-                {activeTab === 'assignments' && <AssignmentManager programId={programId!} />}
-                {activeTab === 'students' && <EnrollmentManager programId={programId} />}
+                {activeTab === 'students' && <EnrollmentManager />}
                 {activeTab === 'groups' && <GroupManagement programId={programId!} />}
                 {activeTab === 'settings' && (
                     <GlassBox className="p-12 border-surface-border bg-surface flex flex-col items-center justify-center text-center">

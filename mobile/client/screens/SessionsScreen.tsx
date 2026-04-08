@@ -68,7 +68,7 @@ export default function SessionsScreen() {
     }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await storage.checkInToSession(user.id, session.id, session.programId);
+    await storage.checkInToSession(user.id, session.id, session.programId, user.organizationId);
     await loadData();
     
     Alert.alert(
@@ -93,7 +93,7 @@ export default function SessionsScreen() {
   };
 
   const formatTime = (isoString?: string): string => {
-    if (!isoString) return "-";
+    if (!isoString || !isoString.startsWith('20')) return "-";
     try {
       const date = new Date(isoString);
       if (isNaN(date.getTime())) return "-";

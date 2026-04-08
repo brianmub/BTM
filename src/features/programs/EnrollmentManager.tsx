@@ -408,8 +408,11 @@ function ReceivePaymentModal({ enrollment, profile, onClose, onSuccess }: { enro
                     enrollment_id: enrollment.id,
                     amount: amount,
                     payment_method: method,
-                    status: 'completed',
-                    processed_by: profile.id
+                    status: 'paid', // Use 'paid' for consistency
+                    processed_by: profile.id,
+                    receipt_number: `REC-${Date.now().toString().slice(-6)}`,
+                    confirmed_by: profile.id, // For consistency with other features
+                    confirmed_at: new Date().toISOString()
                 }])
                 .select(`*, user:users(first_name, surname), program:programs(name)`)
                 .single();

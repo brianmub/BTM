@@ -63,7 +63,6 @@ export interface Program {
     max_participants?: number;
     attendance_required_pct: number;
     features: {
-        assignments_enabled: boolean;
         certificates_enabled: boolean;
         badges_enabled: boolean;
         qr_checkin_required: boolean;

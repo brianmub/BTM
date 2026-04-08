@@ -13,6 +13,7 @@ import ProfileScreen from "@/screens/ProfileScreen";
 import { HeaderTitle } from "@/components/HeaderTitle";
 import { useTheme } from "@/hooks/useTheme";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type ParticipantTabParamList = {
   HomeTab: undefined;
@@ -27,14 +28,14 @@ const Tab = createBottomTabNavigator<ParticipantTabParamList>();
 function HomeStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
         name="Home"
         component={ParticipantHomeScreen}
         options={{
-          headerTitle: () => <HeaderTitle title="BTM" />,
+          headerTitle: () => <HeaderTitle title="BE THAT MAN" />,
         }}
       />
     </Stack.Navigator>
@@ -44,7 +45,7 @@ function HomeStack() {
 function SessionsStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
@@ -60,7 +61,7 @@ function SessionsStack() {
 function ProgramsStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
@@ -75,7 +76,7 @@ function ProgramsStack() {
 function MyCellStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
@@ -90,7 +91,7 @@ function MyCellStack() {
 function ProfileStack() {
   const screenOptions = useScreenOptions();
   const Stack = createNativeStackNavigator();
-  
+
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
@@ -101,9 +102,9 @@ function ProfileStack() {
     </Stack.Navigator>
   );
 }
-
 export default function ParticipantTabNavigator() {
   const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -119,6 +120,8 @@ export default function ParticipantTabNavigator() {
           }),
           borderTopWidth: 0,
           elevation: 0,
+          height: Platform.OS === "android" ? 64 + insets.bottom : 84,
+          paddingBottom: Platform.OS === "android" ? insets.bottom + 10 : 28,
         },
         tabBarBackground: () =>
           Platform.OS === "ios" ? (

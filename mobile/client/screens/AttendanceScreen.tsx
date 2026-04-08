@@ -215,7 +215,7 @@ export default function AttendanceScreen() {
           <ThemedText type="body" style={{ fontWeight: "500" }}>
             {item.member.fullName}
           </ThemedText>
-          {item.entryTime && (
+          {item.entryTime && item.entryTime.startsWith('20') && (
             <View style={styles.arrivalBadge}>
               <Feather name="clock" size={10} color={theme.textSecondary} />
               <ThemedText style={[styles.arrivalText, { color: theme.textSecondary }]}>
