@@ -37,7 +37,7 @@ function getAppName(): string {
 function serveMobileLandingPage(req: Request, res: Response) {
   const templatePath = path.resolve(process.cwd(), "server", "templates", "landing-page.html");
   if (!fs.existsSync(templatePath)) return res.status(404).send("Mobile landing page template not found");
-  
+
   const landingPageTemplate = fs.readFileSync(templatePath, "utf-8");
   const appName = getAppName();
 
@@ -64,12 +64,12 @@ function serveMobileLandingPage(req: Request, res: Response) {
   app.get("/manifest", (req, res) => {
     const platform = req.header("expo-platform");
     if (platform === "ios" || platform === "android") {
-        const manifestPath = path.resolve(process.cwd(), "mobile", "static-build", platform, "manifest.json");
-        if (fs.existsSync(manifestPath)) {
-            res.setHeader("expo-protocol-version", "1");
-            res.setHeader("content-type", "application/json");
-            return res.send(fs.readFileSync(manifestPath, "utf-8"));
-        }
+      const manifestPath = path.resolve(process.cwd(), "mobile", "static-build", platform, "manifest.json");
+      if (fs.existsSync(manifestPath)) {
+        res.setHeader("expo-protocol-version", "1");
+        res.setHeader("content-type", "application/json");
+        return res.send(fs.readFileSync(manifestPath, "utf-8"));
+      }
     }
     res.status(404).json({ error: "Manifest not found" });
   });
@@ -80,18 +80,18 @@ function serveMobileLandingPage(req: Request, res: Response) {
   // 4. Serve Static Files from Vite build (dist/)
   const distPath = path.resolve(process.cwd(), "dist");
   if (fs.existsSync(distPath)) {
-      log(`Serving static files from ${distPath}`);
-      app.use(express.static(distPath));
+    log(`Serving static files from ${distPath}`);
+    app.use(express.static(distPath));
 
-      // 5. Catch-all: serve index.html for React Router SPA (Web App)
-      app.get("*", (req, res, next) => {
-        if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) return next();
-        res.sendFile(path.resolve(distPath, "index.html"));
-      });
+    // 5. Catch-all: serve index.html for React Router SPA (Web App)
+    app.use((req, res, next) => {
+      if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) return next();
+      res.sendFile(path.resolve(distPath, "index.html"));
+    });
   } else {
-      log("Warning: 'dist' folder not found. Web app static files will not be served.");
-      // Fallback: serve landing page on root if web app build is missing
-      app.get("/", (req, res) => serveMobileLandingPage(req, res));
+    log("Warning: 'dist' folder not found. Web app static files will not be served.");
+    // Fallback: serve landing page on root if web app build is missing
+    app.get("/", (req, res) => serveMobileLandingPage(req, res));
   }
 
   // Error handling
