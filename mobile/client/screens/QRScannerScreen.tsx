@@ -195,71 +195,6 @@ export default function QRScannerScreen({ navigation, route }: Props) {
     setResult(null);
   };
 
-  const handleSimulateScan = async () => {
-    if (!user) return;
-    
-    setProcessing(true);
-
-    let response: { success: boolean; message: string };
-
-    try {
-      switch (mode) {
-        case "enrollment":
-          if (programId) {
-            response = await storage.enrollViaQR(user.id, programId);
-          } else {
-            response = { success: false, message: "No program specified" };
-          }
-          break;
-
-        case "checkin":
-          if (sessionId && programId && user.organizationId) {
-            await storage.checkInToSession(user.id, sessionId, programId, user.organizationId);
-            response = { success: true, message: "Simulated check-in successful! Awaiting facilitator verification." };
-          } else {
-            response = { success: false, message: "No session or organization specified" };
-          }
-          break;
-
-        case "checkout":
-          if (sessionId) {
-            if (sessionDate) {
-              const isAvailable = await storage.isCheckoutAvailable(sessionDate);
-              if (!isAvailable) {
-                response = { success: false, message: "Check-out is only available after 11:00 AM on the session date." };
-                setResult(response);
-                setProcessing(false);
-                return;
-              }
-            }
-            response = await storage.checkOutOfSession(user.id, sessionId);
-          } else {
-            response = { success: false, message: "No session specified" };
-          }
-          break;
-
-        default:
-          response = { success: false, message: "Unknown scan mode" };
-      }
-
-      if (response.success) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
-      setResult(response);
-      setScanned(true);
-    } catch (error) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setResult({
-        success: false,
-        message: "An error occurred. Please try again.",
-      });
-    }
-
-    setProcessing(false);
-  };
-
   if (!permission) {
     return (
       <ThemedView style={styles.container}>
@@ -284,20 +219,6 @@ export default function QRScannerScreen({ navigation, route }: Props) {
             </ThemedText>
             <Button onPress={requestPermission} style={styles.permissionButton}>
               Grant Permission
-            </Button>
-            
-            <View style={styles.divider}>
-              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
-              <ThemedText style={[styles.dividerText, { color: theme.textSecondary }]}>or</ThemedText>
-              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
-            </View>
-            
-            <Button
-              variant="secondary"
-              onPress={handleSimulateScan}
-              loading={processing}
-            >
-              Simulate QR Scan (Demo)
             </Button>
           </Card>
         </View>
@@ -375,14 +296,10 @@ export default function QRScannerScreen({ navigation, route }: Props) {
             <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.xl }]}>
               <Button
                 variant="secondary"
-                onPress={handleSimulateScan}
-                loading={processing}
+                onPress={() => navigation.goBack()}
               >
-                Simulate QR Scan (Demo)
+                Cancel
               </Button>
-              <Pressable onPress={() => navigation.goBack()} style={styles.cancelButton}>
-                <ThemedText style={{ color: theme.textSecondary }}>Cancel</ThemedText>
-              </Pressable>
             </View>
           </>
         )}
@@ -443,10 +360,6 @@ const styles = StyleSheet.create({
   footer: {
     gap: Spacing.md,
   },
-  cancelButton: {
-    alignItems: "center",
-    padding: Spacing.md,
-  },
   permissionCard: {
     padding: Spacing.xl,
     alignItems: "center",
@@ -464,19 +377,6 @@ const styles = StyleSheet.create({
   },
   permissionButton: {
     width: "100%",
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
-    marginVertical: Spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    marginHorizontal: Spacing.md,
   },
   resultCard: {
     padding: Spacing.xl,

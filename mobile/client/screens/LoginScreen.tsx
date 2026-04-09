@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, TextInput, KeyboardAvoidingView, Platform, ScrollView, Alert, Pressable } from "react-native";
+import { View, StyleSheet, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -10,6 +10,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { storage } from "@/lib/storage";
 import { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 
@@ -21,6 +22,7 @@ export default function LoginScreen({ navigation }: Props) {
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const { login } = useAuth();
+    const { error, success } = useToast();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -28,16 +30,17 @@ export default function LoginScreen({ navigation }: Props) {
 
     const handleLogin = async () => {
         if (!email.trim() || !password) {
-            Alert.alert("Error", "Please enter email and password");
+            error("Please enter email and password");
             return;
         }
 
         setIsLoading(true);
         try {
             const user = await storage.login({ email: email.trim(), password });
+            success("Welcome back!");
             await login(user);
-        } catch (error: any) {
-            Alert.alert("Login Failed", error.message || "Invalid credentials");
+        } catch (err: any) {
+            error(err.message || "Invalid credentials");
         } finally {
             setIsLoading(false);
         }

@@ -6,7 +6,6 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
-    Alert,
     Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,6 +18,7 @@ import { Button } from "@/components/Button";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { storage, UserRole } from "@/lib/storage";
 import { AuthStackParamList } from "@/navigation/AuthStackNavigator";
 
@@ -30,6 +30,7 @@ export default function SignupScreen({ navigation }: Props) {
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const { login } = useAuth();
+    const { error, success } = useToast();
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
@@ -42,17 +43,17 @@ export default function SignupScreen({ navigation }: Props) {
 
     const handleSignup = async () => {
         if (!fullName.trim() || !phone.trim() || !email.trim() || !password) {
-            Alert.alert("Error", "Please fill in all fields");
+            error("Please fill in all fields");
             return;
         }
 
         if (!gender || !maritalStatus || !role) {
-            Alert.alert("Error", "Please select gender, marital status, and role");
+            error("Please select gender, marital status, and role");
             return;
         }
 
         if (password.length < 6) {
-            Alert.alert("Error", "Password must be at least 6 characters");
+            error("Password must be at least 6 characters");
             return;
         }
 
@@ -68,10 +69,11 @@ export default function SignupScreen({ navigation }: Props) {
                 role,
             });
 
+            success("Account created successfully!");
             // Log in the user
             await login(user);
-        } catch (error: any) {
-            Alert.alert("Signup Failed", error.message || "Failed to create account");
+        } catch (err: any) {
+            error(err.message || "Failed to create account");
         } finally {
             setIsLoading(false);
         }

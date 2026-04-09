@@ -48,6 +48,7 @@ export interface User {
   isApproved: boolean;
   isOnboardingComplete?: boolean;
   organizationId?: string;
+  passwordHash?: string;
   createdAt: string;
 }
 
@@ -238,7 +239,7 @@ export const storage = {
   },
 
   async signup(data: any): Promise<User> {
-    const { fullName, role, ...rest } = data;
+    const { fullName, role, password, ...rest } = data;
     const nameParts = (fullName || '').trim().split(/\s+/);
     const firstName = nameParts[0] || 'User';
     const surname = nameParts.slice(1).join(' ') || '';
@@ -250,6 +251,7 @@ export const storage = {
         surname: surname,
         role,
         ...camelToSnake(rest),
+        password_hash: password, // Store as password_hash to match schema. Note: Consider hashing this on server.
         is_active: false,
         leader_status: role === 'leader' ? 'pending' : undefined
       })

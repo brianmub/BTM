@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, TextInput, Pressable, Alert, ActivityIndicator } from "react-native";
+import { View, StyleSheet, TextInput, Pressable, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
@@ -8,6 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 
+import { useToast } from "@/contexts/ToastContext";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
@@ -35,7 +36,6 @@ interface FormData {
 }
 
 function SelectButton({
-// ... existing code ...
   label,
   isSelected,
   onPress,
@@ -75,6 +75,7 @@ export default function RegistrationScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { login } = useAuth();
+  const { error, success } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState<FormData>({
     fullName: "",
@@ -99,7 +100,7 @@ export default function RegistrationScreen({ navigation, route }: Props) {
 
   const handleSubmit = async () => {
     if (!isFormValid) {
-      Alert.alert("Missing Information", "Please fill in all required fields.");
+      error("Please fill in all required fields.");
       return;
     }
 
@@ -118,6 +119,8 @@ export default function RegistrationScreen({ navigation, route }: Props) {
         organizationId: route.params.organizationId,
       });
 
+      success("Registration successful!");
+
       // Mark onboarding complete on the backend & update the user object
       const updatedUser = { ...createdUser, isOnboardingComplete: true };
       await dataStorage.updateUser(createdUser.id, { isOnboardingComplete: true });
@@ -125,9 +128,9 @@ export default function RegistrationScreen({ navigation, route }: Props) {
 
       // Log in with the already-complete user so completeOnboarding isn't needed
       await login(updatedUser);
-    } catch (error: any) {
-      console.error("Registration error:", error);
-      Alert.alert("Registration Failed", error?.message || "Failed to create your account. Please try again.");
+    } catch (err: any) {
+      console.error("Registration error:", err);
+      error(err?.message || "Failed to create your account.");
     } finally {
       setIsLoading(false);
     }
