@@ -4,7 +4,7 @@
     "slug": "btm",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/btm-app-icon.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "btm",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -12,30 +12,30 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.btm.app",
       "adaptiveIcon": {
-        "backgroundColor": "#B10F2D",
-        "foregroundImage": "./assets/images/btm-android-icon-foreground.png",
-        "backgroundImage": "./assets/images/btm-android-icon-background.png",
-        "monochromeImage": "./assets/images/btm-android-icon-monochrome.png"
+        "backgroundColor": "#0D0D0D",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.brianmub.btm"
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/btm-favicon.png"
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/btm-splash-icon.png",
+          "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#B10F2D",
+          "backgroundColor": "#0D0D0D",
           "dark": {
-            "backgroundColor": "#B10F2D"
+            "backgroundColor": "#0D0D0D"
           }
         }
       ],
@@ -46,7 +46,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "e7b6de5b-b56a-4a2c-85bd-cf1096801607"
+        "projectId": "bca81ba9-1683-4e77-b336-f95a4622bde3"
       }
     }
   }
