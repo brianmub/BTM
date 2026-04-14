@@ -75,7 +75,7 @@ export function EnrollmentManager() {
                 enrollments: (enrollData || []).filter(e => e.user_id === user.id)
             }));
 
-            // Prioritize those who ARE enrolled or have recent activity
+            // Prioritize those who ARE enrolled
             const sorted = merged.sort((a, b) => {
                 const aVal = a.enrollments.length > 0 ? 0 : 1;
                 const bVal = b.enrollments.length > 0 ? 0 : 1;
@@ -119,7 +119,7 @@ export function EnrollmentManager() {
         <div className="space-y-8 pb-20">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h2 className="text-2xl font-black text-foreground uppercase tracking-tight">Unified Participant Directory</h2>
+                    <h2 className="text-2xl font-black text-foreground uppercase tracking-tight">Participant List</h2>
                     <p className="text-slate-500 text-xs uppercase font-bold tracking-widest mt-1">Status and enrollment for all {participants.length} members</p>
                 </div>
                 <div className="flex gap-4">
@@ -129,7 +129,7 @@ export function EnrollmentManager() {
                         onClick={fetchData}
                         disabled={loading}
                     >
-                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} /> Refresh
                     </Button>
                 </div>
             </div>
@@ -140,10 +140,10 @@ export function EnrollmentManager() {
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
                         <input
                             type="text"
-                            placeholder="Find any user..."
+                            placeholder="Find a participant..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full h-14 bg-background border border-surface-border rounded-xl pl-12 pr-4 text-foreground font-bold text-sm outline-none focus:border-primary/40 transition-all shadow-inner"
+                            className="w-full h-14 bg-background border border-surface-border rounded-xl pl-12 pr-4 text-foreground font-bold text-sm outline-none focus:border-primary/40 transition-all shadow-inner font-sans"
                         />
                     </div>
                 </div>
@@ -156,9 +156,9 @@ export function EnrollmentManager() {
                             <thead>
                                 <tr className="border-b border-surface-border">
                                     <th className="text-left py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Participant</th>
-                                    <th className="text-left py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Enrollment Status</th>
+                                    <th className="text-left py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Programs</th>
                                     <th className="text-center py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Role</th>
-                                    <th className="text-right py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Controls</th>
+                                    <th className="text-right py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -214,13 +214,13 @@ export function EnrollmentManager() {
                                                             variant="ghost"
                                                             className="h-10 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-primary transition-all"
                                                             onClick={() => {
-                                                                const e = p.enrollments[0]; // Simple for now
+                                                                const e = p.enrollments[0];
                                                                 setSelectedEnrollment(e);
                                                                 fetchPaymentHistory(e.id);
                                                                 setIsHistoryOpen(true);
                                                             }}
                                                         >
-                                                            <History className="w-4 h-4 mr-2" /> Audit
+                                                            <History className="w-4 h-4 mr-2" /> History
                                                         </Button>
                                                         <div className="w-px h-6 bg-surface-border mx-1" />
                                                         <Button
@@ -228,7 +228,7 @@ export function EnrollmentManager() {
                                                             className="h-10 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 transition-all"
                                                             onClick={() => setSelectedEnrollment(p.enrollments[0])}
                                                         >
-                                                            <Banknote className="w-4 h-4 mr-2" /> Financials
+                                                            <Banknote className="w-4 h-4 mr-2" /> Payments
                                                         </Button>
                                                     </div>
                                                 ) : (
@@ -294,13 +294,13 @@ export function EnrollmentManager() {
                     >
                         <div className="flex justify-between items-center mb-8 shrink-0">
                             <div>
-                                <h3 className="text-2xl font-black text-foreground uppercase tracking-tight leading-none mb-1">Financial History</h3>
-                                <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{selectedEnrollment.user?.first_name || 'Student'} Auditing</p>
+                                <h3 className="text-2xl font-black text-foreground uppercase tracking-tight leading-none mb-1">Payment History</h3>
+                                <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{selectedEnrollment.user?.first_name || 'Participant'}</p>
                             </div>
                             <button onClick={() => setIsHistoryOpen(false)} className="text-slate-500 hover:text-foreground"><XCircle className="w-6 h-6" /></button>
                         </div>
                         <div className="flex-1 space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-                            {payments.map((p) => (
+                            {payments.length > 0 ? payments.map((p) => (
                                 <div key={p.id} className="bg-background border border-surface-border rounded-xl p-4 flex items-center justify-between group hover:border-primary/30 transition-all">
                                     <div className="space-y-1">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{new Date(p.created_at).toLocaleDateString()}</p>
@@ -310,7 +310,9 @@ export function EnrollmentManager() {
                                         <p className="text-sm font-black text-emerald-400">+${p.amount.toFixed(2)}</p>
                                     </div>
                                 </div>
-                            ))}
+                            )) : (
+                                <p className="text-center py-10 text-slate-500 text-[10px] font-black uppercase tracking-widest">No history found</p>
+                            )}
                         </div>
                         <Button variant="ghost" className="w-full mt-6 uppercase font-black" onClick={() => setIsHistoryOpen(false)}>Done</Button>
                     </motion.div>
@@ -360,27 +362,27 @@ function EnrollUserModal({ user, programs, onClose, onSuccess }: { user: Partici
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="bg-surface border border-surface-border rounded-3xl w-full max-w-md p-10 shadow-2xl">
                 <div className="mb-8">
                     <h2 className="text-2xl font-black text-foreground uppercase">{user.first_name} {user.surname}</h2>
-                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-1">Enroll in a Program</p>
+                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-1">Add to Program</p>
                 </div>
                 <form onSubmit={handleEnroll} className="space-y-6">
                     <div>
-                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-2">Target Program</label>
-                        <select value={programId} onChange={e => setProgramId(e.target.value)} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-bold">
+                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-2">Select Program</label>
+                        <select value={programId} onChange={e => setProgramId(e.target.value)} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-bold font-sans">
                             {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[10px] font-black text-slate-500 uppercase mb-2">Fee Total</label>
-                            <input type="number" value={due} onChange={e => setDue(Number(e.target.value))} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-bold" />
+                            <label className="block text-[10px] font-black text-slate-500 uppercase mb-2">Enrollment Fee ($)</label>
+                            <input type="number" value={due} onChange={e => setDue(Number(e.target.value))} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-bold font-sans" />
                         </div>
                         <div>
-                            <label className="block text-[10px] font-black text-slate-500 uppercase mb-2">Initial Paid</label>
-                            <input type="number" value={paid} onChange={e => setPaid(Number(e.target.value))} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-bold" />
+                            <label className="block text-[10px] font-black text-slate-500 uppercase mb-2">Initial Amount Paid ($)</label>
+                            <input type="number" value={paid} onChange={e => setPaid(Number(e.target.value))} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-bold font-sans" />
                         </div>
                     </div>
                     <div className="flex gap-4">
-                        <Button variant="ghost" onClick={onClose} className="flex-1 font-black">Cancel</Button>
+                        <Button variant="ghost" type="button" onClick={onClose} className="flex-1 font-black">Cancel</Button>
                         <Button type="submit" variant="united" className="flex-1 font-black h-14" disabled={loading}>{loading ? '...' : 'Confirm'}</Button>
                     </div>
                 </form>
@@ -394,12 +396,15 @@ function ReceivePaymentModal({ enrollment, profile, onClose, onSuccess }: { enro
     const { organization } = useOrganization();
     const [amount, setAmount] = useState(enrollment.amount_due - enrollment.amount_paid);
     const [method, setMethod] = useState('cash');
+    const [manualReceiptNumber, setManualReceiptNumber] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         try {
+            const receiptNo = manualReceiptNumber.trim() || `REC-${Date.now().toString().slice(-6)}`;
+            
             const { data: paymentData, error: payError } = await supabase
                 .from('payment_records')
                 .insert([{
@@ -408,13 +413,13 @@ function ReceivePaymentModal({ enrollment, profile, onClose, onSuccess }: { enro
                     enrollment_id: enrollment.id,
                     amount: amount,
                     payment_method: method,
-                    status: 'paid', // Use 'paid' for consistency
+                    status: 'paid',
                     processed_by: profile.id,
-                    receipt_number: `REC-${Date.now().toString().slice(-6)}`,
-                    confirmed_by: profile.id, // For consistency with other features
+                    receipt_number: receiptNo,
+                    confirmed_by: profile.id,
                     confirmed_at: new Date().toISOString()
                 }])
-                .select(`*, user:users(first_name, surname), program:programs(name)`)
+                .select(`*, user:users(title, first_name, surname), program:programs(name)`)
                 .single();
 
             if (payError) throw payError;
@@ -433,17 +438,240 @@ function ReceivePaymentModal({ enrollment, profile, onClose, onSuccess }: { enro
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md p-4">
             <div className="bg-surface border border-surface-border rounded-2xl w-full max-w-md p-8 shadow-2xl">
-                <h3 className="text-xl font-black mb-6 uppercase">Transact: {enrollment.program?.name}</h3>
+                <h3 className="text-xl font-black mb-6 uppercase text-foreground">Record Payment: {enrollment.program?.name}</h3>
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <input type="number" value={amount} onChange={e => setAmount(Number(e.target.value))} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-black text-lg" />
-                    <select value={method} onChange={e => setMethod(e.target.value)} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-bold">
-                        <option value="cash">Cash</option>
-                        <option value="swipe">Swipe</option>
-                    </select>
-                    <Button type="submit" variant="premium" className="w-full h-14 font-black" disabled={loading}>Confirm Payment</Button>
-                    <Button variant="ghost" onClick={onClose} className="w-full font-bold">Cancel</Button>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Amount to Pay ($)</label>
+                        <input type="number" value={amount} onChange={e => setAmount(Number(e.target.value))} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-black text-lg focus:border-primary/40 outline-none font-sans" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Receipt Number (Optional)</label>
+                        <input 
+                            type="text" 
+                            placeholder="Leave blank to auto-generate"
+                            value={manualReceiptNumber} 
+                            onChange={e => setManualReceiptNumber(e.target.value)} 
+                            className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-bold text-sm focus:border-primary/40 outline-none font-sans" 
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Payment Method</label>
+                        <select value={method} onChange={e => setMethod(e.target.value)} className="w-full h-14 bg-background border border-surface-border rounded-xl px-4 font-bold font-sans">
+                            <option value="cash">Cash</option>
+                            <option value="swipe">Swipe</option>
+                            <option value="mobile_money">Mobile Money</option>
+                        </select>
+                    </div>
+
+                    <div className="flex gap-4 pt-4">
+                        <Button variant="ghost" type="button" onClick={onClose} className="flex-1 font-bold">Cancel</Button>
+                        <Button type="submit" variant="premium" className="flex-1 h-14 font-black" disabled={loading}>Confirm</Button>
+                    </div>
                 </form>
             </div>
         </div>
     );
 }
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+  

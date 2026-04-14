@@ -40,6 +40,7 @@ export interface User {
   fullName: string;
   phone: string;
   email: string;
+  dob?: string;
   gender: Gender;
   maritalStatus: MaritalStatus;
   role: UserRole;
@@ -49,6 +50,11 @@ export interface User {
   isOnboardingComplete?: boolean;
   organizationId?: string;
   passwordHash?: string;
+  churchName?: string;
+  suburb?: string;
+  cityTown?: string;
+  province?: string;
+  country?: string;
   createdAt: string;
 }
 
@@ -187,6 +193,38 @@ function camelToSnake(obj: any): any {
   return obj;
 }
 
+function normalizeUserPayload(data: any): any {
+  const normalized = camelToSnake(data);
+
+  if (data.phone !== undefined) {
+    normalized.phone_number = data.phone;
+    delete normalized.phone;
+  }
+
+  if (data.cityTown !== undefined) {
+    normalized.city = data.cityTown;
+    delete normalized.city_town;
+  }
+
+  return normalized;
+}
+
+function mapUserRecord(record: any): User {
+  const user = snakeToCamel(record);
+  return {
+    ...user,
+    fullName:
+      user.fullName ||
+      [user.firstName, user.surname].filter(Boolean).join(" ").trim(),
+    phone: user.phone || user.phoneNumber || "",
+    cityTown: user.cityTown || user.city,
+  };
+}
+
+function mapUserRecords(records: any[] = []): User[] {
+  return records.map(mapUserRecord);
+}
+
 export const storage = {
   async initializeSampleData(): Promise<void> {
     // Satisfy screen calls, data is now handled by the backend
@@ -250,7 +288,7 @@ export const storage = {
         first_name: firstName,
         surname: surname,
         role,
-        ...camelToSnake(rest),
+        ...normalizeUserPayload(rest),
         password_hash: password, // Store as password_hash to match schema. Note: Consider hashing this on server.
         is_active: false,
         leader_status: role === 'leader' ? 'pending' : undefined
@@ -259,7 +297,7 @@ export const storage = {
       .single();
 
     if (error) throw error;
-    return snakeToCamel(user);
+    return mapUserRecord(user);
   },
 
   async login(data: { email: string; password: string }): Promise<User> {
@@ -270,11 +308,11 @@ export const storage = {
       .single();
 
     if (error || !user) throw new Error("Invalid email or password");
-    
+
     // Note: In a production serverless app, you'd use Supabase Auth's signInWithPassword
     // but here we are doing a direct check against the users table for compatibility.
     // Ideally, the password check should happen in an RPC or Supabase Auth.
-    return snakeToCamel(user);
+    return mapUserRecord(user);
   },
 
 
@@ -653,7 +691,7 @@ export const storage = {
     try {
       const { data, error } = await supabase.from('users').select('*');
       if (error) throw error;
-      return snakeToCamel(data || []);
+      return mapUserRecords(data || []);
     } catch {
       return [];
     }
@@ -665,17 +703,17 @@ export const storage = {
     const { data, error } = await supabase.from('users').insert({
       first_name: nameParts[0],
       surname: nameParts.slice(1).join(' ') || 'User',
-      ...camelToSnake(userData)
+      ...normalizeUserPayload(userData)
     }).select().single();
     if (error) throw error;
-    return snakeToCamel(data);
+    return mapUserRecord(data);
   },
 
   async updateUser(userId: string, updates: Partial<User>): Promise<User | null> {
     try {
-      const { data, error } = await supabase.from('users').update(camelToSnake(updates)).eq('id', userId).select().single();
+      const { data, error } = await supabase.from('users').update(normalizeUserPayload(updates)).eq('id', userId).select().single();
       if (error) throw error;
-      return snakeToCamel(data);
+      return mapUserRecord(data);
     } catch {
       return null;
     }
@@ -685,7 +723,7 @@ export const storage = {
     try {
       const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
       if (error) throw error;
-      return snakeToCamel(data);
+      return mapUserRecord(data);
     } catch {
       return null;
     }
@@ -695,7 +733,7 @@ export const storage = {
     try {
       const { data, error } = await supabase.from('users').select('*').eq('role', 'leader').eq('leader_status', 'pending');
       if (error) throw error;
-      return snakeToCamel(data || []);
+      return mapUserRecords(data || []);
     } catch {
       return [];
     }
@@ -705,7 +743,7 @@ export const storage = {
     try {
       const { data, error } = await supabase.from('users').select('*').eq('role', 'leader').eq('leader_status', 'approved');
       if (error) throw error;
-      return snakeToCamel(data || []);
+      return mapUserRecords(data || []);
     } catch {
       return [];
     }

@@ -27,11 +27,16 @@ export default function AccountSettingsScreen() {
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [churchName, setChurchName] = useState(user?.churchName || '');
+  const [suburb, setSuburb] = useState(user?.suburb || '');
+  const [cityTown, setCityTown] = useState(user?.cityTown || '');
+  const [province, setProvince] = useState(user?.province || '');
+  const [country, setCountry] = useState(user?.country || 'Zimbabwe');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
     if (!fullName.trim() || !phone.trim() || !email.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('Error', 'Please fill in all basic fields');
       return;
     }
 
@@ -44,6 +49,11 @@ export default function AccountSettingsScreen() {
           fullName: fullName.trim(),
           phone: phone.trim(),
           email: email.trim(),
+          churchName: churchName.trim(),
+          suburb: suburb.trim(),
+          cityTown: cityTown.trim(),
+          province: province.trim(),
+          country: country.trim(),
         };
         await storage.updateUser(user.id, updates);
         await updateAuthUser(updates);
@@ -51,6 +61,7 @@ export default function AccountSettingsScreen() {
         navigation.goBack();
       }
     } catch (error) {
+      console.error('Update error:', error);
       Alert.alert('Error', 'Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
@@ -133,6 +144,93 @@ export default function AccountSettingsScreen() {
                   placeholderTextColor={theme.textSecondary}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Church / Ministry
+              </ThemedText>
+              <View style={[styles.inputContainer, { borderColor: theme.textSecondary + '40' }]}>
+                <Feather name="home" size={18} color={theme.textSecondary} />
+                <TextInput
+                  style={[styles.input, { color: theme.text }]}
+                  value={churchName}
+                  onChangeText={setChurchName}
+                  placeholder="Enter your church"
+                  placeholderTextColor={theme.textSecondary}
+                />
+              </View>
+            </View>
+          </Card>
+        </Animated.View>
+
+        <Animated.View entering={FadeInUp.delay(150).duration(400)}>
+          <ThemedText type="h4" style={styles.sectionTitle}>
+            Location
+          </ThemedText>
+          <Card elevation={1} style={styles.formCard}>
+            <View style={styles.inputGroup}>
+              <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Country
+              </ThemedText>
+              <View style={[styles.inputContainer, { borderColor: theme.textSecondary + '40' }]}>
+                <Feather name="globe" size={18} color={theme.textSecondary} />
+                <TextInput
+                  style={[styles.input, { color: theme.text }]}
+                  value={country}
+                  onChangeText={setCountry}
+                  placeholder="e.g. Zimbabwe"
+                  placeholderTextColor={theme.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Province
+              </ThemedText>
+              <View style={[styles.inputContainer, { borderColor: theme.textSecondary + '40' }]}>
+                <Feather name="map" size={18} color={theme.textSecondary} />
+                <TextInput
+                  style={[styles.input, { color: theme.text }]}
+                  value={province}
+                  onChangeText={setProvince}
+                  placeholder="e.g. Harare"
+                  placeholderTextColor={theme.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                City / Town
+              </ThemedText>
+              <View style={[styles.inputContainer, { borderColor: theme.textSecondary + '40' }]}>
+                <Feather name="map-pin" size={18} color={theme.textSecondary} />
+                <TextInput
+                  style={[styles.input, { color: theme.text }]}
+                  value={cityTown}
+                  onChangeText={setCityTown}
+                  placeholder="e.g. Chitungwiza"
+                  placeholderTextColor={theme.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Suburb
+              </ThemedText>
+              <View style={[styles.inputContainer, { borderColor: theme.textSecondary + '40' }]}>
+                <Feather name="grid" size={18} color={theme.textSecondary} />
+                <TextInput
+                  style={[styles.input, { color: theme.text }]}
+                  value={suburb}
+                  onChangeText={setSuburb}
+                  placeholder="e.g. Epworth"
+                  placeholderTextColor={theme.textSecondary}
                 />
               </View>
             </View>

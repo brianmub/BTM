@@ -33,16 +33,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     const currentProfile = tenantProfile || authProfile;
 
     const menuItems = [
-        { name: 'Overview', icon: <LayoutDashboard className="w-5 h-5" />, path: '/dashboard', roles: ['system_admin', 'program_admin', 'facilitator'] },
+        { name: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" />, path: '/dashboard', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'Programs', icon: <Calendar className="w-5 h-5" />, path: '/dashboard/programs', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'Enrollments', icon: <Users className="w-5 h-5" />, path: '/dashboard/enrollments', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'Users', icon: <Users className="w-5 h-5" />, path: '/dashboard/users', roles: ['system_admin', 'program_admin'] },
         { name: 'Payments', icon: <Banknote className="w-5 h-5" />, path: '/dashboard/payments', roles: ['system_admin', 'program_admin', 'facilitator'] },
-        { name: 'Analytics', icon: <TrendingUp className="w-5 h-5" />, path: '/dashboard/analytics', roles: ['system_admin', 'program_admin'] },
-        { name: 'Platform Command', icon: <ShieldAlert className="w-5 h-5" />, path: '/platform/admin', roles: ['platform_admin'] },
+        { name: 'Statistics', icon: <TrendingUp className="w-5 h-5" />, path: '/dashboard/analytics', roles: ['system_admin', 'program_admin'] },
+        { name: 'System Admin', icon: <ShieldAlert className="w-5 h-5" />, path: '/platform/admin', roles: ['platform_admin'] },
         { name: 'Attendance', icon: <Activity className="w-5 h-5" />, path: '/dashboard/attendance', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'Cell Groups', icon: <UsersRound className="w-5 h-5" />, path: '/dashboard/cell-groups', roles: ['system_admin', 'program_admin', 'facilitator'] },
-        { name: 'User Management', icon: <Settings className="w-5 h-5" />, path: '/dashboard/settings', roles: ['system_admin', 'program_admin'] },
+        { name: 'Settings', icon: <Settings className="w-5 h-5" />, path: '/dashboard/settings', roles: ['system_admin', 'program_admin'] },
     ];
 
     const visibleMenuItems = menuItems.filter(item =>
@@ -67,10 +67,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                             </div>
                             <div>
                                 <h2 className="text-lg font-black text-foreground tracking-tight leading-none mb-1">
-                                    {organization?.name || 'CP Pro'}
+                                    {organization?.name || 'Kingdom Connect'}
                                 </h2>
                                 <p className="text-[9px] text-indigo-400 font-black uppercase tracking-[0.2em]">
-                                    Digital Ministry
+                                    Ministry Portal
                                 </p>
                             </div>
                         </div>
@@ -117,7 +117,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                             className="w-full flex items-center space-x-4 px-5 py-4 text-[11px] font-black uppercase tracking-widest text-slate-500 hover:text-pink-400 hover:bg-pink-500/5 rounded-2xl transition-all duration-300"
                         >
                             <LogOut className="w-5 h-5" />
-                            <span>Terminate Session</span>
+                            <span>Logout</span>
                         </button>
                     </div>
                 </aside>
@@ -130,7 +130,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 w-4 h-4 group-focus-within:text-indigo-400 transition-colors" />
                             <input
                                 type="text"
-                                placeholder="Universal Search..."
+                                placeholder="Search..."
                                 className="w-full pl-14 pr-6 py-4 bg-surface border border-surface-border rounded-2xl text-xs font-bold text-foreground placeholder:text-slate-500 focus:bg-white focus:border-primary/30 focus:ring-0 transition-all outline-none"
                             />
                         </div>
@@ -144,11 +144,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                             <div className="flex items-center space-x-4 border-l pl-8 border-surface-border">
                                 <div className="text-right hidden sm:block">
                                     <p className="text-xs font-black text-foreground uppercase tracking-tight leading-none mb-1">
-                                        {currentProfile?.first_name ? `${currentProfile.first_name} ${currentProfile.surname}` : 'Admin User'}
+                                        {currentProfile?.first_name ? `${currentProfile.first_name} ${currentProfile.surname}` : 'User'}
                                     </p>
                                     <div className="flex items-center justify-end space-x-1 text-[9px] text-indigo-400 font-black uppercase tracking-widest">
                                         <Sparkles className="w-2.5 h-2.5" />
-                                        <span>{organization?.name || 'Digital Ministry'}</span>
+                                        <span>{organization?.name || 'Kingdom Connect'}</span>
                                     </div>
                                 </div>
                                 <div

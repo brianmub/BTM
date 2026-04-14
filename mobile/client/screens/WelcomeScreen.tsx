@@ -10,6 +10,8 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { OnboardingStackParamList } from "@/navigation/OnboardingStackNavigator";
 
 const { width, height } = Dimensions.get("window");
@@ -21,13 +23,15 @@ type Props = {
 export default function WelcomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { user, logout } = useAuth();
+  const { success } = useToast();
 
   const handleGetStarted = () => {
     navigation.navigate("JoinCode" as any);
   };
 
   const handleSignIn = () => {
-    // Navigate to Login (usually via navigation.getParent() or direct navigate)
+    if (user) return; // Should not happen if button is hidden
     navigation.navigate("Login" as any);
   };
 
@@ -41,20 +45,29 @@ export default function WelcomeScreen({ navigation }: Props) {
       >
         <View style={styles.textContainer}>
           <Animated.View entering={FadeInDown.delay(100).duration(800)} style={{ alignItems: 'center', marginBottom: Spacing.xl }}>
-            <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: theme.link + '20', alignItems: 'center', justifyContent: 'center' }}>
-              <Feather name="shield" size={48} color={theme.link} />
-            </View>
+
           </Animated.View>
 
           <Animated.View entering={FadeInUp.delay(200).duration(800)}>
             <ThemedText type="h1" style={styles.title}>
-              BE THAT MAN
+              {user ? `WELCOME BACK` : "BE THAT MAN"}
             </ThemedText>
           </Animated.View>
 
+          {user && (
+            <Animated.View entering={FadeInUp.delay(400).duration(800)} style={{ alignItems: 'center', marginTop: Spacing.sm }}>
+              <ThemedText type="h3" style={{ color: theme.link }}>
+                {user.fullName}
+              </ThemedText>
+              <ThemedText type="small" style={{ color: '#A0A0A0', marginTop: 4 }}>
+                {user.email}
+              </ThemedText>
+            </Animated.View>
+          )}
+
           <Animated.View entering={FadeInUp.delay(600).duration(800)}>
             <ThemedText type="body" style={styles.subtitle}>
-              Train. Lead. Transform.
+              {user ? "Let's complete your journey." : "Train. Lead. Transform."}
             </ThemedText>
           </Animated.View>
         </View>
@@ -67,13 +80,35 @@ export default function WelcomeScreen({ navigation }: Props) {
             Join
           </Button>
 
-          <View style={{ marginTop: Spacing.md, alignItems: 'center' }}>
-            <Pressable onPress={handleSignIn}>
-              <ThemedText type="body" style={{ color: '#A0A0A0', textDecorationLine: 'underline' }}>
-                Already have an account? Sign In
-              </ThemedText>
-            </Pressable>
-          </View>
+          {user ? (
+            <View style={{ marginTop: Spacing.md, alignItems: 'center' }}>
+              <Pressable 
+                onPress={async () => {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                  await logout();
+                  success("Signed out successfully");
+                }}
+                hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}
+                style={({ pressed }) => [{ paddingVertical: 10, opacity: pressed ? 0.5 : 1 }]}
+              >
+                <ThemedText type="body" style={{ color: '#A0A0A0', textDecorationLine: 'underline' }}>
+                  Sign out and use another account
+                </ThemedText>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={{ marginTop: Spacing.md, alignItems: 'center' }}>
+              <Pressable 
+                onPress={handleSignIn}
+                hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}
+                style={({ pressed }) => [{ paddingVertical: 10, opacity: pressed ? 0.5 : 1 }]}
+              >
+                <ThemedText type="body" style={{ color: '#A0A0A0', textDecorationLine: 'underline' }}>
+                  Already have an account? Sign In
+                </ThemedText>
+              </Pressable>
+            </View>
+          )}
 
           <View style={styles.featureRow}>
             <View style={styles.featureItem}>

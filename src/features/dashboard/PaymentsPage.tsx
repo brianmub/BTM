@@ -78,10 +78,10 @@ export function PaymentsPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-4xl font-black text-foreground tracking-tighter uppercase italic">
-                        Financial <span className="text-primary">Ledger</span>
+                        Payments <span className="text-primary">List</span>
                     </h1>
                     <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">
-                        Centralized Payment Processing & Audit Trail
+                        History of all money received
                     </p>
                 </div>
                 <Button
@@ -96,9 +96,9 @@ export function PaymentsPage() {
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                    { label: 'Revenue (MTD)', value: `$${stats.total.toLocaleString()}`, icon: <Banknote className="w-5 h-5 text-emerald-600" />, trend: '+12%' },
-                    { label: 'Today\'s Intake', value: `$${stats.today.toLocaleString()}`, icon: <ArrowUpRight className="w-5 h-5 text-primary" />, trend: 'Live' },
-                    { label: 'Transactions', value: stats.count, icon: <History className="w-5 h-5 text-pink-600" />, trend: 'Vetted' },
+                    { label: 'Total Received', value: `$${stats.total.toLocaleString()}`, icon: <Banknote className="w-5 h-5 text-emerald-600" />, trend: 'Overall' },
+                    { label: 'Today\'s Payments', value: `$${stats.today.toLocaleString()}`, icon: <ArrowUpRight className="w-5 h-5 text-primary" />, trend: 'Today' },
+                    { label: 'Total Payments Count', value: stats.count, icon: <History className="w-5 h-5 text-pink-600" />, trend: 'Total' },
                 ].map((stat, i) => (
                     <GlassBox key={i} className="p-6 border-surface-border bg-surface">
                         <div className="flex justify-between items-start mb-4">
@@ -121,14 +121,14 @@ export function PaymentsPage() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                     <input
                         type="text"
-                        placeholder="Search by student or receipt #..."
+                        placeholder="Search by participant name or receipt number..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-14 bg-background border border-surface-border rounded-2xl pl-12 pr-6 text-sm font-bold text-foreground outline-none focus:bg-surface focus:border-primary/30 transition-all"
+                        className="w-full h-14 bg-background border border-surface-border rounded-2xl pl-12 pr-6 text-sm font-bold text-foreground outline-none focus:bg-surface focus:border-primary/30 transition-all font-sans"
                     />
                 </div>
                 <Button variant="outline" className="h-14 px-8 border-surface-border bg-background text-slate-500 hover:text-foreground font-black uppercase tracking-widest text-[10px]">
-                    <Filter className="w-4 h-4 mr-2" /> Advanced Filters
+                    <Filter className="w-4 h-4 mr-2" /> Filters
                 </Button>
             </div>
 
@@ -138,10 +138,10 @@ export function PaymentsPage() {
                     <table className="w-full text-left text-sm text-slate-500">
                         <thead className="bg-background text-xs uppercase font-black text-foreground tracking-wider border-b border-surface-border">
                             <tr>
-                                <th className="px-8 py-5">Transaction Details</th>
-                                <th className="px-8 py-5">Student / User</th>
-                                <th className="px-8 py-5">Allocated To</th>
-                                <th className="px-8 py-5">Value</th>
+                                <th className="px-8 py-5">Receipt Info</th>
+                                <th className="px-8 py-5">Participant</th>
+                                <th className="px-8 py-5">For</th>
+                                <th className="px-8 py-5">Amount</th>
                                 <th className="px-8 py-5 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -150,7 +150,7 @@ export function PaymentsPage() {
                                 <tr>
                                     <td colSpan={5} className="px-8 py-20 text-center">
                                         <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-500" />
-                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-4">Auditing Records...</p>
+                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-4">Loading Payments...</p>
                                     </td>
                                 </tr>
                             ) : filteredPayments.map((payment) => (
@@ -159,7 +159,7 @@ export function PaymentsPage() {
                                         <div className="flex items-center gap-3">
                                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                                             <div>
-                                                <div className="text-foreground font-mono font-bold text-xs">{payment.receipt_number}</div>
+                                                <div className="text-foreground font-mono font-bold text-xs">#{payment.receipt_number}</div>
                                                 <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
                                                     {new Date(payment.created_at).toLocaleDateString()} • {payment.payment_method}
                                                 </div>
@@ -205,7 +205,7 @@ export function PaymentsPage() {
                                                 setIsReceiptModalOpen(true);
                                             }}
                                         >
-                                            <Printer className="w-3.5 h-3.5 mr-2" /> Receipt
+                                            <Printer className="w-3.5 h-3.5 mr-2" /> Print Receipt
                                         </Button>
                                     </td>
                                 </tr>
@@ -251,6 +251,12 @@ export function PaymentsPage() {
     );
 }
 
+function createSuggestedReceiptNumber(method: string) {
+    const normalizedMethod = (method || 'cash').replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 4) || 'PAY';
+    const timestamp = Date.now().toString().slice(-8);
+    return `${normalizedMethod}-${timestamp}`;
+}
+
 function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenReceipt }: { 
     organization: any, 
     profile: any, 
@@ -267,6 +273,7 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
     const [selectedSessionData, setSelectedSessionData] = useState<string>(''); // Format: programId:sessionId or programId:none
     const [amount, setAmount] = useState(10);
     const [method, setMethod] = useState('cash');
+    const [receiptNumber, setReceiptNumber] = useState('');
     const [continuousMode, setContinuousMode] = useState(true);
     const [lastPayment, setLastPayment] = useState<any>(null);
     const [showSuccess, setShowSuccess] = useState(false);
@@ -305,6 +312,15 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
         }
     }, [selectedUser]);
 
+    useEffect(() => {
+        setReceiptNumber((currentValue) => {
+            if (!currentValue || /^[A-Z0-9]+-\d{8}$/.test(currentValue)) {
+                return createSuggestedReceiptNumber(method);
+            }
+            return currentValue;
+        });
+    }, [method]);
+
     const fetchUserFinancialData = async () => {
         setLoading(true);
         try {
@@ -324,7 +340,7 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
             if (progError) throw progError;
 
             if (!allPrograms || allPrograms.length === 0) {
-                setSessions([{ label: 'No Programs Configured', key: 'none:none', disabled: true }]);
+                setSessions([{ label: 'No Programs Found', key: 'none:none', disabled: true }]);
                 return;
             }
 
@@ -374,11 +390,15 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedUser || !organization || !profile) {
-            alert('Error: Missing session context (User/Org/Profile). Please re-open the modal.');
+            alert('Error: Please re-open the window.');
             return;
         }
         if (!selectedSessionData || selectedSessionData === 'none' || selectedSessionData === 'none:none') {
             alert('Please select a program or session first.');
+            return;
+        }
+        if (!receiptNumber.trim()) {
+            alert('Please enter a receipt number.');
             return;
         }
 
@@ -411,11 +431,12 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                     organization.id,
                     amount,
                     method,
-                    profile.id
+                    profile.id,
+                    'paid',
+                    receiptNumber.trim()
                 );
-                if (!paymentRecord) throw new Error('Failed to record session payment - no record returned.');
+                if (!paymentRecord) throw new Error('Failed to record payment.');
                 
-                // recordSessionPayment doesn't return the full join often, let's fetch it specifically
                 const { data: fullRecord } = await supabase
                     .from('payment_records')
                     .select('*, user:user_id(first_name, surname, email, profile_photo_url), program:program_id(name), session:session_id(name, session_date)')
@@ -433,7 +454,7 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                         amount,
                         payment_method: method,
                         status: 'paid',
-                        receipt_number: `GEN-${Date.now().toString().slice(-6)}`,
+                        receipt_number: receiptNumber.trim(),
                         confirmed_by: profile.id,
                         confirmed_at: new Date().toISOString()
                     }])
@@ -468,10 +489,11 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
             setUserEnrollments([]);
             setSessions([]);
         } else {
-            // Keep user, but refresh their financial data to show new enrollment status
+            // Keep user, but refresh their data
             if (selectedUser) fetchUserFinancialData();
         }
         
+        setReceiptNumber(createSuggestedReceiptNumber(method));
         setShowSuccess(false);
         setLastPayment(null);
     };
@@ -486,10 +508,10 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                 <div className="flex justify-between items-center">
                     <div>
                         <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">
-                            {showSuccess ? 'Payment Recorded' : 'Payment Entry'}
+                            {showSuccess ? 'Payment Saved' : 'Enter Payment'}
                         </h3>
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
-                            {showSuccess ? 'Transaction validated & recorded' : 'Record a payment for a participant session'}
+                            {showSuccess ? 'The payment has been recorded successfully' : 'Record a payment for a participant'}
                         </p>
                     </div>
                     <button onClick={onClose} className="text-slate-500 hover:text-foreground transition-colors"><XCircle className="w-8 h-8" /></button>
@@ -507,7 +529,7 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                             </div>
                             <h4 className="text-xl font-black text-foreground uppercase tracking-tight">Payment Recorded</h4>
                             <p className="text-xs font-bold text-slate-500 mt-2">
-                                Receipt <strong>#{lastPayment?.receipt_number}</strong> has been generated for {lastPayment?.user?.first_name}.
+                                Receipt <strong>#{lastPayment?.receipt_number}</strong> has been created for {lastPayment?.user?.first_name}.
                             </p>
                         </div>
 
@@ -519,7 +541,7 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                                     if (lastPayment) onOpenReceipt(lastPayment);
                                 }}
                             >
-                                <Printer className="w-4 h-4 mr-2" /> Produce Official Receipt
+                                <Printer className="w-4 h-4 mr-2" /> Print Official Receipt
                             </Button>
                             
                             <div className="grid grid-cols-2 gap-3 mt-2">
@@ -535,7 +557,7 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                                     className="h-14 font-black uppercase tracking-widest text-[10px] bg-background border-surface-border text-slate-500 hover:text-foreground"
                                     onClick={() => handleContinue(true)}
                                 >
-                                    <User className="w-4 h-4 mr-2" /> New Student
+                                    <User className="w-4 h-4 mr-2" /> New Participant
                                 </Button>
                             </div>
                         </div>
@@ -544,12 +566,12 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* User Search */}
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Student Search</label>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Search for Participant</label>
                             {!selectedUser ? (
                                 <div className="relative">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <input
-                                        className="w-full h-14 bg-background border border-surface-border rounded-2xl pl-12 pr-6 text-sm font-bold text-foreground outline-none focus:bg-surface focus:border-primary/30"
+                                        className="w-full h-14 bg-background border border-surface-border rounded-2xl pl-12 pr-6 text-sm font-bold text-foreground outline-none focus:bg-surface focus:border-primary/30 font-sans"
                                         placeholder="Search by name or email..."
                                         value={search}
                                         onChange={e => setSearch(e.target.value)}
@@ -577,7 +599,7 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                                                 ))
                                             ) : !loading && (
                                                 <div className="p-4 text-xs font-bold text-slate-500 text-center uppercase tracking-widest italic">
-                                                    No participant found matching "{search}"
+                                                    No one found matching "{search}"
                                                 </div>
                                             )}
                                         </div>
@@ -586,7 +608,7 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                             ) : (
                                 <div className="flex justify-between items-center p-4 bg-primary/10 border border-primary/20 rounded-2xl">
                                     <span className="font-black text-primary text-sm uppercase tracking-tight">{selectedUser.first_name} {selectedUser.surname}</span>
-                                    <button type="button" onClick={() => setSelectedUser(null)} className="text-[10px] font-black uppercase text-primary underline underline-offset-4 hover:text-primary/70 transition-colors">Change Participant</button>
+                                    <button type="button" onClick={() => setSelectedUser(null)} className="text-[10px] font-black uppercase text-primary underline underline-offset-4 hover:text-primary/70 transition-colors">Change Person</button>
                                 </div>
                             )}
                         </div>
@@ -595,12 +617,12 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                     <div className="flex items-center justify-between p-4 bg-background border border-surface-border rounded-2xl">
                         <div className="flex items-center gap-3">
                             <History className="w-4 h-4 text-slate-500" />
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Continuous Entry Mode</span>
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Keep window open after saving</span>
                         </div>
                         <button 
                             type="button"
                             onClick={() => setContinuousMode(!continuousMode)}
-                            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${continuousMode ? 'bg-primary border-primary shadow-[0_0_10px_rgba(var(--primary),0.3)]' : 'bg-background border-surface-border'}`}
+                            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${continuousMode ? 'bg-primary border-primary' : 'bg-background border-surface-border'}`}
                         >
                             <div className={`w-2 h-2 rounded-full ${continuousMode ? 'bg-white' : 'bg-slate-700'}`}></div>
                         </button>
@@ -610,7 +632,7 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                         <>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2 md:col-span-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Payment Allocation (Session/Fee)</label>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">What is this payment for? (Session or Fee)</label>
                                     <select
                                         className="w-full h-14 bg-background border border-surface-border rounded-2xl px-6 text-sm font-bold text-foreground outline-none uppercase tracking-widest text-[10px] appearance-none cursor-pointer hover:bg-surface focus:border-primary/40 transition-all font-sans"
                                         value={selectedSessionData}
@@ -625,12 +647,24 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                                         ))}
                                     </select>
                                 </div>
+
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Receipt Number</label>
+                                    <input
+                                        type="text"
+                                        className="w-full h-14 bg-background border border-surface-border rounded-2xl px-6 text-sm font-bold text-foreground outline-none focus:bg-surface focus:border-primary/30 transition-all font-sans uppercase tracking-wider"
+                                        value={receiptNumber}
+                                        onChange={e => setReceiptNumber(e.target.value.toUpperCase())}
+                                        placeholder="Enter receipt number"
+                                        required
+                                    />
+                                </div>
                                 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Amount ($)</label>
                                     <input
                                         type="number"
-                                        className="w-full h-14 bg-background border border-surface-border rounded-2xl px-6 text-sm font-bold text-foreground outline-none focus:bg-surface focus:border-primary/30 transition-all"
+                                        className="w-full h-14 bg-background border border-surface-border rounded-2xl px-6 text-sm font-bold text-foreground outline-none focus:bg-surface focus:border-primary/30 transition-all font-sans"
                                         value={amount}
                                         onChange={e => setAmount(Number(e.target.value))}
                                         step="0.01"
@@ -640,16 +674,16 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Tender Method</label>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Payment Method</label>
                                     <select
-                                        className="w-full h-14 bg-background border border-surface-border rounded-2xl px-6 text-sm font-bold text-foreground outline-none font-black uppercase tracking-widest text-[10px] appearance-none cursor-pointer hover:bg-surface focus:border-primary/40 transition-all"
+                                        className="w-full h-14 bg-background border border-surface-border rounded-2xl px-6 text-sm font-bold text-foreground outline-none font-black uppercase tracking-widest text-[10px] appearance-none cursor-pointer hover:bg-surface focus:border-primary/40 transition-all font-sans"
                                         value={method}
                                         onChange={e => setMethod(e.target.value)}
                                     >
-                                        <option value="cash">💵 Hard Cash</option>
+                                        <option value="cash">💵 Cash</option>
                                         <option value="ecocash">📱 EcoCash</option>
-                                        <option value="swipe">💳 POS Swipe</option>
-                                        <option value="bank_transfer">🏛️ Bank EFT</option>
+                                        <option value="swipe">💳 Swipe / Card</option>
+                                        <option value="bank_transfer">🏛️ Bank Transfer</option>
                                     </select>
                                 </div>
                             </div>
@@ -660,7 +694,7 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                                 className="w-full h-16 font-black uppercase tracking-widest text-xs"
                                 disabled={loading}
                             >
-                                {loading ? <Loader2 className="animate-spin" /> : 'Execute Financial Entry'}
+                                {loading ? <Loader2 className="animate-spin" /> : 'Save Payment'}
                             </Button>
                         </>
                     )}

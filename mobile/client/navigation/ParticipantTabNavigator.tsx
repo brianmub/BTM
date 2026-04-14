@@ -34,9 +34,7 @@ function HomeStack() {
       <Stack.Screen
         name="Home"
         component={ParticipantHomeScreen}
-        options={{
-          headerTitle: () => <HeaderTitle title="BE THAT MAN" />,
-        }}
+
       />
     </Stack.Navigator>
   );

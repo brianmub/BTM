@@ -14,7 +14,7 @@ interface ReceiptModalProps {
         amount: number;
         payment_method: string;
         created_at: string;
-        user: { first_name: string, surname: string };
+        user: { title?: string, first_name: string, surname: string };
         program?: { name: string };
     };
     organization: any;
@@ -135,7 +135,7 @@ export function ReceiptModal({ isOpen, onClose, payment, organization }: Receipt
                             <div className="grid grid-cols-2 gap-4 py-1 border-t border-slate-50">
                                 <div className="space-y-0.5">
                                     <div className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Payer</div>
-                                    <div className="text-[10px] font-black truncate">{payment.user.first_name} {payment.user.surname}</div>
+                                    <div className="text-[10px] font-black truncate">{payment.user.title ? `${payment.user.title} ` : ''}{payment.user.first_name} {payment.user.surname}</div>
                                 </div>
                                 <div className="space-y-0.5 text-right">
                                     <div className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Date</div>

@@ -117,8 +117,7 @@ export function ParticipantProgramView() {
         }
     };
 
-    // ── TEST CHECK-IN: direct Supabase upsert for testing (bypasses QR scanner) ──
-    const handleTestCheckIn = async (session: any) => {
+    const handleCheckIn = async (session: any) => {
         if (!currentProfile || !program) return;
         try {
             setCheckingInId(session.id);
@@ -143,7 +142,6 @@ export function ParticipantProgramView() {
         }
     };
 
-    // ── VIEW REGISTER: fetch all check-ins for a session ──
     const openRegister = async (sessionId: string) => {
         setRegisterSessionId(sessionId);
         setRegisterLoading(true);
@@ -197,14 +195,14 @@ export function ParticipantProgramView() {
     const progressPct = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
 
     const tabs: { id: Tab; label: string; icon: any; locked?: boolean }[] = [
-        { id: 'overview', label: 'Overview', icon: Info },
+        { id: 'overview', label: 'Details', icon: Info },
         { id: 'sessions', label: 'Sessions', icon: Calendar, locked: !enrollment },
     ];
 
     return (
         <div className="pb-28">
             {/* ── HERO ── */}
-            <div className="relative h-52 overflow-hidden bg-foreground">
+            <div className="relative h-52 overflow-hidden bg-foreground font-sans">
                 {program.image_url ? (
                     <img src={program.image_url} alt={program.name} className="absolute inset-0 w-full h-full object-cover opacity-40" />
                 ) : (
@@ -212,7 +210,6 @@ export function ParticipantProgramView() {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-foreground via-foreground/50 to-transparent" />
 
-                {/* Back */}
                 <button
                     onClick={() => navigate(`/portal/${orgSlug}/dashboard`)}
                     className="absolute top-5 left-5 z-10 flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-sm rounded-xl px-3 py-2 text-white transition-all"
@@ -221,7 +218,6 @@ export function ParticipantProgramView() {
                     <span className="text-[10px] font-black uppercase tracking-widest">Back</span>
                 </button>
 
-                {/* Enrolled badge */}
                 {enrollment && (
                     <div className="absolute top-5 right-5 z-10 bg-emerald-500/20 border border-emerald-500/40 backdrop-blur-sm rounded-xl px-3 py-2">
                         <span className="flex items-center gap-1.5 text-[10px] font-black text-emerald-400 uppercase tracking-widest">
@@ -230,16 +226,14 @@ export function ParticipantProgramView() {
                     </div>
                 )}
 
-                {/* Title */}
                 <div className="absolute bottom-0 left-0 right-0 p-5 z-10">
                     <p className="text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-1">
-                        {program.category || 'Training Program'}
+                        {program.category || 'Program'}
                     </p>
                     <h1 className="text-2xl font-black text-white uppercase tracking-tighter leading-none">{program.name}</h1>
                 </div>
             </div>
 
-            {/* ── JOIN BUTTON ── */}
             {!enrollment && (
                 <div className="px-5 py-4 bg-foreground border-b border-white/10">
                     <Button
@@ -249,18 +243,17 @@ export function ParticipantProgramView() {
                         disabled={enrolling}
                     >
                         {enrolling ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Sparkles className="w-5 h-5 mr-2" />}
-                        Join the Program
+                        Join Now
                     </Button>
                 </div>
             )}
 
-            {/* ── PROGRESS BAR (enrolled only) ── */}
             {enrollment && totalSessions > 0 && (
-                <div className="px-5 py-4 bg-surface border-b border-surface-border">
+                <div className="px-5 py-4 bg-surface border-b border-surface-border font-sans">
                     <div className="flex justify-between items-center mb-2">
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Your Progress</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Attendance Progress</span>
                         <span className="text-[9px] font-black text-primary uppercase tracking-widest">
-                            {completedSessions}/{totalSessions} Sessions
+                            {completedSessions}/{totalSessions} Attended
                         </span>
                     </div>
                     <div className="h-2 bg-background rounded-full overflow-hidden border border-surface-border">
@@ -271,10 +264,19 @@ export function ParticipantProgramView() {
                             className="h-full bg-primary rounded-full"
                         />
                     </div>
+                    {completedSessions < 5 && (
+                        <p className="text-[8px] font-black text-amber-500 uppercase tracking-widest mt-2">
+                            {5 - completedSessions} more sessions needed to be eligible for graduation
+                        </p>
+                    )}
+                    {completedSessions >= 5 && (
+                        <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest mt-2 flex items-center gap-1">
+                            <Award className="w-3 h-3" /> Eligible for Graduation
+                        </p>
+                    )}
                 </div>
             )}
 
-            {/* ── TABS ── */}
             <div className="px-5 pt-4">
                 <div className="flex gap-1 p-1 bg-surface border border-surface-border rounded-2xl shadow-lg">
                     {tabs.map(tab => {
@@ -300,28 +302,24 @@ export function ParticipantProgramView() {
                 </div>
             </div>
 
-            {/* ── TAB CONTENT ── */}
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 font-sans">
 
-                {/* OVERVIEW TAB */}
                 {activeTab === 'overview' && (
                     <motion.div
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="space-y-4"
                     >
-                        {/* About */}
                         <GlassBox className="p-5 border-surface-border bg-surface shadow-xl space-y-4">
                             <div className="flex items-center gap-2 pb-3 border-b border-surface-border">
                                 <BookOpen className="w-4 h-4 text-primary" />
                                 <h3 className="text-xs font-black text-foreground uppercase tracking-widest">About This Program</h3>
                             </div>
                             <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                                {program.description || 'No description provided for this program.'}
+                                {program.description || 'No description provided.'}
                             </p>
                         </GlassBox>
 
-                        {/* Key Details Grid */}
                         <div className="grid grid-cols-2 gap-3">
                             <GlassBox className="p-4 border-surface-border bg-surface shadow-lg space-y-2">
                                 <div className="flex items-center gap-2 text-primary">
@@ -366,28 +364,26 @@ export function ParticipantProgramView() {
                             </GlassBox>
                         </div>
 
-                        {/* Requirements */}
                         <GlassBox className="p-5 border-surface-border bg-surface shadow-xl space-y-4">
                             <div className="flex items-center gap-2 pb-3 border-b border-surface-border">
                                 <Award className="w-4 h-4 text-amber-500" />
-                                <h3 className="text-xs font-black text-foreground uppercase tracking-widest">Completion Requirements</h3>
+                                <h3 className="text-xs font-black text-foreground uppercase tracking-widest">Graduation Requirements</h3>
                             </div>
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Attendance Required</span>
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Attendance Needed</span>
                                     <span className="text-[10px] font-black text-foreground bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg">
-                                        {program.attendance_required_pct ?? 80}%
+                                        5 Sessions
                                     </span>
                                 </div>
                             </div>
                         </GlassBox>
 
-                        {/* CTA if not enrolled */}
                         {!enrollment && (
                             <GlassBox className="p-6 bg-primary/5 border-primary/20 shadow-lg border-dashed space-y-4">
-                                <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Join to Access Sessions</h4>
+                                <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Join to access sessions</h4>
                                 <p className="text-sm text-foreground font-medium">
-                                    Enroll to unlock detailed curriculum sessions and track your progress.
+                                    Enroll to see the full schedule and track your attendance.
                                 </p>
                                 <Button variant="premium" className="w-full h-12 font-black uppercase tracking-widest text-xs" onClick={handleEnroll} disabled={enrolling}>
                                     {enrolling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
@@ -398,7 +394,6 @@ export function ParticipantProgramView() {
                     </motion.div>
                 )}
 
-                {/* SESSIONS TAB */}
                 {activeTab === 'sessions' && (
                     <motion.div
                         initial={{ opacity: 0, y: 8 }}
@@ -406,10 +401,10 @@ export function ParticipantProgramView() {
                         className="space-y-4"
                     >
                         {sessions.length === 0 ? (
-                            <div className="text-center py-16 bg-surface rounded-3xl border border-dashed border-surface-border">
+                            <div className="text-center py-16 bg-surface rounded-3xl border border-dashed border-surface-border font-sans">
                                 <Calendar className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-                                <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">No sessions scheduled yet</p>
-                                <p className="text-slate-400 text-[10px] mt-2">Check back soon for upcoming sessions.</p>
+                                <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">No sessions yet</p>
+                                <p className="text-slate-400 text-[10px] mt-2">Check back soon for the program schedule.</p>
                             </div>
                         ) : (
                             sessions.map((session, i) => {
@@ -428,7 +423,6 @@ export function ParticipantProgramView() {
                                     >
                                         <GlassBox className={`overflow-hidden border-surface-border bg-surface shadow-xl transition-all ${isPresent ? 'border-l-4 border-l-emerald-500' : isLate ? 'border-l-4 border-l-amber-500' : ''}`}>
                                             <div className="flex">
-                                                {/* Date column */}
                                                 <div className={`flex-shrink-0 w-20 flex flex-col items-center justify-center py-5 border-r border-surface-border ${isPast ? 'bg-background' : 'bg-primary/5'}`}>
                                                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">
                                                         {sessionDate.toLocaleDateString('en-US', { month: 'short' })}
@@ -441,13 +435,11 @@ export function ParticipantProgramView() {
                                                     </p>
                                                 </div>
 
-                                                {/* Detail column */}
-                                                <div className="flex-1 p-4 space-y-2">
+                                                <div className="flex-1 p-4 space-y-2 min-w-0">
                                                     <div className="flex items-start justify-between gap-2">
-                                                        <h4 className="text-sm font-black text-foreground uppercase tracking-tight leading-tight flex-1">
+                                                        <h4 className="text-sm font-black text-foreground uppercase tracking-tight leading-tight flex-1 truncate">
                                                             {session.name}
                                                         </h4>
-                                                        {/* Attendance badge */}
                                                         {att ? (
                                                             <span className={`flex-shrink-0 flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border ${isPresent
                                                                 ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
@@ -474,10 +466,10 @@ export function ParticipantProgramView() {
                                                     <div className="flex items-center gap-3 text-[10px] text-slate-500 font-bold">
                                                         <span className="flex items-center gap-1">
                                                             <Clock className="w-3 h-3 text-primary" />
-                                                            {session.start_time?.slice(0, 5)} – {session.end_time?.slice(0, 5)}
+                                                            {session.start_time?.slice(0, 5)}
                                                         </span>
                                                         {session.location && (
-                                                            <span className="flex items-center gap-1">
+                                                            <span className="flex items-center gap-1 truncate">
                                                                 <MapPin className="w-3 h-3 text-pink-500" />
                                                                 {session.location}
                                                             </span>
@@ -488,48 +480,36 @@ export function ParticipantProgramView() {
                                                         <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-2">{session.description}</p>
                                                     )}
 
-                                                    {/* ── Action row (session payment gated) ── */}
                                                     {enrollment && (() => {
                                                         const sessEnroll = sessionEnrollMap[session.id];
                                                         const sessionPaid = sessEnroll?.payment_status === 'paid';
 
                                                         return (
-                                                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-border flex-wrap">
-
-                                                                {/* Already checked in */}
+                                                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-border flex-wrap font-sans">
                                                                 {att ? (
                                                                     <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest">
                                                                         <CheckCircle className="w-3 h-3" /> Checked In
-                                                                        {att.checked_in_at && att.checked_in_at.startsWith('20') && (
-                                                                            <span className="font-bold text-slate-400 ml-1">
-                                                                                · {new Date(att.checked_in_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                                            </span>
-                                                                        )}
                                                                     </span>
                                                                 ) : sessionPaid ? (
-                                                                    /* Session paid — enable check-in */
                                                                     <>
-                                                                        {/* QR Check-In (real flow) */}
                                                                         <button
                                                                             onClick={() => navigate(`/portal/${orgSlug}/dashboard/qr`)}
                                                                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all"
                                                                         >
-                                                                            <QrCode className="w-3 h-3" /> Check In via QR
+                                                                            <QrCode className="w-3 h-3" /> Mark Attendance
                                                                         </button>
-                                                                        {/* Direct test check-in */}
                                                                         <button
-                                                                            onClick={() => handleTestCheckIn(session)}
+                                                                            onClick={() => handleCheckIn(session)}
                                                                             disabled={checkingInId === session.id}
                                                                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface border border-primary/30 text-primary text-[9px] font-black uppercase tracking-widest hover:bg-primary/5 active:scale-95 transition-all disabled:opacity-50"
                                                                         >
                                                                             {checkingInId === session.id
                                                                                 ? <Loader2 className="w-3 h-3 animate-spin" />
                                                                                 : <UserCheck className="w-3 h-3" />}
-                                                                            [TEST]
+                                                                            I'm Here
                                                                         </button>
                                                                     </>
                                                                 ) : (
-                                                                    /* Session not yet paid — visible but disabled */
                                                                     <button
                                                                         disabled
                                                                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface border border-surface-border text-slate-400 text-[9px] font-black uppercase tracking-widest cursor-not-allowed opacity-60"
@@ -540,12 +520,11 @@ export function ParticipantProgramView() {
                                                                     </button>
                                                                 )}
 
-                                                                {/* View Register — always visible */}
                                                                 <button
                                                                     onClick={() => openRegister(session.id)}
                                                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface border border-surface-border text-slate-500 text-[9px] font-black uppercase tracking-widest hover:border-primary/30 hover:text-primary transition-all"
                                                                 >
-                                                                    <ClipboardList className="w-3 h-3" /> View Register
+                                                                    <ClipboardList className="w-3 h-3" /> Who's Here
                                                                 </button>
                                                             </div>
                                                         );
@@ -562,39 +541,35 @@ export function ParticipantProgramView() {
 
             </div>
 
-            {/* Celebration */}
             <CelebrationModal
                 isOpen={showCelebration}
                 onClose={() => setShowCelebration(false)}
-                title="Welcome Aboard!"
+                title="Welcome!"
                 subtitle={`You've successfully joined ${program.name}`}
                 points={100}
                 badge="Enrolled"
             />
 
-            {/* ── REGISTER SLIDE-UP MODAL ── */}
             {registerSessionId && (
                 <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => setRegisterSessionId(null)}>
                     <div
-                        className="w-full max-w-lg bg-background rounded-t-3xl border border-surface-border shadow-2xl max-h-[80vh] flex flex-col"
+                        className="w-full max-w-lg bg-background rounded-t-3xl border border-surface-border shadow-2xl max-h-[80vh] flex flex-col font-sans"
                         onClick={e => e.stopPropagation()}
                     >
-                        {/* Handle */}
                         <div className="flex justify-center pt-3 pb-1">
                             <div className="w-10 h-1 bg-surface-border rounded-full" />
                         </div>
 
-                        {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
                             <div className="flex items-center gap-2">
                                 <ClipboardList className="w-4 h-4 text-primary" />
                                 <span className="text-xs font-black text-foreground uppercase tracking-widest">
-                                    Attendance Register
+                                    Attendance List
                                 </span>
                             </div>
                             <div className="flex items-center gap-3">
                                 <span className="text-[9px] font-black text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg uppercase tracking-widest">
-                                    {registerData.length} checked in
+                                    {registerData.length} people here
                                 </span>
                                 <button onClick={() => setRegisterSessionId(null)} className="text-slate-400 hover:text-foreground transition-colors">
                                     <X className="w-5 h-5" />
@@ -602,8 +577,7 @@ export function ParticipantProgramView() {
                             </div>
                         </div>
 
-                        {/* List */}
-                        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
+                        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2 font-sans">
                             {registerLoading ? (
                                 <div className="flex justify-center py-10">
                                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -611,17 +585,16 @@ export function ParticipantProgramView() {
                             ) : registerData.length === 0 ? (
                                 <div className="text-center py-12">
                                     <Users className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-                                    <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">No check-ins yet</p>
-                                    <p className="text-slate-400 text-[10px] mt-1">Be the first to check in!</p>
+                                    <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">No one checked in yet</p>
+                                    <p className="text-slate-400 text-[10px] mt-1">Be the first to mark your attendance!</p>
                                 </div>
                             ) : (
-                                registerData.map((rec: any, i: number) => {
+                                registerData.map((rec: any) => {
                                     const name = rec.user?.first_name
                                         ? `${rec.user.first_name} ${rec.user.surname ?? ''}`.trim()
                                         : 'Participant';
                                     return (
                                         <div key={rec.id} className="flex items-center gap-3 p-3 bg-surface border border-surface-border rounded-2xl">
-                                            {/* Avatar */}
                                             <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
                                                 {rec.user?.profile_photo_url
                                                     ? <img src={rec.user.profile_photo_url} alt="" className="w-full h-full object-cover" />
@@ -649,10 +622,9 @@ export function ParticipantProgramView() {
                             )}
                         </div>
 
-                        {/* Footer */}
-                        <div className="px-6 py-4 border-t border-surface-border">
+                        <div className="px-6 py-4 border-t border-surface-border font-sans">
                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest text-center">
-                                Attendance data updates in real time
+                                Attendance updates in real time
                             </p>
                         </div>
                     </div>
@@ -661,3 +633,175 @@ export function ParticipantProgramView() {
         </div>
     );
 }
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+  
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+走
+  

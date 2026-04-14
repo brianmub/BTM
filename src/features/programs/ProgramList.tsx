@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { programService } from '@/services/programService';
 import { useOrganization } from '@/hooks/useOrganization';
 import { Program } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
 
 export function ProgramList() {
     const navigate = useNavigate();
@@ -14,6 +15,8 @@ export function ProgramList() {
     const [programs, setPrograms] = useState<Program[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { profile } = useAuth();
+    const canEdit = ['platform_admin', 'system_admin', 'program_admin'].includes(profile?.role || '');
 
     useEffect(() => {
         if (orgLoading) return;
@@ -56,9 +59,11 @@ export function ProgramList() {
                     <h1 className="text-4xl font-black text-foreground tracking-tight uppercase">Ministry Programs</h1>
                     <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-1">Curated educational paths for spiritual growth</p>
                 </div>
-                <Button variant="premium" className="h-14 px-8 font-black uppercase tracking-widest text-xs" onClick={() => navigate('/dashboard/programs/new')}>
-                    <Plus className="w-4 h-4 mr-3" /> Create New Program
-                </Button>
+                {canEdit && (
+                    <Button variant="premium" className="h-14 px-8 font-black uppercase tracking-widest text-xs" onClick={() => navigate('/dashboard/programs/new')}>
+                        <Plus className="w-4 h-4 mr-3" /> Create New Program
+                    </Button>
+                )}
             </div>
 
             {/* Filters & Search */}
@@ -188,15 +193,19 @@ export function ProgramList() {
                 {programs.length === 0 && !loading && (
                     <motion.div
                         whileHover={{ scale: 1.02 }}
-                        className="h-[520px] rounded-3xl border-2 border-dashed border-surface-border flex flex-col items-center justify-center p-10 cursor-pointer hover:border-primary/30 hover:bg-surface transition-all text-center group"
-                        onClick={() => navigate('/dashboard/programs/new')}
+                        className={`h-[520px] rounded-3xl border-2 border-dashed border-surface-border flex flex-col items-center justify-center p-10 text-center group ${canEdit ? 'cursor-pointer hover:border-primary/30 hover:bg-surface' : ''}`}
+                        onClick={() => canEdit && navigate('/dashboard/programs/new')}
                     >
-                        <div className="w-20 h-20 bg-background rounded-3xl flex items-center justify-center mb-8 border border-surface-border group-hover:scale-110 group-hover:bg-primary/10 group-hover:border-primary/30 transition-all">
-                            <Plus className="w-10 h-10 text-slate-500 group-hover:text-primary" />
+                        <div className={`w-20 h-20 bg-background rounded-3xl flex items-center justify-center mb-8 border border-surface-border transition-all ${canEdit ? 'group-hover:scale-110 group-hover:bg-primary/10 group-hover:border-primary/30' : ''}`}>
+                            <Plus className={`w-10 h-10 text-slate-500 ${canEdit ? 'group-hover:text-primary' : ''}`} />
                         </div>
-                        <h3 className="text-xl font-black text-slate-500 uppercase tracking-tight group-hover:text-foreground transition-colors">Assemble Program</h3>
+                        <h3 className={`text-xl font-black text-slate-500 uppercase tracking-tight transition-colors ${canEdit ? 'group-hover:text-foreground' : ''}`}>
+                            {canEdit ? 'Assemble Program' : 'No Programs Found'}
+                        </h3>
                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-4 max-w-[200px] leading-relaxed">
-                            No programs found. Design a new curriculum structure for your ministry participants.
+                            {canEdit 
+                                ? 'No programs found. Design a new curriculum structure for your ministry participants.' 
+                                : 'No programs are currently available for management.'}
                         </p>
                     </motion.div>
                 )}

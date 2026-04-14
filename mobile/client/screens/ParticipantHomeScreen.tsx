@@ -397,7 +397,14 @@ export default function ParticipantHomeScreen() {
         </Animated.View>
       ) : (
         <Animated.View entering={FadeInUp.delay(150).duration(500)}>
-          <Card elevation={1} style={styles.programCard}>
+          <Card 
+            elevation={1} 
+            style={styles.programCard}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              navigation.navigate("ProgramsTab");
+            }}
+          >
             <View style={styles.emptyProgramState}>
               <Feather name="book" size={32} color={theme.textSecondary} />
               <ThemedText type="body" style={{ color: theme.textSecondary, marginTop: Spacing.sm, textAlign: "center" }}>
@@ -447,6 +454,60 @@ export default function ParticipantHomeScreen() {
               Attend {Math.max(0, totalSessions - attendedCount)} more session{totalSessions - attendedCount !== 1 ? "s" : ""} to be eligible
             </ThemedText>
           )}
+        </Card>
+      </Animated.View>
+
+      <Animated.View entering={FadeInUp.delay(250).duration(500)}>
+        <Card elevation={1} style={styles.gamificationCard}>
+          <View style={styles.gamificationHeader}>
+            <View style={[styles.gamificationIconContainer, { backgroundColor: "#F59E0B20" }]}>
+              <Feather name="star" size={20} color="#F59E0B" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <ThemedText type="h4">My Achievements</ThemedText>
+              <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                {attendedCount * 50 + (activeAttendance ? 10 : 0)} Total XP earned
+              </ThemedText>
+            </View>
+          </View>
+          
+          <View style={styles.badgesContainer}>
+            <View style={[styles.badgeItem, attendedCount > 0 ? styles.badgeActive : styles.badgeInactive]}>
+              <View style={[styles.badgeIcon, { backgroundColor: attendedCount > 0 ? "#F59E0B20" : theme.border }]}>
+                <Feather name="award" size={24} color={attendedCount > 0 ? "#F59E0B" : theme.textSecondary} />
+              </View>
+              <ThemedText type="small" style={{ fontSize: 10, marginTop: 6, textAlign: 'center', color: attendedCount > 0 ? theme.textStyle : theme.textSecondary, fontWeight: attendedCount > 0 ? "700" : "500" }}>
+                Beginner
+              </ThemedText>
+            </View>
+            
+            <View style={[styles.badgeItem, attendedCount >= 3 ? styles.badgeActive : styles.badgeInactive]}>
+              <View style={[styles.badgeIcon, { backgroundColor: attendedCount >= 3 ? "#3B82F620" : theme.border }]}>
+                <Feather name="zap" size={24} color={attendedCount >= 3 ? "#3B82F6" : theme.textSecondary} />
+              </View>
+              <ThemedText type="small" style={{ fontSize: 10, marginTop: 6, textAlign: 'center', color: attendedCount >= 3 ? theme.textStyle : theme.textSecondary, fontWeight: attendedCount >= 3 ? "700" : "500" }}>
+                3-Streak
+              </ThemedText>
+            </View>
+            
+            <View style={[styles.badgeItem, attendedCount >= 5 ? styles.badgeActive : styles.badgeInactive]}>
+              <View style={[styles.badgeIcon, { backgroundColor: attendedCount >= 5 ? "#8B5CF620" : theme.border }]}>
+                <Feather name="book-open" size={24} color={attendedCount >= 5 ? "#8B5CF6" : theme.textSecondary} />
+              </View>
+              <ThemedText type="small" style={{ fontSize: 10, marginTop: 6, textAlign: 'center', color: attendedCount >= 5 ? theme.textStyle : theme.textSecondary, fontWeight: attendedCount >= 5 ? "700" : "500" }}>
+                Scholar
+              </ThemedText>
+            </View>
+            
+            <View style={[styles.badgeItem, graduationProgress >= 1 && totalSessions > 0 ? styles.badgeActive : styles.badgeInactive]}>
+              <View style={[styles.badgeIcon, { backgroundColor: graduationProgress >= 1 && totalSessions > 0 ? theme.success + "20" : theme.border }]}>
+                <Feather name="check-circle" size={24} color={graduationProgress >= 1 && totalSessions > 0 ? theme.success : theme.textSecondary} />
+              </View>
+              <ThemedText type="small" style={{ fontSize: 10, marginTop: 6, textAlign: 'center', color: graduationProgress >= 1 && totalSessions > 0 ? theme.textStyle : theme.textSecondary, fontWeight: graduationProgress >= 1 && totalSessions > 0 ? "700" : "500" }}>
+                Graduate
+              </ThemedText>
+            </View>
+          </View>
         </Card>
       </Animated.View>
 
@@ -774,5 +835,44 @@ const styles = StyleSheet.create({
   },
   verifiedBadge: {
     height: 44,
+  },
+  gamificationCard: {
+    marginBottom: Spacing["2xl"],
+  },
+  gamificationHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.lg,
+  },
+  gamificationIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.md,
+  },
+  badgesContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingTop: Spacing.sm,
+  },
+  badgeItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  badgeIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeActive: {
+    opacity: 1,
+  },
+  badgeInactive: {
+    opacity: 0.5,
   },
 });

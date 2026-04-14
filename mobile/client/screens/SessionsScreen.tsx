@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, StyleSheet, FlatList, Pressable, RefreshControl, Alert } from "react-native";
+import { View, StyleSheet, FlatList, Pressable, RefreshControl, Alert, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -202,10 +202,10 @@ export default function SessionsScreen() {
             }}
           >
             <View style={styles.sessionHeader}>
-              <View style={[styles.sessionNumber, { backgroundColor: theme.link }]}>
-                <ThemedText type="h4" style={{ color: "#FFFFFF" }}>
-                  {session.sessionNumber}
-                </ThemedText>
+              <View style={[styles.sessionNumber, { backgroundColor: "#B10F2D" }]}>
+                <Text style={{ color: "#FFFFFF", fontWeight: "900", fontSize: 18, textAlign: 'center' }}>
+                  {String(session.sessionNumber || (index + 1))}
+                </Text>
               </View>
               <View style={styles.sessionInfo}>
                 <ThemedText type="h4">{session.title}</ThemedText>

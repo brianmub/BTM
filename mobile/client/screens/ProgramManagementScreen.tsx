@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { View, StyleSheet, FlatList, RefreshControl, Alert, Modal, Pressable, TextInput, ScrollView } from "react-native";
+import { View, StyleSheet, FlatList, RefreshControl, Alert, Modal, Pressable, TextInput, ScrollView, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useFocusEffect } from "@react-navigation/native";
@@ -22,16 +22,16 @@ export default function ProgramManagementScreen() {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [showProgramModal, setShowProgramModal] = useState(false);
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
-  
+
   const [enrollmentStartStr, setEnrollmentStartStr] = useState("");
   const [enrollmentEndStr, setEnrollmentEndStr] = useState("");
   const [programStartStr, setProgramStartStr] = useState("");
-  
+
   const [newSessionTitle, setNewSessionTitle] = useState("");
   const [newSessionDateStr, setNewSessionDateStr] = useState("");
   const [newSessionOverview, setNewSessionOverview] = useState("");
@@ -84,12 +84,12 @@ export default function ProgramManagementScreen() {
 
   const handleSaveProgram = async () => {
     if (!editingProgram) return;
-    
+
     if (!isValidDateFormat(enrollmentStartStr) || !isValidDateFormat(enrollmentEndStr) || !isValidDateFormat(programStartStr)) {
       Alert.alert("Invalid Date", "Please enter dates in YYYY-MM-DD format (e.g., 2026-03-15)");
       return;
     }
-    
+
     setSaving(true);
     try {
       await storage.updateProgram(editingProgram.id, {
@@ -123,17 +123,17 @@ export default function ProgramManagementScreen() {
 
   const handleSaveSession = async () => {
     if (!selectedProgramId || !newSessionTitle.trim()) return;
-    
+
     if (!isValidDateFormat(newSessionDateStr)) {
       Alert.alert("Invalid Date", "Please enter a date in YYYY-MM-DD format (e.g., 2026-03-15)");
       return;
     }
-    
+
     setSaving(true);
     try {
       const programSessions = sessions.filter(s => s.programId === selectedProgramId);
       const nextNumber = programSessions.length + 1;
-      
+
       await storage.createSession({
         programId: selectedProgramId,
         sessionNumber: nextNumber,
@@ -225,12 +225,19 @@ export default function ProgramManagementScreen() {
                 </View>
               </Pressable>
             </View>
-            {programSessions.slice(0, 3).map(session => (
+            {programSessions.slice(0, 3).map((session, idx) => (
               <View key={session.id} style={[styles.sessionRow, { backgroundColor: theme.backgroundSecondary }]}>
-                <View style={[styles.sessionNumber, { backgroundColor: theme.link + "20" }]}>
-                  <ThemedText type="small" style={{ color: theme.link, fontWeight: "600" }}>
-                    {session.sessionNumber}
-                  </ThemedText>
+                <View style={[styles.sessionNumber, { backgroundColor: "#B10F2D", zIndex: 10 }]}>
+                  <Text 
+                    style={{ 
+                      color: "#FFFFFF", 
+                      fontSize: 18, 
+                      fontWeight: "900",
+                      textAlign: "center"
+                    }}
+                  >
+                    {String(session.sessionNumber || (idx + 1))}
+                  </Text>
                 </View>
                 <View style={styles.sessionInfo}>
                   <ThemedText type="body" style={{ fontWeight: "500" }}>
@@ -478,9 +485,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   sessionNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.md,

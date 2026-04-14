@@ -27,6 +27,8 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
     const [enrollingId, setEnrollingId] = useState<string | null>(null);
 
     const isParticipant = profile?.role === 'participant';
+    const isFacilitator = profile?.role === 'facilitator';
+    const isAdmin = ['platform_admin', 'system_admin', 'program_admin'].includes(profile?.role || '');
 
     useEffect(() => {
         if (programId) {
@@ -45,7 +47,6 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
             setProgram(progData);
 
             if (isParticipant && user) {
-                // Fetch user's specific sess-enrollments and attendance
                 const statusMap: Record<string, any> = {};
                 const attMap: Record<string, any> = {};
 
@@ -54,13 +55,12 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
                         const status = await sessionService.getSessionPaymentStatus(s.id, user.id);
                         if (status) statusMap[s.id] = status;
 
-                        // Check attendance for this session
                         const { data: att } = await (await import('@/services/supabase')).supabase
                             .from('attendance_records')
                             .select('*')
                             .eq('session_id', s.id)
                             .eq('user_id', user.id)
-                            .maybeSingle(); // Used maybeSingle to avoid errors
+                            .maybeSingle();
                         if (att) attMap[s.id] = att;
                     } catch (e) {
                         console.error('Error fetching session details:', e);
@@ -99,7 +99,7 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
             if (err.message === 'HAS_ATTENDEES') {
                 setDeleteError('This session has attendance records and cannot be deleted. Try deactivating it instead.');
             } else {
-                setDeleteError('An unexpected error occurred while deleting the session.');
+                setDeleteError('An error occurred while deleting the session.');
             }
         } finally {
             setIsDeleting(false);
@@ -113,23 +113,22 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
             const fee = session.session_fee || program?.session_fee || 0;
             const isPaid = fee > 0;
 
-            // Record PENDING enrollment/payment for manual cash flow
             await sessionService.recordSessionPayment(
                 session.id,
                 user.id,
                 session.organization_id,
                 fee,
-                'cash', // Expecting cash
-                user.id, // Processed by self (requested)
-                isPaid ? 'pending' : 'paid' // Default to pending if there's a fee
+                'cash',
+                user.id,
+                isPaid ? 'pending' : 'paid'
             );
 
             await fetchData();
             if (isPaid) {
-                alert(`Enrollment requested for ${session.name}. Please present $${fee.toFixed(2)} cash at the Check-in Station to finalize.`);
+                alert(`Enrollment requested for ${session.name}. Please pay $${fee.toFixed(2)} at the office to finalize.`);
             }
         } catch (err: any) {
-            alert('Failed to enroll in session: ' + err.message);
+            alert('Failed to join session: ' + err.message);
         } finally {
             setEnrollingId(null);
         }
@@ -144,7 +143,7 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
     }
 
     return (
-        <div className={`space-y-12 ${embedded ? '' : 'pb-32'}`}>
+        <div className={`space-y-12 ${embedded ? '' : 'pb-32'} font-sans`}>
             {!embedded && (
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
                     <div className="flex items-center space-x-6">
@@ -158,42 +157,46 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
                             <div className="flex items-center space-x-2 mb-1">
                                 <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">{program?.name || 'Program'}</span>
                                 <span className="text-slate-300 font-black">•</span>
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Program Schedule</span>
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Schedule</span>
                             </div>
-                            <h1 className="text-4xl font-black text-foreground tracking-tight uppercase">Curriculum Schedule</h1>
+                            <h1 className="text-4xl font-black text-foreground tracking-tight uppercase">Program Schedule</h1>
                         </div>
                     </div>
-                    <Button
-                        variant="premium"
-                        className="h-14 px-8 font-black uppercase tracking-widest text-xs"
-                        onClick={() => navigate(`/dashboard/programs/${programId}/sessions/new`)}
-                    >
-                        <Plus className="w-4 h-4 mr-3" /> Add New Session
-                    </Button>
+                    {isAdmin && (
+                        <Button
+                            variant="premium"
+                            className="h-14 px-8 font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/10"
+                            onClick={() => navigate(`/dashboard/programs/${programId}/sessions/new`)}
+                        >
+                            <Plus className="w-4 h-4 mr-3" /> New Session
+                        </Button>
+                    )}
                 </div>
             )}
 
             {embedded && (
                 <div className="flex justify-between items-center bg-surface p-6 rounded-3xl border border-surface-border">
                     <div>
-                        <h4 className="text-sm font-black text-foreground uppercase tracking-tight">Curriculum Schedule</h4>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Manage individual sessions and attendance</p>
+                        <h4 className="text-sm font-black text-foreground uppercase tracking-tight">Schedule</h4>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Check and manage sessions</p>
                     </div>
-                    <Button
-                        variant="premium"
-                        size="sm"
-                        className="h-10 text-[10px] font-black uppercase tracking-widest"
-                        onClick={() => navigate(`/dashboard/programs/${programId}/sessions/new`)}
-                    >
-                        <Plus className="w-3 h-3 mr-2" /> New Session
-                    </Button>
+                    {isAdmin && (
+                        <Button
+                            variant="premium"
+                            size="sm"
+                            className="h-10 text-[10px] font-black uppercase tracking-widest"
+                            onClick={() => navigate(`/dashboard/programs/${programId}/sessions/new`)}
+                        >
+                            <Plus className="w-3 h-3 mr-2" /> New Session
+                        </Button>
+                    )}
                 </div>
             )}
 
             {
                 error && (
                     <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-xs font-bold uppercase tracking-widest">
-                        Error loading sessions: {error}
+                        Error: {error}
                     </div>
                 )
             }
@@ -208,7 +211,6 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
                     >
                         <Card className="p-0 overflow-hidden bg-surface border-surface-border hover:border-primary/30 transition-all group">
                             <div className="flex flex-col md:flex-row">
-                                {/* Date Accent Card */}
                                 <div className="bg-background md:w-40 flex flex-col items-center justify-center p-8 border-b md:border-b-0 md:border-r border-surface-border relative overflow-hidden group-hover:bg-primary/5 transition-colors">
                                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-premium opacity-50"></div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2 group-hover:text-primary">
@@ -222,25 +224,24 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
                                     </div>
                                 </div>
 
-                                {/* Session Details */}
                                 <div className="flex-1 p-8 flex flex-col justify-center">
                                     <div className="flex items-start justify-between mb-6">
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-4">
-                                                <span className={`px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border shadow-2xl ${session.is_active
+                                        <div className="space-y-4 min-w-0">
+                                            <div className="flex items-center gap-4 flex-wrap">
+                                                <span className={`px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border shadow-sm ${session.is_active
                                                     ? 'bg-primary/10 text-primary border-primary/20'
                                                     : 'bg-slate-500/10 text-slate-500 border-slate-500/20'
                                                     }`}>
-                                                    {session.is_active ? 'Active' : 'Inactive'}
+                                                    {session.is_active ? 'Active' : 'Hidden'}
                                                 </span>
                                                 <div className="flex items-center text-[10px] font-black text-slate-500 uppercase tracking-widest bg-background px-3 py-1.5 rounded-lg border border-surface-border">
-                                                    <Clock className="w-3.5 h-3.5 mr-2 text-primary" /> {session.start_time.slice(0, 5)} - {session.end_time.slice(0, 5)}
+                                                    <Clock className="w-3.5 h-3.5 mr-2 text-primary" /> {session.start_time.slice(0, 5)}
                                                 </div>
                                             </div>
                                             <div>
-                                                <h3 className="text-2xl font-black text-foreground uppercase tracking-tight group-hover:text-primary transition-colors">{session.name}</h3>
+                                                <h3 className="text-2xl font-black text-foreground uppercase tracking-tight group-hover:text-primary transition-colors truncate">{session.name}</h3>
                                                 <div className="flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-3">
-                                                    <MapPin className="w-3.5 h-3.5 mr-2 text-pink-500" /> {session.location || 'Location Pending'}
+                                                    <MapPin className="w-3.5 h-3.5 mr-2 text-pink-500" /> {session.location || 'Church'}
                                                 </div>
                                             </div>
                                         </div>
@@ -256,67 +257,69 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
                                                         : `Unpaid ($${session.session_fee || program?.session_fee || 0})`}
                                                 </div>
                                             )}
-                                            <div className="relative">
-                                                <button
-                                                    onClick={() => setActiveMenuId(activeMenuId === session.id ? null : session.id)}
-                                                    className={`w-10 h-10 bg-background hover:bg-surface rounded-xl flex items-center justify-center transition-all border ${activeMenuId === session.id ? 'border-primary/30 bg-primary/5' : 'border-transparent hover:border-surface-border'}`}
-                                                >
-                                                    <MoreVertical className={`w-5 h-5 ${activeMenuId === session.id ? 'text-primary' : 'text-slate-500'} group-hover:text-foreground`} />
-                                                </button>
+                                            {isAdmin && (
+                                                <div className="relative">
+                                                    <button
+                                                        onClick={() => setActiveMenuId(activeMenuId === session.id ? null : session.id)}
+                                                        className={`w-10 h-10 bg-background hover:bg-surface rounded-xl flex items-center justify-center transition-all border ${activeMenuId === session.id ? 'border-primary/30 bg-primary/5' : 'border-transparent hover:border-surface-border'}`}
+                                                    >
+                                                        <MoreVertical className={`w-5 h-5 ${activeMenuId === session.id ? 'text-primary' : 'text-slate-500'} group-hover:text-foreground`} />
+                                                    </button>
 
-                                                <AnimatePresence>
-                                                    {activeMenuId === session.id && (
-                                                        <>
-                                                            <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
-                                                            <motion.div
-                                                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                                className="absolute right-0 mt-2 w-56 bg-background border border-surface-border rounded-2xl shadow-2xl z-20 py-2 overflow-hidden"
-                                                            >
-                                                                <button
-                                                                    onClick={() => navigate(`/dashboard/programs/${programId}/sessions/edit/${session.id}`)}
-                                                                    className="w-full px-4 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors border-b border-slate-50"
+                                                    <AnimatePresence>
+                                                        {activeMenuId === session.id && (
+                                                            <>
+                                                                <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
+                                                                <motion.div
+                                                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                                    className="absolute right-0 mt-2 w-56 bg-surface border border-surface-border rounded-2xl shadow-2xl z-20 py-2 overflow-hidden"
                                                                 >
-                                                                    <Pencil className="w-3.5 h-3.5" /> Edit Details
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleToggleActive(session)}
-                                                                    className={`w-full px-4 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-colors border-b border-slate-50 ${session.is_active ? 'text-amber-500 hover:bg-amber-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
-                                                                >
-                                                                    {session.is_active ? (
-                                                                        <>
-                                                                            <Ban className="w-3.5 h-3.5" /> Deactivate
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <ShieldCheck className="w-3.5 h-3.5" /> Activate
-                                                                        </>
-                                                                    )}
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setDeletingSession(session);
-                                                                        setActiveMenuId(null);
-                                                                    }}
-                                                                    className="w-full px-4 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition-colors"
-                                                                >
-                                                                    <Trash2 className="w-3.5 h-3.5" /> Delete Terminally
-                                                                </button>
-                                                            </motion.div>
-                                                        </>
-                                                    )}
-                                                </AnimatePresence>
-                                            </div>
+                                                                    <button
+                                                                        onClick={() => navigate(`/dashboard/programs/${programId}/sessions/edit/${session.id}`)}
+                                                                        className="w-full px-4 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-background hover:text-primary transition-colors border-b border-surface-border/50"
+                                                                    >
+                                                                        <Pencil className="w-3.5 h-3.5" /> Edit Info
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleToggleActive(session)}
+                                                                        className={`w-full px-4 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest transition-colors border-b border-surface-border/50 ${session.is_active ? 'text-amber-500 hover:bg-amber-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
+                                                                    >
+                                                                        {session.is_active ? (
+                                                                            <>
+                                                                                <Ban className="w-3.5 h-3.5" /> Deactivate
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <ShieldCheck className="w-3.5 h-3.5" /> Activate
+                                                                            </>
+                                                                        )}
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setDeletingSession(session);
+                                                                            setActiveMenuId(null);
+                                                                        }}
+                                                                        className="w-full px-4 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition-colors"
+                                                                    >
+                                                                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                                                                    </button>
+                                                                </motion.div>
+                                                            </>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between mt-4 pt-8 border-t border-surface-border">
+                                    <div className="flex items-center justify-between mt-4 pt-8 border-t border-surface-border flex-wrap gap-4">
                                         <div className="flex items-center gap-8">
                                             <div className="flex items-center gap-4 group/stat">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-lg shadow-emerald-500/20 ${attendanceData[session.id]
-                                                    ? 'bg-emerald-500 text-[#FFFFFF]'
-                                                    : 'bg-background text-slate-400'
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-lg ${attendanceData[session.id]
+                                                    ? 'bg-emerald-500 text-white shadow-emerald-500/20'
+                                                    : 'bg-background text-slate-400 border border-surface-border'
                                                     }`}>
                                                     <CheckCircle className="w-5 h-5" />
                                                 </div>
@@ -324,14 +327,14 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
                                                     <p className="text-sm font-black text-foreground leading-none">
                                                         {attendanceData[session.id] ? 'Present' : 'Absent'}
                                                     </p>
-                                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Verification Status</p>
+                                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Status</p>
                                                 </div>
                                             </div>
 
                                             {isParticipant && paymentStatuses[session.id]?.payment_status !== 'paid' && (
-                                                <div className="flex items-center gap-3 text-rose-500 animate-pulse">
+                                                <div className="flex items-center gap-3 text-amber-500">
                                                     <AlertCircle className="w-4 h-4" />
-                                                    <p className="text-[9px] font-black uppercase tracking-widest">Enrollment Lock: Pay to Access</p>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest">Pay to unlock check-in</p>
                                                 </div>
                                             )}
                                         </div>
@@ -345,7 +348,7 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
                                                         className="h-12 px-6 text-[10px] font-black uppercase tracking-widest border-surface-border text-slate-500 hover:text-foreground"
                                                         onClick={() => navigate(`/dashboard/qr?session=${session.id}&mode=manual`)}
                                                     >
-                                                        <Users className="w-4 h-4 mr-2" /> Manage Attendance
+                                                        <Users className="w-4 h-4 mr-2" /> Attendance
                                                     </Button>
                                                     <Button
                                                         variant="premium"
@@ -353,7 +356,7 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
                                                         className="h-12 px-6 text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-primary/10"
                                                         onClick={() => navigate(`/dashboard/qr?session=${session.id}`)}
                                                     >
-                                                        <QrCode className="w-4 h-4 mr-2" /> Start Check-In
+                                                        <QrCode className="w-4 h-4 mr-2" /> Check-In Station
                                                     </Button>
                                                 </div>
                                             )}
@@ -374,11 +377,11 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
                                                         <Loader2 className="w-4 h-4 animate-spin" />
                                                     ) : paymentStatuses[session.id]?.payment_status === 'paid' ? (
                                                         <>
-                                                            <CheckCircle className="w-3.5 h-3.5 mr-2" /> Self Check-in
+                                                            <CheckCircle className="w-3.5 h-3.5 mr-2" /> My Check-in
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <Sparkles className="w-3.5 h-3.5 mr-2" /> Enroll & Pay
+                                                            <Sparkles className="w-3.5 h-3.5 mr-2" /> Book Session
                                                         </>
                                                     )}
                                                 </Button>
@@ -395,12 +398,11 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
                     <div className="h-64 rounded-3xl border-2 border-dashed border-surface-border flex flex-col items-center justify-center p-10 text-center">
                         <Calendar className="w-12 h-12 text-slate-300 mb-4" />
                         <h3 className="text-xl font-black text-slate-400 uppercase tracking-tight">No Sessions Slotted</h3>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2">Begin scheduling curriculum sessions for this program.</p>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2">Start scheduling sessions for this program.</p>
                     </div>
                 )}
             </div>
 
-            {/* Global Delete Confirmation */}
             <AnimatePresence>
                 {deletingSession && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
@@ -408,9 +410,9 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-background w-full max-w-md rounded-3xl border border-red-100 shadow-2xl overflow-hidden"
+                            className="bg-surface w-full max-w-md rounded-3xl border border-surface-border shadow-2xl overflow-hidden"
                         >
-                            <div className="p-8 text-center">
+                            <div className="p-8 text-center font-sans">
                                 <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center text-red-500 mx-auto mb-6">
                                     <AlertTriangle className="w-8 h-8" />
                                 </div>
@@ -421,21 +423,21 @@ export function SessionList({ embedded = false }: { embedded?: boolean }) {
                                     </p>
                                 ) : (
                                     <p className="text-slate-500 text-sm font-bold">
-                                        You are about to permanently remove <span className="text-foreground">{deletingSession.name}</span>. This will purge all attendance records and payment links.
+                                        Are you sure you want to remove <span className="text-foreground">{deletingSession.name}</span>? This will delete all attendance and payment records for this session.
                                     </p>
                                 )}
                             </div>
 
-                            <div className="p-6 bg-red-50/50 border-t border-red-100 flex gap-3">
-                                <Button variant="outline" className="flex-1 font-black uppercase tracking-widest border-red-100 text-red-600 hover:bg-red-50" onClick={() => {
+                            <div className="p-6 bg-background/50 border-t border-surface-border flex gap-3">
+                                <Button variant="outline" className="flex-1 font-black uppercase tracking-widest" onClick={() => {
                                     setDeletingSession(null);
                                     setDeleteError(null);
                                 }}>
-                                    {deleteError ? 'Close' : 'Abort'}
+                                    Cancel
                                 </Button>
                                 {!deleteError && (
                                     <Button variant="ghost" className="flex-1 font-black uppercase tracking-widest bg-red-500 text-white hover:bg-red-600" onClick={confirmDelete} disabled={isDeleting}>
-                                        {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Purge'}
+                                        {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Delete Session'}
                                     </Button>
                                 )}
                             </div>

@@ -263,13 +263,14 @@ CREATE TABLE users (
     first_name VARCHAR(100) NOT NULL,
     surname VARCHAR(100) NOT NULL,
     middle_name VARCHAR(100),
-    salutation VARCHAR(20), -- Mr, Mrs, Dr, Pastor, Rev, etc.
+    title VARCHAR(20), -- Mr, Mrs, Dr, Pastor, Rev, etc.
     preferred_name VARCHAR(100),
     
     -- Additional Info
-    date_of_birth DATE,
+    dob DATE,
     gender VARCHAR(20),
     marital_status VARCHAR(50),
+    church_name VARCHAR(255),
     
     -- Contact
     phone_number VARCHAR(50),

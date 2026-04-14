@@ -189,7 +189,16 @@ export const sessionService = {
         return sessEnroll;
     },
 
-    async recordSessionPayment(sessionId: string, userId: string, organizationId: string, amount: number, method: string, processedById: string, paymentStatus: 'paid' | 'pending' = 'paid') {
+    async recordSessionPayment(
+        sessionId: string,
+        userId: string,
+        organizationId: string,
+        amount: number,
+        method: string,
+        processedById: string,
+        paymentStatus: 'paid' | 'pending' = 'paid',
+        receiptNumber?: string
+    ) {
         // 1. Get enrollment ID
         const { data: enrollment } = await supabase
             .from('enrollments')
@@ -228,7 +237,7 @@ export const sessionService = {
                 status: 'paid',
                 confirmed_by: processedById,
                 confirmed_at: new Date().toISOString(),
-                receipt_number: `SES-${Date.now().toString().slice(-6)}`
+                receipt_number: receiptNumber?.trim() || `SES-${Date.now().toString().slice(-6)}`
             }], { onConflict: 'session_id, user_id' })
             .select(`
                 *,

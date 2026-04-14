@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { View, StyleSheet, ScrollView, Pressable, Modal, FlatList, RefreshControl } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, Modal, FlatList, RefreshControl, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -309,10 +309,10 @@ export default function ReportsScreen() {
     return (
       <Card elevation={1} style={styles.reportItemCard}>
         <View style={styles.reportItemHeader}>
-          <View style={[styles.sessionBadge, { backgroundColor: theme.link + "20" }]}>
-            <ThemedText type="h4" style={{ color: theme.link }}>
+          <View style={[styles.sessionBadge, { backgroundColor: "#B10F2D" }]}>
+            <Text style={{ color: "#FFFFFF", fontWeight: "900", fontSize: 18, textAlign: 'center' }}>
               {item.sessionNumber}
-            </ThemedText>
+            </Text>
           </View>
           <View style={styles.reportItemInfo}>
             <ThemedText type="body" style={{ fontWeight: "600" }}>

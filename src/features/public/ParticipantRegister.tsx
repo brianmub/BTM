@@ -22,6 +22,7 @@ export function ParticipantRegister() {
     const [searching, setSearching] = useState(false);
 
     const [form, setForm] = useState({
+        title: 'Mr',
         firstName: '',
         surname: '',
         email: '',
@@ -29,8 +30,83 @@ export function ParticipantRegister() {
         confirmPassword: '',
         phone: '',
         address: '',
-        maritalStatus: 'single'
+        maritalStatus: 'single',
+        dob: '',
+        church: '',
+        suburb: '',
+        cityTown: '',
+        province: '',
+        country: 'Zimbabwe'
     });
+
+    const ZIM_CHURCHES = [
+      "Apostolic Faith Mission in Zimbabwe (AFM)",
+      "Zimbabwe Assemblies of God Africa (ZAOGA)",
+      "United Family International Church (UFIC)",
+      "Prophetic Healing and Deliverance (PHD) Ministries",
+      "Celebration Ministries International",
+      "Zion Christian Church (ZCC)",
+      "African Apostolic Church (Johane Marange)",
+      "Johane Masowe Apostles",
+      "First Ethiopian Church of Zimbabwe",
+      "Christian Marching Church",
+      "Roman Catholic Church",
+      "Anglican Church",
+      "Methodist Church in Zimbabwe",
+      "African Methodist Church",
+      "African Methodist Episcopal Church",
+      "United Methodist Church",
+      "Reformed Church in Zimbabwe",
+      "Church of Central Africa Presbyterian",
+      "United Congregational Church of Southern Africa",
+      "Uniting Presbyterian Church of Southern Africa",
+      "United Church of Christ in Zimbabwe",
+      "Evangelical Lutheran Church in Zimbabwe",
+      "Salvation Army",
+      "Baptist Convention of Zimbabwe",
+      "Baptist Union of Zimbabwe",
+      "Central Baptist Church",
+      "Ebenezer Baptist Church",
+      "Seventh-day Adventist Church",
+      "Brethren in Christ Church",
+      "New Apostolic Church",
+      "Agape Missions",
+      "Victory Fellowship Church",
+      "Jehovah's Witnesses",
+      "Heartfelt International Ministries",
+      "Harvest House International",
+      "Word of Life International Ministries",
+      "Faith Ministries",
+      "New Life Covenant Church",
+      "Christ Embassy Zimbabwe",
+      "Christ Connect Family Church (CCFC)",
+      "Lighthouse Chapel International",
+      "Church of Christ",
+      "Zimbabwe Council of Churches (ZCC Umbrella)",
+      "Evangel Fellowship of Zimbabwe (EFZ Umbrella)",
+      "Zimbabwe Catholic Bishops' Conference (ZCBC Umbrella)",
+    ];
+
+    const [churchSearch, setChurchSearch] = useState('');
+    const [showChurchDropdown, setShowChurchDropdown] = useState(false);
+
+    const filteredChurches = ZIM_CHURCHES.filter(c => 
+        c.toLowerCase().includes(churchSearch.toLowerCase())
+    );
+
+    const calculateAge = (dob: string) => {
+        if (!dob) return null;
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    };
+
+    const age = calculateAge(form.dob);
 
     const calculatePasswordStrength = (pass: string) => {
         let strength = 0;
@@ -133,11 +209,18 @@ export function ParticipantRegister() {
                             auth_id: authData.user.id,
                             organization_id: orgData.id,
                             email: form.email,
+                            title: form.title,
                             first_name: form.firstName,
                             surname: form.surname,
                             phone_number: form.phone,
                             residential_address: form.address,
+                            suburb: form.suburb,
+                            city_town: form.cityTown,
+                            province: form.province,
+                            country: form.country,
                             marital_status: form.maritalStatus,
+                            dob: form.dob,
+                            church_name: form.church,
                             role: 'participant',
                             is_active: true
                         }]);
@@ -234,8 +317,24 @@ export function ParticipantRegister() {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
+                        <div className="grid grid-cols-12 gap-4">
+                            <div className="col-span-3 space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Title</label>
+                                <select 
+                                    className="w-full bg-background border border-surface-border rounded-xl px-2 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner font-medium appearance-none"
+                                    value={form.title}
+                                    onChange={e => setForm({ ...form, title: e.target.value })}
+                                >
+                                    <option value="Mr">Mr</option>
+                                    <option value="Mrs">Mrs</option>
+                                    <option value="Ms">Ms</option>
+                                    <option value="Miss">Miss</option>
+                                    <option value="Dr">Dr</option>
+                                    <option value="Rev">Rev</option>
+                                    <option value="Pastor">Pastor</option>
+                                </select>
+                            </div>
+                            <div className="col-span-4 space-y-2">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">First Name</label>
                                 <input
                                     type="text"
@@ -245,7 +344,7 @@ export function ParticipantRegister() {
                                     onChange={e => setForm({ ...form, firstName: e.target.value })}
                                 />
                             </div>
-                            <div className="space-y-2">
+                            <div className="col-span-5 space-y-2">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Surname</label>
                                 <input
                                     type="text"
@@ -254,6 +353,84 @@ export function ParticipantRegister() {
                                     value={form.surname}
                                     onChange={e => setForm({ ...form, surname: e.target.value })}
                                 />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Date of Birth</label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        required
+                                        className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner font-medium"
+                                        value={form.dob}
+                                        onChange={e => setForm({ ...form, dob: e.target.value })}
+                                    />
+                                    {age !== null && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-primary/10 rounded text-[9px] font-black text-primary uppercase">
+                                            {age} Years
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Marital Status</label>
+                                <select
+                                    className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner appearance-none font-medium"
+                                    value={form.maritalStatus}
+                                    onChange={e => setForm({ ...form, maritalStatus: e.target.value })}
+                                >
+                                    <option value="single">Single</option>
+                                    <option value="married">Married</option>
+                                    <option value="widowed">Widowed</option>
+                                    <option value="divorced">Divorced</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 relative">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Your Church / Ministry</label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search or type your church name..."
+                                    className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner font-medium"
+                                    value={form.church}
+                                    onChange={e => {
+                                        setForm({ ...form, church: e.target.value });
+                                        setChurchSearch(e.target.value);
+                                        setShowChurchDropdown(true);
+                                    }}
+                                    onFocus={() => setShowChurchDropdown(true)}
+                                />
+                                {showChurchDropdown && (churchSearch || filteredChurches.length > 0) && (
+                                    <div className="absolute z-50 w-full mt-2 bg-surface border border-surface-border rounded-xl shadow-2xl max-h-48 overflow-y-auto overflow-x-hidden p-2 space-y-1 custom-scrollbar">
+                                        {filteredChurches.map((church) => (
+                                            <button
+                                                key={church}
+                                                type="button"
+                                                className="w-full text-left px-4 py-3 rounded-lg hover:bg-primary/5 text-xs font-bold text-foreground transition-colors border border-transparent hover:border-primary/10"
+                                                onClick={() => {
+                                                    setForm({ ...form, church });
+                                                    setChurchSearch(church);
+                                                    setShowChurchDropdown(false);
+                                                }}
+                                            >
+                                                {church}
+                                            </button>
+                                        ))}
+                                        {churchSearch && !ZIM_CHURCHES.includes(churchSearch) && (
+                                            <button
+                                                type="button"
+                                                className="w-full text-left px-4 py-3 rounded-lg hover:bg-primary/5 text-xs font-bold text-primary transition-colors border border-dashed border-primary/20"
+                                                onClick={() => setShowChurchDropdown(false)}
+                                            >
+                                                Add "{churchSearch}" as new
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -277,6 +454,7 @@ export function ParticipantRegister() {
                                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                 <input
                                     type="tel"
+                                    required
                                     className="w-full bg-background border border-surface-border rounded-xl pl-12 pr-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner font-medium"
                                     value={form.phone}
                                     onChange={e => setForm({ ...form, phone: e.target.value })}
@@ -284,28 +462,50 @@ export function ParticipantRegister() {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Residential Address</label>
-                            <input
-                                type="text"
-                                className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner font-medium"
-                                value={form.address}
-                                onChange={e => setForm({ ...form, address: e.target.value })}
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Suburb</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner font-medium"
+                                    value={form.suburb}
+                                    onChange={e => setForm({ ...form, suburb: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">City / Town</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner font-medium"
+                                    value={form.cityTown}
+                                    onChange={e => setForm({ ...form, cityTown: e.target.value })}
+                                />
+                            </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Marital Status</label>
-                            <select
-                                className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner appearance-none font-medium"
-                                value={form.maritalStatus}
-                                onChange={e => setForm({ ...form, maritalStatus: e.target.value })}
-                            >
-                                <option value="single">Single</option>
-                                <option value="married">Married</option>
-                                <option value="widowed">Widowed</option>
-                                <option value="divorced">Divorced</option>
-                            </select>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Province</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner font-medium"
+                                    value={form.province}
+                                    onChange={e => setForm({ ...form, province: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Country</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="w-full bg-background border border-surface-border rounded-xl px-4 py-3 text-foreground outline-none focus:border-primary/30 transition-colors shadow-inner font-medium"
+                                    value={form.country}
+                                    onChange={e => setForm({ ...form, country: e.target.value })}
+                                />
+                            </div>
                         </div>
 
                         <div className="space-y-4">

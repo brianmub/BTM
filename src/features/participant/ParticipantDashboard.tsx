@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/hooks/useOrganization';
@@ -19,7 +18,7 @@ const BADGE_DEFINITIONS = [
     { id: 'rising', label: 'Rising Star', icon: Star, color: 'text-primary', bg: 'bg-primary/10 border-primary/20', desc: 'Earned 100 Faith Points' },
 ];
 
-function XPProgressBar({ xp }: { xp: number }) {
+function ProgressTracker({ xp }: { xp: number }) {
     const level = Math.floor(xp / 100) + 1;
     const currentXP = xp % 100;
     const pct = currentXP;
@@ -92,7 +91,6 @@ export function ParticipantDashboard() {
                     .eq('is_active', true)
                     .order('session_date', { ascending: true });
 
-                // Keep only the first upcoming session per program
                 const map: Record<string, any> = {};
                 (upcoming || []).forEach((s: any) => {
                     if (!map[s.program_id]) map[s.program_id] = s;
@@ -112,7 +110,6 @@ export function ParticipantDashboard() {
             });
             setUserGroups(groupMap);
 
-            // Compute XP: 50 per enrollment + 25 per badge
             const enrollCount = (enrollmentData || []).length;
 
             const { data: badgeData } = await supabase
@@ -121,7 +118,6 @@ export function ParticipantDashboard() {
                 .eq('user_id', currentProfile?.id);
             const earnedBadges = (badgeData || []).map((b: any) => b.badge_id);
 
-            // Add 'first_step' automatically if enrolled in at least one program
             if (enrollCount >= 1 && !earnedBadges.includes('first_step')) {
                 earnedBadges.push('first_step');
             }
@@ -153,11 +149,9 @@ export function ParticipantDashboard() {
         <div className="min-h-screen">
             {/* ── HERO SECTION ── */}
             <div className="relative overflow-hidden bg-foreground px-6 pt-10 pb-10">
-                {/* Diagonal red slash */}
                 <div className="absolute -right-12 top-0 w-48 h-full bg-primary skew-x-[-10deg] opacity-90" />
                 <div className="absolute -right-24 top-0 w-20 h-full bg-primary/30 skew-x-[-10deg]" />
 
-                {/* ── ORG LOGO (top-right, over the red slash, like a club crest) ── */}
                 <div className="absolute top-5 right-5 z-20">
                     {organization?.logo_url ? (
                         <img
@@ -185,26 +179,24 @@ export function ParticipantDashboard() {
                         <p className="text-sm text-white/60 font-medium mt-1">{organization?.name ?? orgSlug}</p>
                     </div>
 
-                    {/* XP Progress */}
                     <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
-                        <XPProgressBar xp={xp} />
+                        <ProgressTracker xp={xp} />
                     </div>
 
-                    {/* Quick Actions */}
                     <div className="grid grid-cols-2 gap-3 pb-2 border-b border-white/10">
                         <button
                             onClick={() => navigate(`/portal/${orgSlug}/dashboard/qr`)}
                             className="flex items-center gap-3 bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 rounded-xl px-4 py-3 transition-all"
                         >
                             <QrCode className="w-5 h-5 text-white" />
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Scan In</span>
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Attendance</span>
                         </button>
                         <button
                             onClick={() => navigate(`/portal/${orgSlug}/dashboard/qr`)}
                             className="flex items-center gap-3 bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 rounded-xl px-4 py-3 transition-all"
                         >
                             <UserCircle2 className="w-5 h-5 text-white" />
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">My ID</span>
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">My Account</span>
                         </button>
                     </div>
 
@@ -215,7 +207,7 @@ export function ParticipantDashboard() {
                         >
                             <div className="flex items-center gap-3">
                                 <Banknote className="w-5 h-5 text-white" />
-                                <span className="text-[10px] font-black text-white uppercase tracking-widest">Financial History</span>
+                                <span className="text-[10px] font-black text-white uppercase tracking-widest">My Payments</span>
                             </div>
                             <ChevronRight className="w-4 h-4 text-white/50" />
                         </button>
@@ -226,11 +218,11 @@ export function ParticipantDashboard() {
             {/* ── CONTENT ── */}
             <div className="p-6 space-y-8 bg-background">
 
-                {/* ── TROPHY ROOM ── */}
+                {/* ── MY BADGES ── */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-xs font-black text-foreground uppercase tracking-[0.2em] flex items-center gap-2">
-                            <Trophy className="w-4 h-4 text-primary" /> Trophy Room
+                        <h2 className="text-xs font-black text-foreground uppercase tracking-[0.2em] flex items-center gap-2 font-sans">
+                            <Trophy className="w-4 h-4 text-primary" /> My Badges
                         </h2>
                         <span className="text-[9px] font-black text-primary uppercase tracking-widest">{badges.length} / {BADGE_DEFINITIONS.length} Earned</span>
                     </div>
@@ -264,7 +256,7 @@ export function ParticipantDashboard() {
                 {/* ── MY PROGRAMS ── */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-xs font-black text-foreground uppercase tracking-[0.2em] flex items-center gap-2">
+                        <h2 className="text-xs font-black text-foreground uppercase tracking-[0.2em] flex items-center gap-2 font-sans">
                             <TrendingUp className="w-4 h-4 text-primary" /> My Programs
                         </h2>
                         <span
@@ -275,7 +267,6 @@ export function ParticipantDashboard() {
                         </span>
                     </div>
 
-                    {/* Segmented filter controls */}
                     {enrollments.length > 0 && (
                         <div className="flex gap-2">
                             {(['all', 'active', 'pending'] as const).map(f => (
@@ -337,9 +328,6 @@ export function ParticipantDashboard() {
                                                     <Calendar className="w-3 h-3 text-primary" />
                                                     Next: {new Date(nextSessions[enrollment.program_id].session_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                                     {' · '}{nextSessions[enrollment.program_id].start_time?.slice(0, 5)}
-                                                    {nextSessions[enrollment.program_id].location && (
-                                                        <> · <MapPin className="w-2.5 h-2.5 inline text-pink-500" /> {nextSessions[enrollment.program_id].location}</>
-                                                    )}
                                                 </span>
                                             )}
                                         </div>
@@ -358,7 +346,7 @@ export function ParticipantDashboard() {
                                 <Button
                                     variant="united"
                                     size="sm"
-                                    className="text-xs"
+                                    className="text-xs font-black uppercase tracking-widest"
                                     onClick={() => navigate(`/portal/${orgSlug}/dashboard/browse`)}
                                 >
                                     Browse Programs
@@ -370,7 +358,7 @@ export function ParticipantDashboard() {
 
                 {/* ── ANNOUNCEMENTS ── */}
                 <div className="space-y-3">
-                    <h2 className="text-xs font-black text-foreground uppercase tracking-[0.2em]">Announcements</h2>
+                    <h2 className="text-xs font-black text-foreground uppercase tracking-[0.2em] font-sans">Announcements</h2>
                     <div className="p-4 bg-surface border border-surface-border rounded-2xl">
                         <p className="text-xs text-slate-500 font-medium">No new announcements from your community.</p>
                     </div>

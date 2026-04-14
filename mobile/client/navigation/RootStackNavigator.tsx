@@ -66,8 +66,10 @@ export default function RootStackNavigator() {
       );
     }
 
-    // User logged in but not onboarded → Show onboarding
-    if (!isOnboardingComplete) {
+    const role = user.role?.toLowerCase().trim();
+
+    // User logged in but not onboarded → Show onboarding (Participants only)
+    if (!isOnboardingComplete && role === "participant") {
       return (
         <Stack.Screen
           name="Onboarding"
@@ -78,8 +80,7 @@ export default function RootStackNavigator() {
     }
 
     // User logged in and onboarded → Show main app based on role
-
-    switch (user.role) {
+    switch (role) {
       case "participant":
         return (
           <Stack.Screen
@@ -105,6 +106,7 @@ export default function RootStackNavigator() {
           />
         );
       case "admin":
+      case "administrator":
         return (
           <Stack.Screen
             name="AdminMain"
@@ -113,6 +115,7 @@ export default function RootStackNavigator() {
           />
         );
       case "sysadmin":
+      case "superadmin":
         return (
           <Stack.Screen
             name="SysAdminMain"
@@ -121,10 +124,24 @@ export default function RootStackNavigator() {
           />
         );
       default:
+        // Default case for any other authenticated role: 
+        // Participants go to onboarding, staff-like unrecognized roles go to AdminMain as fallback
+        if (role === "participant") {
+          return (
+            <Stack.Screen
+              name="Onboarding"
+              component={OnboardingStackNavigator}
+              options={{ headerShown: false }}
+            />
+          );
+        }
+        
+        // If it's an unknown role but not a participant, default to Admin dashboard
+        // to avoid locking staff members out of management tools.
         return (
           <Stack.Screen
-            name="Onboarding"
-            component={OnboardingStackNavigator}
+            name="AdminMain"
+            component={AdminTabNavigator}
             options={{ headerShown: false }}
           />
         );

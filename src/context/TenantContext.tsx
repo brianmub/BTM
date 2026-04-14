@@ -1,17 +1,7 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Organization } from '@/types';
 import { supabase } from '@/services/supabase';
-
-export interface TenantContextType {
-    organization: Organization | null;
-    currentProfile: any | null; // Profile for the current organization
-    loading: boolean;
-    error: string | null;
-    switchOrganization: (slug: string) => Promise<void>;
-}
-
-export const TenantContext = createContext<TenantContextType | undefined>(undefined);
-
+import { TenantContext } from './TenantContextObject';
 import { useAuth } from '@/hooks/useAuth';
 
 export function TenantProvider({ children }: { children: React.ReactNode }) {
@@ -20,92 +10,88 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     const [currentProfile, setCurrentProfile] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const fetchInProgress = useRef<string | null>(null);
+
+    const getUrlSlug = () => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('org') || window.location.pathname.split('/portal/')[1]?.split('/')[0] || null;
+    };
 
     useEffect(() => {
-        if (authLoading) {
-            console.log('TenantContext: Auth is loading...');
+        const urlSlug = getUrlSlug();
+        console.log('TenantContext: useEffect triggered. authLoading:', authLoading, 'urlSlug:', urlSlug);
+
+        if (authLoading && !urlSlug) {
             return;
         }
 
-        console.log('TenantContext: Auth loaded. Profiles:', profiles);
-
-        // In a real production app, we would detect the slug from the subdomain
-        // For local dev, we check the 'org_slug' query param or localStorage
-        fetchOrg();
-    }, [authLoading, profiles]); // Dependency on profiles instead of profile.organization_id
+        fetchOrg(urlSlug);
+    }, [authLoading, profiles]);
 
     const switchOrganization = async (newSlug: string) => {
         console.log('TenantContext: Switching organization to:', newSlug);
         localStorage.setItem('active_org_slug', newSlug);
-        // Force fetch with new slug
         await fetchOrg(newSlug);
     };
 
     async function fetchOrg(slugOverride?: string | null) {
+        const urlSlug = getUrlSlug();
+        const effectiveSlug = slugOverride || urlSlug || localStorage.getItem('active_org_slug');
+        
+        const fetchKey = `${effectiveSlug}-${profiles?.length || 0}`;
+        if (fetchInProgress.current === fetchKey && organization) return;
+        fetchInProgress.current = fetchKey;
+
+        console.log('TenantContext: fetchOrg starting. effectiveSlug:', effectiveSlug);
         setLoading(true);
 
-        // Priority: 1. Slug Override, 2. URL Param, 3. Impersonated Org, 4. LocalStorage
-        const effectiveSlug = slugOverride ||
-            new URLSearchParams(window.location.search).get('org') ||
-            (currentProfile?.organization_id ? null : localStorage.getItem('active_org_slug'));
-
         try {
-            // Fetch all columns to satisfy the Organization interface
             let query = supabase.from('organizations').select('*');
 
             if (effectiveSlug) {
-                console.log('TenantContext: Fetching by slug:', effectiveSlug);
                 query = query.eq('slug', effectiveSlug);
-            } else if (currentProfile?.organization_id) {
-                // If we have an impersonated/switched profile, use its org ID directly
-                console.log('TenantContext: Fetching by ID from currentProfile:', currentProfile.organization_id);
-                query = query.eq('id', currentProfile.organization_id);
             } else if (profiles && profiles.length > 0) {
-                console.log('TenantContext: Fetching by ID from first profile:', profiles[0].organization_id);
-                query = query.eq('id', profiles[0].organization_id);
+                const p = currentProfile || profiles[0];
+                query = query.eq('id', p.organization_id);
             } else {
-                console.warn('TenantContext: No slug or organization_id found.');
+                console.log('TenantContext: No organization reference found yet.');
                 setLoading(false);
                 return;
             }
 
-            const { data, error } = await query.single();
-            console.log('TenantContext: Fetch result:', data, error);
-
-            if (error) throw error;
-            setOrganization(data as Organization);
-
-            // If we found the org and it doesn't match the current profile, we might need to sync
-            if (data && currentProfile && currentProfile.organization_id !== data.id) {
-                // During impersonation, currentProfile is already set by AuthContext
-                // This block handles profile matching if needed
-                console.log('TenantContext: Org sync with currentProfile');
-            } else if (data && profiles && profiles.length > 0) {
-                const match = profiles.find(p => p.organization_id === data.id);
-                if (match) {
-                    console.log('TenantContext: Set currentProfile:', match);
-                    setCurrentProfile(match);
-                }
-            }
-
-            if (data?.slug) {
+            const { data, error: fetchError } = await query.single();
+            if (fetchError) throw fetchError;
+            
+            if (data) {
+                console.log('TenantContext: Organization found:', data.name);
+                setOrganization(data as Organization);
                 localStorage.setItem('active_org_slug', data.slug);
+                
+                const match = profiles?.find(p => p.organization_id === data.id);
+                if (match) setCurrentProfile(match);
             }
         } catch (err: any) {
             console.error('TenantContext: Error fetching organization:', err);
-            setError(err.message);
         } finally {
             setLoading(false);
         }
     }
 
+    const isPublic = ['/', '/login', '/signup', '/register', '/forgot-password', '/invite'].some(p => 
+        window.location.pathname === p || window.location.pathname === p + '/'
+    );
+    const isPortal = window.location.pathname.includes('/portal/');
+    const isDashboard = window.location.pathname.startsWith('/dashboard');
+
+    const shouldShowLoader = loading && (isPortal || isDashboard) && !organization;
+
     return (
-        <TenantContext.Provider value={{ organization, currentProfile: currentProfile, loading, error, switchOrganization }}>
-            {loading ? (
-                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100]">
+        <TenantContext.Provider value={{ organization, currentProfile, loading, error, switchOrganization }}>
+            {shouldShowLoader ? (
+                <div className="fixed inset-0 bg-background flex items-center justify-center z-[100]">
                     <div className="flex flex-col items-center gap-4">
                         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Syncing Organization...</p>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Connecting to Kingdom...</p>
                     </div>
                 </div>
             ) : (

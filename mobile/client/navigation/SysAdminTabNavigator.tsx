@@ -36,9 +36,6 @@ function DashboardStack() {
       <Stack.Screen
         name="Dashboard"
         component={SysAdminDashboardScreen}
-        options={{
-          headerTitle: () => <HeaderTitle title="BTM" />,
-        }}
       />
       <Stack.Screen
         name="ProgramManagement"

@@ -2,6 +2,7 @@ import { supabase } from './lib/supabase';
 
 export interface User {
   id: string;
+  title?: string;
   full_name: string; // Combined from first_name and surname
   first_name?: string;
   surname?: string;
@@ -9,13 +10,20 @@ export interface User {
   email: string;
   password_hash?: string;
   gender: 'male' | 'female';
-  marital_status: 'married' | 'unmarried';
+  marital_status: 'married' | 'unmarried' | 'widowed' | 'divorced';
   role: string; // Flexible role
   leader_status?: 'pending' | 'approved' | 'rejected';
   cell_id?: string;
   is_active: boolean;
   is_onboarding_complete?: boolean;
   organization_id?: string;
+  dob?: string;
+  church_name?: string;
+  residential_address?: string;
+  suburb?: string;
+  city_town?: string;
+  province?: string;
+  country?: string;
   created_at: string;
 }
 
@@ -119,6 +127,7 @@ export interface PaymentRecord {
   user_id: string;
   amount?: number;
   status: PaymentStatus;
+  receipt_number?: string;
   confirmed_by?: string;
   confirmed_at?: string;
   unpaid_reason?: string;

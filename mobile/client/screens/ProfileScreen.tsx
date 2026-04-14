@@ -52,15 +52,20 @@ export default function ProfileScreen() {
   };
 
   const getRoleLabel = () => {
-    switch (user?.role) {
+    const role = user?.role?.toLowerCase();
+    switch (role) {
       case "participant":
         return "Participant";
       case "leader":
         return "Cell Leader";
+      case "facilitator":
+        return "Facilitator";
       case "admin":
         return "Administrator";
+      case "sysadmin":
+        return "SysAdmin";
       default:
-        return "User";
+        return user?.role || "User";
     }
   };
 
@@ -120,10 +125,6 @@ export default function ProfileScreen() {
       scrollIndicatorInsets={{ bottom: insets.bottom }}
     >
       <View style={styles.profileHeader}>
-        <Image
-          source={require("../../assets/images/avatar-default.png")}
-          style={styles.avatar}
-        />
         <ThemedText type="h2" style={styles.name}>
           {user?.fullName || "User"}
         </ThemedText>
@@ -163,6 +164,39 @@ export default function ProfileScreen() {
               Phone
             </ThemedText>
             <ThemedText type="body">{user?.phone || "-"}</ThemedText>
+          </View>
+        </View>
+        <View style={[styles.infoRow, { borderTopColor: theme.border, borderTopWidth: 1 }]}>
+          <View style={[styles.infoIcon, { backgroundColor: theme.backgroundSecondary }]}>
+            <Feather name="home" size={16} color={theme.textSecondary} />
+          </View>
+          <View style={styles.infoContent}>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              Church
+            </ThemedText>
+            <ThemedText type="body">{user?.churchName || "-"}</ThemedText>
+          </View>
+        </View>
+        <View style={[styles.infoRow, { borderTopColor: theme.border, borderTopWidth: 1 }]}>
+          <View style={[styles.infoIcon, { backgroundColor: theme.backgroundSecondary }]}>
+            <Feather name="globe" size={16} color={theme.textSecondary} />
+          </View>
+          <View style={styles.infoContent}>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              Country
+            </ThemedText>
+            <ThemedText type="body">{user?.country || "-"}</ThemedText>
+          </View>
+        </View>
+        <View style={[styles.infoRow, { borderTopColor: theme.border, borderTopWidth: 1 }]}>
+          <View style={[styles.infoIcon, { backgroundColor: theme.backgroundSecondary }]}>
+            <Feather name="map-pin" size={16} color={theme.textSecondary} />
+          </View>
+          <View style={styles.infoContent}>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              City / Town
+            </ThemedText>
+            <ThemedText type="body">{user?.cityTown || "-"}</ThemedText>
           </View>
         </View>
       </Card>

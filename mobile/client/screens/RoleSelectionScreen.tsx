@@ -41,16 +41,10 @@ const roles: RoleOption[] = [
     icon: "user",
   },
   {
-    id: "leader",
-    title: "Cell Leader",
-    description: "Lead a cell group, track attendance, and confirm payments",
-    icon: "users",
-  },
-  {
     id: "facilitator",
     title: "Facilitator",
     description: "Manage session content, create assignments, and prepare materials",
-    icon: "edit-3",
+    icon: "book-open",
   },
 ];
 

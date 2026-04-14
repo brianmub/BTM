@@ -34,6 +34,7 @@ export default function SignupScreen({ navigation }: Props) {
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
+    const [dob, setDob] = useState("");
     const [password, setPassword] = useState("");
     const [gender, setGender] = useState<"male" | "female" | null>(null);
     const [maritalStatus, setMaritalStatus] = useState<"married" | "unmarried" | null>(null);
@@ -42,7 +43,7 @@ export default function SignupScreen({ navigation }: Props) {
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSignup = async () => {
-        if (!fullName.trim() || !phone.trim() || !email.trim() || !password) {
+        if (!fullName.trim() || !phone.trim() || !email.trim() || !dob.trim() || !password) {
             error("Please fill in all fields");
             return;
         }
@@ -63,6 +64,7 @@ export default function SignupScreen({ navigation }: Props) {
                 fullName: fullName.trim(),
                 phone: phone.trim(),
                 email: email.trim(),
+                dob: dob.trim(),
                 password,
                 gender,
                 maritalStatus,
@@ -170,6 +172,19 @@ export default function SignupScreen({ navigation }: Props) {
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoComplete="email"
+                        style={[
+                            styles.input,
+                            { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border },
+                        ]}
+                    />
+
+                    <ThemedText type="h4" style={styles.label}>Date of Birth</ThemedText>
+                    <TextInput
+                        value={dob}
+                        onChangeText={setDob}
+                        placeholder="YYYY-MM-DD"
+                        placeholderTextColor={theme.textSecondary}
+                        keyboardType="numbers-and-punctuation"
                         style={[
                             styles.input,
                             { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border },

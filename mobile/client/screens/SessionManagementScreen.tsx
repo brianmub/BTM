@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { View, StyleSheet, FlatList, RefreshControl, Modal, TextInput, Pressable } from "react-native";
+import { View, StyleSheet, FlatList, RefreshControl, Modal, TextInput, Pressable, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -117,15 +117,14 @@ export default function SessionManagementScreen() {
             <View
               style={[
                 styles.sessionNumber,
-                { backgroundColor: past ? theme.textSecondary + "20" : theme.link + "20" },
+                { backgroundColor: past ? "#B10F2D80" : "#B10F2D" },
               ]}
             >
-              <ThemedText
-                type="h4"
-                style={{ color: past ? theme.textSecondary : theme.link }}
+              <Text
+                style={{ color: "#FFFFFF", fontWeight: "900", fontSize: 18, textAlign: 'center' }}
               >
-                {item.sessionNumber}
-              </ThemedText>
+                {String(item.sessionNumber || (index + 1))}
+              </Text>
             </View>
             <View style={styles.sessionInfo}>
               <ThemedText type="h4">{item.title}</ThemedText>

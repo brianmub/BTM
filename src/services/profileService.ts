@@ -214,7 +214,7 @@ export const profileService = {
             .select('id')
             .eq('program_id', programId);
 
-        const totalSessions = sessions?.length || 1; // Avoid division by zero
+        const totalSessions = sessions?.length || 0;
 
         // 2. Fetch Attendance
         const { data: attendance } = await supabase
@@ -224,14 +224,15 @@ export const profileService = {
             .eq('organization_id', program.organization_id);
 
         const attendedCount = attendance?.filter(a => a.status === 'present').length || 0;
-        const attendancePercent = (attendedCount / totalSessions) * 100;
+        const attendancePercent = totalSessions > 0 ? (attendedCount / totalSessions) * 100 : 0;
 
         return {
+            attendedCount,
+            totalSessions,
             attendancePercent: Math.min(attendancePercent, 100),
-            isEligible: attendancePercent >= 80
+            isEligible: attendedCount >= 5
         };
     },
-
     async getUserPayments(userId: string) {
         const { data, error } = await supabase
             .from('payment_records')
