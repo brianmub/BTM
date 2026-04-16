@@ -32,38 +32,52 @@ export function AttendanceLogs() {
     const [selectedSession, setSelectedSession] = useState('all');
     const [availableSessions, setAvailableSessions] = useState<any[]>([]);
     const [emailLoading, setEmailLoading] = useState(false);
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const PAGE_SIZE = 20;
 
     useEffect(() => {
         if (organization?.id) {
-            fetchLogs();
+            setPage(0);
+            setLogs([]);
+            setHasMore(true);
+            fetchLogs(0, true);
         }
     }, [organization?.id]);
 
-    const fetchLogs = async () => {
+    const fetchLogs = async (pageNum: number, isInitial: boolean = false) => {
         try {
             setLoading(true);
-            const data = await profileService.getAttendanceLogs(organization!.id);
-            setLogs(data || []);
+            const data = await profileService.getAttendanceLogs(organization!.id, pageNum, PAGE_SIZE);
+            
+            if (isInitial) {
+                setLogs(data || []);
+            } else {
+                setLogs(prev => [...prev, ...(data || [])]);
+            }
+            setHasMore((data || []).length === PAGE_SIZE);
 
-            // Fetch programs for filter
-            const { data: progs } = await (await import('@/services/supabase')).supabase
-                .from('programs')
-                .select('id, name')
-                .eq('organization_id', organization!.id);
-            setPrograms(progs || []);
+            if (isInitial) {
+                // Fetch programs for filter
+                const { data: progs } = await (await import('@/services/supabase')).supabase
+                    .from('programs')
+                    .select('id, name')
+                    .eq('organization_id', organization!.id);
+                setPrograms(progs || []);
 
-            // Fetch all groups for the organization initially
-            const { data: allGroups } = await (await import('@/services/supabase')).supabase
-                .from('program_groups')
-                .select('id, name, program_id')
-                .in('program_id', (progs || []).map((p: any) => p.id));
-            setGroups(allGroups || []);
-            // Fetch all sessions for the organization initially
-            const { data: allSessions } = await (await import('@/services/supabase')).supabase
-                .from('sessions')
-                .select('id, name, program_id')
-                .in('program_id', (progs || []).map((p: any) => p.id));
-            setAvailableSessions(allSessions || []);
+                // Fetch all groups for the organization initially
+                const { data: allGroups } = await (await import('@/services/supabase')).supabase
+                    .from('program_groups')
+                    .select('id, name, program_id')
+                    .in('program_id', (progs || []).map((p: any) => p.id));
+                setGroups(allGroups || []);
+                // Fetch all sessions for the organization initially
+                const { data: allSessions } = await (await import('@/services/supabase')).supabase
+                    .from('sessions')
+                    .select('id, name, program_id')
+                    .in('program_id', (progs || []).map((p: any) => p.id));
+                setAvailableSessions(allSessions || []);
+            }
         } catch (err) {
             console.error('Failed to fetch attendance logs:', err);
         } finally {
@@ -71,8 +85,32 @@ export function AttendanceLogs() {
         }
     };
 
+    const loadMore = () => {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        fetchLogs(nextPage);
+    };
+
     const filteredLogs = useMemo(() => {
-        return logs.filter(log => {
+        // Group by user_id + session_id to ensure unique records per session
+        const uniqueMap = new Map();
+        
+        logs.forEach(log => {
+            const key = `${log.user_id}_${log.session_id}`;
+            // If we have multiple, keep the one with check-in (or later check-in)
+            if (!uniqueMap.has(key)) {
+                uniqueMap.set(key, log);
+            } else {
+                const existing = uniqueMap.get(key);
+                const existingTime = new Date(existing.entry_time || existing.checked_in_at).getTime();
+                const currentTime = new Date(log.entry_time || log.checked_in_at).getTime();
+                if (currentTime > existingTime) {
+                    uniqueMap.set(key, log);
+                }
+            }
+        });
+
+        return Array.from(uniqueMap.values()).filter(log => {
             const query = searchTerm.toLowerCase();
             const fullName = `${log.users?.first_name || ''} ${log.users?.surname || ''}`.toLowerCase();
             const email = log.users?.email?.toLowerCase() || '';
@@ -124,6 +162,17 @@ export function AttendanceLogs() {
                 : 'All Programs';
 
             const emailSubject = `Attendance Report: ${organization.name} - ${today}`;
+            
+            const sessionBreakdown = filteredLogs.reduce((acc: any, log) => {
+                const sName = log.sessions?.title || 'Unknown Session';
+                acc[sName] = (acc[sName] || 0) + 1;
+                return acc;
+            }, {});
+
+            const breakdownText = Object.entries(sessionBreakdown)
+                .map(([name, count]) => `- ${name}: ${count} participants`)
+                .join('\n');
+
             const emailBody = `
 ATTENDANCE REPORT
 --------------------------
@@ -132,10 +181,12 @@ Program: ${programName}
 Date: ${today}
 
 SUMMARY:
-- Total Participants: ${totalParticipants}
+- Total Unique Records: ${totalParticipants}
 - Status: ${completedSessions} Finished / ${activeSessions} Still Here
 - Invalid Records Removed: ${filteredLogs.length - totalParticipants}
-- Generated by: Kingdom Connect System
+
+SESSION BREAKDOWN:
+${breakdownText}
 
 Faithfully,
 Kingdom Connect
@@ -205,7 +256,7 @@ Kingdom Connect
                 </motion.div>
 
                 <div className="flex flex-wrap gap-4">
-                    <Button variant="united" className="h-14 px-8 bg-surface border-surface-border text-slate-500" onClick={fetchLogs}>
+                    <Button variant="united" className="h-14 px-8 bg-surface border-surface-border text-slate-500" onClick={() => fetchLogs(0, true)}>
                         <RefreshCw className={`w-4 h-4 mr-3 ${loading ? 'animate-spin' : ''}`} /> Refresh
                     </Button>
                     <Button variant="outline" className="h-14 px-8 bg-background border-surface-border text-slate-500 hover:text-foreground" onClick={exportToCSV}>
@@ -271,7 +322,7 @@ Kingdom Connect
 
             {/* Data Table */}
             <div className="space-y-4">
-                {loading ? (
+                {loading && page === 0 ? (
                     <div className="flex flex-col items-center justify-center py-32 space-y-6">
                         <div className="relative">
                             <div className="w-16 h-16 border-4 border-primary/20 rounded-full"></div>
@@ -280,81 +331,101 @@ Kingdom Connect
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] animate-pulse">Loading attendance data...</p>
                     </div>
                 ) : filteredLogs.length > 0 ? (
-                    <div className="grid gap-4">
-                        {filteredLogs.map((log, i) => (
-                            <motion.div
-                                key={log.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.05 }}
-                            >
-                                <Card className="p-4 hover:border-primary/30 transition-all group overflow-hidden relative shadow-md">
-                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                    
-                                    <div className="flex flex-col md:flex-row md:items-center gap-6">
-                                        <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-surface-border flex items-center justify-center overflow-hidden shrink-0">
-                                            {log.users?.profile_photo_url ? (
-                                                <img src={log.users.profile_photo_url} alt="" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <User className="w-6 h-6 text-slate-500" />
-                                            )}
-                                        </div>
-
-                                        <div className="flex flex-col flex-1">
-                                            <p className="text-sm font-black text-foreground uppercase tracking-tight group-hover:text-primary transition-colors">
-                                                {log.users?.first_name} {log.users?.surname}
-                                            </p>
-                                            <div className="flex items-center gap-3 mt-1">
-                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{log.users?.email}</p>
-                                                <span className="w-1 h-1 bg-slate-400 rounded-full"></span>
-                                                <p className="text-[10px] text-primary font-black uppercase tracking-widest">{log.group_name || 'No Group'}</p>
+                    <div className="space-y-12">
+                        <div className="grid gap-4">
+                            {filteredLogs.map((log, i) => (
+                                <motion.div
+                                    key={`${log.id}-${i}`}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: (i % 20) * 0.05 }}
+                                >
+                                    <Card className="p-4 hover:border-primary/30 transition-all group overflow-hidden relative shadow-md">
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                        
+                                        <div className="flex flex-col md:flex-row md:items-center gap-6">
+                                            <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-surface-border flex items-center justify-center overflow-hidden shrink-0">
+                                                {log.users?.profile_photo_url ? (
+                                                    <img src={log.users.profile_photo_url} alt="" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <User className="w-6 h-6 text-slate-500" />
+                                                )}
                                             </div>
-                                        </div>
 
-                                        <div className="flex flex-col items-end shrink-0 sm:min-w-[200px] border-l border-surface-border pl-8">
-                                            <div className="flex items-center gap-4 mb-3">
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 opacity-60">Check-in</span>
-                                                    <div className="flex items-center gap-2 text-foreground font-black text-sm tracking-tight bg-emerald-500/5 px-3 py-1.5 rounded-xl border border-emerald-500/10">
-                                                        <div className={`w-2 h-2 rounded-full ${!isInvalidDate(log.entry_time || log.checked_in_at) ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`}></div>
-                                                        {!isInvalidDate(log.entry_time || log.checked_in_at) 
-                                                            ? new Date(log.entry_time || log.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-                                                            : 'ABSENT'}
-                                                    </div>
-                                                </div>
-
-                                                <div className="h-10 w-px bg-surface-border/50 rotate-12"></div>
-
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 opacity-60">Checkout</span>
-                                                    <div className={`flex items-center gap-2 font-black text-sm tracking-tight px-3 py-1.5 rounded-xl border ${!isInvalidDate(log.exit_time) ? 'text-foreground bg-indigo-500/5 border-indigo-500/10' : 'text-primary bg-primary/5 border-primary/20 animate-pulse'}`}>
-                                                        <div className={`w-2 h-2 rounded-full ${!isInvalidDate(log.exit_time) ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]'}`}></div>
-                                                        {!isInvalidDate(log.exit_time) 
-                                                            ? new Date(log.exit_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-                                                            : (isInvalidDate(log.entry_time || log.checked_in_at) ? 'ABSENT' : 'STILL HERE')}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="flex items-center gap-2">
-                                                <Calendar className="w-3 h-3 text-slate-500" />
-                                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">
-                                                    {!isInvalidDate(log.entry_time || log.checked_in_at)
-                                                        ? new Date(log.entry_time || log.checked_in_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-                                                        : 'ABSENT'}
+                                            <div className="flex flex-col flex-1">
+                                                <p className="text-sm font-black text-foreground uppercase tracking-tight group-hover:text-primary transition-colors">
+                                                    {log.users?.first_name} {log.users?.surname}
                                                 </p>
+                                                <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{log.users?.email}</p>
+                                                    <span className="w-1 h-1 bg-slate-400 rounded-full"></span>
+                                                    <p className="text-[10px] text-primary font-black uppercase tracking-widest">{log.group_name || 'No Group'}</p>
+                                                    <span className="w-1 h-1 bg-slate-400 rounded-full"></span>
+                                                    <p className="text-[9px] px-2 py-0.5 bg-primary/10 text-primary font-black uppercase tracking-tighter rounded-full border border-primary/20">
+                                                        {log.sessions?.title || 'UNNAMED SESSION'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col items-end shrink-0 sm:min-w-[200px] border-l border-surface-border pl-8">
+                                                <div className="flex items-center gap-4 mb-3">
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 opacity-60">Check-in</span>
+                                                        <div className="flex items-center gap-2 text-foreground font-black text-sm tracking-tight bg-emerald-500/5 px-3 py-1.5 rounded-xl border border-emerald-500/10">
+                                                            <div className={`w-2 h-2 rounded-full ${!isInvalidDate(log.entry_time || log.checked_in_at) ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`}></div>
+                                                            {!isInvalidDate(log.entry_time || log.checked_in_at) 
+                                                                ? new Date(log.entry_time || log.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                                                                : 'ABSENT'}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="h-10 w-px bg-surface-border/50 rotate-12"></div>
+
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 opacity-60">Checkout</span>
+                                                        <div className={`flex items-center gap-2 font-black text-sm tracking-tight px-3 py-1.5 rounded-xl border ${!isInvalidDate(log.exit_time) ? 'text-foreground bg-indigo-500/5 border-indigo-500/10' : 'text-primary bg-primary/5 border-primary/20 animate-pulse'}`}>
+                                                            <div className={`w-2 h-2 rounded-full ${!isInvalidDate(log.exit_time) ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]'}`}></div>
+                                                            {!isInvalidDate(log.exit_time) 
+                                                                ? new Date(log.exit_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                                                                : (isInvalidDate(log.entry_time || log.checked_in_at) ? 'ABSENT' : 'STILL HERE')}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar className="w-3 h-3 text-slate-500" />
+                                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">
+                                                        {!isInvalidDate(log.entry_time || log.checked_in_at)
+                                                            ? new Date(log.entry_time || log.checked_in_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                                                            : 'ABSENT'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center pl-4">
+                                                <Button variant="ghost" size="sm" className="w-10 h-10 rounded-2xl hover:bg-surface border border-transparent hover:border-surface-border group/btn">
+                                                    <ChevronRight className="w-5 h-5 text-slate-600 group-hover/btn:text-primary transition-colors" />
+                                                </Button>
                                             </div>
                                         </div>
+                                    </Card>
+                                </motion.div>
+                            ))}
+                        </div>
 
-                                        <div className="flex items-center pl-4">
-                                            <Button variant="ghost" size="sm" className="w-10 h-10 rounded-2xl hover:bg-surface border border-transparent hover:border-surface-border group/btn">
-                                                <ChevronRight className="w-5 h-5 text-slate-600 group-hover/btn:text-primary transition-colors" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </Card>
-                            </motion.div>
-                        ))}
+                        {hasMore && (
+                            <div className="flex justify-center mt-12 pb-8">
+                                <Button 
+                                    variant="ghost" 
+                                    className="px-12 h-14 font-black uppercase tracking-widest text-[10px] border border-surface-border hover:border-primary/40 transition-all rounded-2xl"
+                                    onClick={loadMore}
+                                    disabled={loading}
+                                >
+                                    {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                                    Load More Logs
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-40 bg-surface/30 border border-dashed border-surface-border rounded-3xl space-y-4">

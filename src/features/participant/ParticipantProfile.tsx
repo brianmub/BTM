@@ -76,7 +76,18 @@ export function ParticipantProfile() {
                             </div>
                         </div>
                     </div>
-                    <div className="p-4 flex items-center justify-between">
+                    <div className="p-4 border-b border-surface-border flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center text-slate-400">
+                                <Shield className="w-4 h-4" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Church / Ministry</p>
+                                <p className="text-sm text-foreground font-medium">{profile?.church_name || 'Not set'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-4 border-b border-surface-border flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center text-slate-400">
                                 <Heart className="w-4 h-4" />

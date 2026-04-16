@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, Alert } from 'react-native';
+import { View, StyleSheet, TextInput, Alert, Pressable, Platform } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useNavigation } from '@react-navigation/native';
@@ -32,6 +33,9 @@ export default function AccountSettingsScreen() {
   const [cityTown, setCityTown] = useState(user?.cityTown || '');
   const [province, setProvince] = useState(user?.province || '');
   const [country, setCountry] = useState(user?.country || 'Zimbabwe');
+  const [residentialAddress, setResidentialAddress] = useState(user?.residentialAddress || '');
+  const [dob, setDob] = useState(user?.dob || '');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -50,6 +54,8 @@ export default function AccountSettingsScreen() {
           phone: phone.trim(),
           email: email.trim(),
           churchName: churchName.trim(),
+          residentialAddress: residentialAddress.trim(),
+          dob: dob.trim(),
           suburb: suburb.trim(),
           cityTown: cityTown.trim(),
           province: province.trim(),
@@ -163,6 +169,40 @@ export default function AccountSettingsScreen() {
                 />
               </View>
             </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Date of Birth
+              </ThemedText>
+              <Pressable
+                onPress={() => setShowDatePicker(true)}
+                style={[styles.inputContainer, { borderColor: theme.textSecondary + '40', minHeight: 48, justifyContent: 'center' }]}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Feather name="calendar" size={18} color={theme.textSecondary} />
+                  <ThemedText style={{ marginLeft: Spacing.sm, color: dob ? theme.text : theme.textSecondary }}>
+                    {dob || "Select Date of Birth"}
+                  </ThemedText>
+                </View>
+              </Pressable>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={dob ? new Date(dob) : new Date(2000, 0, 1)}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(Platform.OS === 'ios');
+                    if (selectedDate) {
+                      const year = selectedDate.getFullYear();
+                      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                      const day = String(selectedDate.getDate()).padStart(2, '0');
+                      setDob(`${year}-${month}-${day}`);
+                    }
+                  }}
+                  maximumDate={new Date()}
+                />
+              )}
+            </View>
           </Card>
         </Animated.View>
 
@@ -182,6 +222,22 @@ export default function AccountSettingsScreen() {
                   value={country}
                   onChangeText={setCountry}
                   placeholder="e.g. Zimbabwe"
+                  placeholderTextColor={theme.textSecondary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                Residential Address
+              </ThemedText>
+              <View style={[styles.inputContainer, { borderColor: theme.textSecondary + '40' }]}>
+                <Feather name="map-pin" size={18} color={theme.textSecondary} />
+                <TextInput
+                  style={[styles.input, { color: theme.text }]}
+                  value={residentialAddress}
+                  onChangeText={setResidentialAddress}
+                  placeholder="House number, street name"
                   placeholderTextColor={theme.textSecondary}
                 />
               </View>

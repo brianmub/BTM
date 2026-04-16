@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Organization } from '@/types';
 import { supabase } from '@/services/supabase';
 import { TenantContext } from './TenantContextObject';
+export { TenantContext };
 import { useAuth } from '@/hooks/useAuth';
 
 export function TenantProvider({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         return params.get('org') || window.location.pathname.split('/portal/')[1]?.split('/')[0] || null;
     };
 
+    const profileKey = profiles.map((p: any) => p.organization_id).join(',');
+    
     useEffect(() => {
         const urlSlug = getUrlSlug();
         console.log('TenantContext: useEffect triggered. authLoading:', authLoading, 'urlSlug:', urlSlug);
@@ -26,7 +29,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         }
 
         fetchOrg(urlSlug);
-    }, [authLoading, profiles]);
+    }, [authLoading, profileKey]);
 
     const switchOrganization = async (newSlug: string) => {
         console.log('TenantContext: Switching organization to:', newSlug);
@@ -43,7 +46,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         fetchInProgress.current = fetchKey;
 
         console.log('TenantContext: fetchOrg starting. effectiveSlug:', effectiveSlug);
-        setLoading(true);
+        
+        // Background loading: Only show full screen loader if we don't have an organization yet
+        // or if we are switching to a completely different slug
+        const isSwitching = effectiveSlug && organization && organization.slug !== effectiveSlug;
+        if (!organization || isSwitching) {
+            setLoading(true);
+        }
 
         try {
             let query = supabase.from('organizations').select('*');
@@ -85,8 +94,16 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     const shouldShowLoader = loading && (isPortal || isDashboard) && !organization;
 
+    const contextValue = useMemo(() => ({ 
+        organization, 
+        currentProfile, 
+        loading, 
+        error, 
+        switchOrganization 
+    }), [organization, currentProfile, loading, error]);
+
     return (
-        <TenantContext.Provider value={{ organization, currentProfile, loading, error, switchOrganization }}>
+        <TenantContext.Provider value={contextValue}>
             {shouldShowLoader ? (
                 <div className="fixed inset-0 bg-background flex items-center justify-center z-[100]">
                     <div className="flex flex-col items-center gap-4">

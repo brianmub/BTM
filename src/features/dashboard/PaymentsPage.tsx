@@ -26,37 +26,79 @@ export function PaymentsPage() {
     const { organization } = useOrganization();
     const { profile } = useAuth();
     const [payments, setPayments] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const [totalRevenue, setTotalRevenue] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedPayment, setSelectedPayment] = useState<any>(null);
+    const [loading, setLoading] = useState(false);
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+    const [selectedPayment, setSelectedPayment] = useState<any>(null);
     const [isNewPaymentModalOpen, setIsNewPaymentModalOpen] = useState(false);
+    const PAGE_SIZE = 20;
 
     useEffect(() => {
-        if (organization) fetchPayments();
+        if (organization) {
+            setPage(0);
+            setPayments([]);
+            setHasMore(true);
+            fetchPayments(0, true);
+            fetchTotalStats();
+        }
     }, [organization]);
 
-    const fetchPayments = async () => {
+    const fetchTotalStats = async () => {
+        try {
+            const { data } = await supabase
+                .from('payment_records')
+                .select('amount')
+                .eq('organization_id', organization!.id)
+                .eq('status', 'paid');
+            const total = (data || []).reduce((sum, p) => sum + p.amount, 0);
+            setTotalRevenue(total);
+        } catch (err) {
+            console.error('Error fetching total revenue:', err);
+        }
+    };
+
+    const fetchPayments = async (pageNum: number, isInitial: boolean = false) => {
         try {
             setLoading(true);
+            const from = pageNum * PAGE_SIZE;
+            const to = from + PAGE_SIZE - 1;
+
             const { data, error } = await supabase
                 .from('payment_records')
                 .select(`
-                    *,
+                    id, amount, created_at, receipt_number, payment_method, status,
                     user:user_id(first_name, surname, email, profile_photo_url),
                     program:program_id(name),
                     session:session_id(name, session_date)
                 `)
                 .eq('organization_id', organization!.id)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .range(from, to);
 
             if (error) throw error;
-            setPayments(data || []);
+            
+            if (data) {
+                if (isInitial) {
+                    setPayments(data);
+                } else {
+                    setPayments(prev => [...prev, ...data]);
+                }
+                setHasMore(data.length === PAGE_SIZE);
+            }
         } catch (err) {
             console.error('Error fetching payments:', err);
         } finally {
             setLoading(false);
         }
+    };
+
+    const loadMore = () => {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        fetchPayments(nextPage);
     };
 
     const filteredPayments = payments.filter(p =>
@@ -66,7 +108,7 @@ export function PaymentsPage() {
     );
 
     const stats = {
-        total: payments.reduce((sum, p) => sum + p.amount, 0),
+        total: totalRevenue,
         count: payments.length,
         today: payments.filter(p => new Date(p.created_at).toDateString() === new Date().toDateString())
             .reduce((sum, p) => sum + p.amount, 0)
@@ -212,6 +254,19 @@ export function PaymentsPage() {
                             ))}
                         </tbody>
                     </table>
+
+                    {hasMore && (
+                        <div className="flex justify-center mt-6 pb-6 border-t border-surface-border pt-6">
+                            <Button 
+                                variant="ghost" 
+                                className="px-10 h-12 font-black uppercase tracking-widest text-[9px] border border-surface-border hover:border-primary/40 transition-all rounded-xl"
+                                onClick={loadMore}
+                                disabled={loading}
+                            >
+                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Load More Payments'}
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </Card>
 
@@ -237,7 +292,7 @@ export function PaymentsPage() {
                                 setPayments(newData);
                             } else {
                                 setIsNewPaymentModalOpen(false);
-                                fetchPayments();
+                                fetchPayments(0, true);
                             }
                         }}
                         onOpenReceipt={(payment) => {
@@ -280,22 +335,22 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
 
     useEffect(() => {
         if (search.length > 2) {
-            const delay = setTimeout(searchUsers, 500);
+            const delay = setTimeout(searchUsers, 250);
             return () => clearTimeout(delay);
         }
     }, [search]);
 
-    const searchUsers = async () => {
-        if (!search.trim()) return;
+    const searchUsers = useCallback(async () => {
+        if (!search.trim() || !organization?.id) return;
 
         setLoading(true);
         try {
             const { data, error } = await supabase
                 .from('users')
-                .select('id, first_name, surname, email')
+                .select('id, first_name, surname, email, phone_number')
                 .eq('organization_id', organization.id)
-                .or(`first_name.ilike.%${search}%,surname.ilike.%${search}%,email.ilike.%${search}%`)
-                .limit(10);
+                .or(`first_name.ilike.%${search}%,surname.ilike.%${search}%,email.ilike.%${search}%,phone_number.ilike.%${search}%`)
+                .limit(20);
             
             if (error) throw error;
             setUsers(data || []);
@@ -304,7 +359,7 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
         } finally {
             setLoading(false);
         }
-    };
+    }, [search, organization?.id]);
 
     useEffect(() => {
         if (selectedUser) {
@@ -576,6 +631,12 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                                         value={search}
                                         onChange={e => setSearch(e.target.value)}
                                     />
+                                    {loading && search.length > 2 && (
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                            <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] animate-pulse">Searching...</span>
+                                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                        </div>
+                                    )}
                                     {search.length > 2 && (
                                         <div className="absolute top-16 left-0 right-0 bg-surface border border-surface-border rounded-2xl p-2 z-10 shadow-2xl space-y-1">
                                             {loading && users.length === 0 ? (
@@ -587,14 +648,22 @@ function NewPaymentModal({ organization, profile, onClose, onSuccess, onOpenRece
                                                     <button
                                                         key={u.id}
                                                         type="button"
-                                                        className="w-full text-left p-4 hover:bg-background rounded-xl transition-colors text-sm font-bold text-foreground flex justify-between items-center group"
+                                                        className="w-full text-left p-4 hover:bg-background rounded-xl transition-all text-sm font-bold text-foreground flex justify-between items-center group relative overflow-hidden"
                                                         onClick={() => setSelectedUser(u)}
                                                     >
-                                                        <div>
+                                                        <div className="relative z-10">
                                                             <div>{u.first_name} {u.surname}</div>
-                                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{u.email}</div>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{u.email}</div>
+                                                                {u.phone_number && (
+                                                                    <>
+                                                                        <span className="w-1 h-1 bg-slate-400 rounded-full"></span>
+                                                                        <div className="text-[10px] font-bold text-primary uppercase tracking-widest italic">{u.phone_number}</div>
+                                                                    </>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors" />
+                                                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors relative z-10" />
                                                     </button>
                                                 ))
                                             ) : !loading && (

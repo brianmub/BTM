@@ -345,14 +345,11 @@ export default function ParticipantHomeScreen() {
                             {statusText}
                           </ThemedText>
                         </View>
-
-
                       </View>
                     </View>
                   </View>
                 </Card>
 
-                {/* New Dedicated Cell Identity Section */}
                 {userGroups[program.id] && (
                   <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.cellIdentitySection}>
                     <Pressable
@@ -476,7 +473,7 @@ export default function ParticipantHomeScreen() {
               <View style={[styles.badgeIcon, { backgroundColor: attendedCount > 0 ? "#F59E0B20" : theme.border }]}>
                 <Feather name="award" size={24} color={attendedCount > 0 ? "#F59E0B" : theme.textSecondary} />
               </View>
-              <ThemedText type="small" style={{ fontSize: 10, marginTop: 6, textAlign: 'center', color: attendedCount > 0 ? theme.textStyle : theme.textSecondary, fontWeight: attendedCount > 0 ? "700" : "500" }}>
+              <ThemedText type="small" style={{ fontSize: 10, marginTop: 6, textAlign: 'center', color: attendedCount > 0 ? theme.text : theme.textSecondary, fontWeight: attendedCount > 0 ? "700" : "500" }}>
                 Beginner
               </ThemedText>
             </View>
@@ -485,7 +482,7 @@ export default function ParticipantHomeScreen() {
               <View style={[styles.badgeIcon, { backgroundColor: attendedCount >= 3 ? "#3B82F620" : theme.border }]}>
                 <Feather name="zap" size={24} color={attendedCount >= 3 ? "#3B82F6" : theme.textSecondary} />
               </View>
-              <ThemedText type="small" style={{ fontSize: 10, marginTop: 6, textAlign: 'center', color: attendedCount >= 3 ? theme.textStyle : theme.textSecondary, fontWeight: attendedCount >= 3 ? "700" : "500" }}>
+              <ThemedText type="small" style={{ fontSize: 10, marginTop: 6, textAlign: 'center', color: attendedCount >= 3 ? theme.text : theme.textSecondary, fontWeight: attendedCount >= 3 ? "700" : "500" }}>
                 3-Streak
               </ThemedText>
             </View>
@@ -494,7 +491,7 @@ export default function ParticipantHomeScreen() {
               <View style={[styles.badgeIcon, { backgroundColor: attendedCount >= 5 ? "#8B5CF620" : theme.border }]}>
                 <Feather name="book-open" size={24} color={attendedCount >= 5 ? "#8B5CF6" : theme.textSecondary} />
               </View>
-              <ThemedText type="small" style={{ fontSize: 10, marginTop: 6, textAlign: 'center', color: attendedCount >= 5 ? theme.textStyle : theme.textSecondary, fontWeight: attendedCount >= 5 ? "700" : "500" }}>
+              <ThemedText type="small" style={{ fontSize: 10, marginTop: 6, textAlign: 'center', color: attendedCount >= 5 ? theme.text : theme.textSecondary, fontWeight: attendedCount >= 5 ? "700" : "500" }}>
                 Scholar
               </ThemedText>
             </View>
@@ -503,7 +500,7 @@ export default function ParticipantHomeScreen() {
               <View style={[styles.badgeIcon, { backgroundColor: graduationProgress >= 1 && totalSessions > 0 ? theme.success + "20" : theme.border }]}>
                 <Feather name="check-circle" size={24} color={graduationProgress >= 1 && totalSessions > 0 ? theme.success : theme.textSecondary} />
               </View>
-              <ThemedText type="small" style={{ fontSize: 10, marginTop: 6, textAlign: 'center', color: graduationProgress >= 1 && totalSessions > 0 ? theme.textStyle : theme.textSecondary, fontWeight: graduationProgress >= 1 && totalSessions > 0 ? "700" : "500" }}>
+              <ThemedText type="small" style={{ fontSize: 10, marginTop: 6, textAlign: 'center', color: graduationProgress >= 1 && totalSessions > 0 ? theme.text : theme.textSecondary, fontWeight: graduationProgress >= 1 && totalSessions > 0 ? "700" : "500" }}>
                 Graduate
               </ThemedText>
             </View>

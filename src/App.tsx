@@ -34,7 +34,6 @@ import { ParticipantProgramView } from '@/features/participant/ParticipantProgra
 import { ParticipantPayments } from '@/features/participant/ParticipantPayments';
 import { CellGroupDashboard } from '@/features/cellgroups/CellGroupDashboard';
 import { CellMeetingRegister } from '@/features/cellgroups/CellMeetingRegister';
-import { CellMeetingHistory } from '@/features/cellgroups/CellMeetingHistory';
 import { AttendanceLogs } from '@/features/dashboard/AttendanceLogs';
 import { UserDirectory } from '@/features/dashboard/UserDirectory';
 
@@ -172,11 +171,6 @@ function App() {
                                 <DashboardLayout><CellMeetingRegister /></DashboardLayout>
                             </RequireRole>
                         } />
-                        <Route path="/dashboard/cell-groups/:groupId/history" element={
-                            <RequireRole roles={['system_admin', 'program_admin', 'facilitator']}>
-                                <DashboardLayout><CellMeetingHistory /></DashboardLayout>
-                            </RequireRole>
-                        } />
 
                         {/* Participant Dashboard */}
                         <Route path="/portal/:orgSlug/dashboard" element={<ParticipantLayout><ParticipantDashboard /></ParticipantLayout>} />
@@ -189,7 +183,6 @@ function App() {
                         {/* Cell Groups in mobile portal (admins + facilitators) */}
                         <Route path="/portal/:orgSlug/dashboard/cell-groups" element={<RequireRole roles={['system_admin', 'program_admin', 'facilitator']}><ParticipantLayout><CellGroupDashboard /></ParticipantLayout></RequireRole>} />
                         <Route path="/portal/:orgSlug/dashboard/cell-groups/:meetingId" element={<RequireRole roles={['system_admin', 'program_admin', 'facilitator']}><ParticipantLayout><CellMeetingRegister /></ParticipantLayout></RequireRole>} />
-                        <Route path="/portal/:orgSlug/dashboard/cell-groups/:groupId/history" element={<RequireRole roles={['system_admin', 'program_admin', 'facilitator']}><ParticipantLayout><CellMeetingHistory /></ParticipantLayout></RequireRole>} />
                     </Routes>
                 </Router>
             </TenantProvider>

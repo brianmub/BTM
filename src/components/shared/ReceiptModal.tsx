@@ -11,10 +11,10 @@ interface ReceiptModalProps {
     onClose: () => void;
     payment: {
         receipt_number: string;
-        amount: number;
+        amount: number | string;
         payment_method: string;
         created_at: string;
-        user: { title?: string, first_name: string, surname: string };
+        user?: { title?: string, first_name: string, surname: string };
         program?: { name: string };
     };
     organization: any;
@@ -126,20 +126,25 @@ export function ReceiptModal({ isOpen, onClose, payment, organization }: Receipt
                                     <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest font-united">Amount Paid</span>
                                     <div className="text-xl font-united text-primary tracking-tighter leading-none flex items-start">
                                         <span className="text-xs mt-0.5 mr-0.5 opacity-50">$</span>
-                                        {payment.amount.toFixed(2)}
+                                        {Number(payment.amount || 0).toFixed(2)}
                                     </div>
                                 </div>
                             </div>
 
                             {/* Payer & Allocation - Single Row Grid */}
-                            <div className="grid grid-cols-2 gap-4 py-1 border-t border-slate-50">
+                             <div className="grid grid-cols-2 gap-4 py-1 border-t border-slate-50">
                                 <div className="space-y-0.5">
                                     <div className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Payer</div>
-                                    <div className="text-[10px] font-black truncate">{payment.user.title ? `${payment.user.title} ` : ''}{payment.user.first_name} {payment.user.surname}</div>
+                                    <div className="text-[10px] font-black truncate">
+                                        {payment.user?.title ? `${payment.user.title} ` : ''}
+                                        {payment.user?.first_name || 'Anonymous'} {payment.user?.surname || ''}
+                                    </div>
                                 </div>
                                 <div className="space-y-0.5 text-right">
                                     <div className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Date</div>
-                                    <div className="text-[10px] font-black">{new Date(payment.created_at).toLocaleDateString()}</div>
+                                    <div className="text-[10px] font-black">
+                                        {payment.created_at ? new Date(payment.created_at).toLocaleDateString() : new Date().toLocaleDateString()}
+                                    </div>
                                 </div>
                             </div>
                             
@@ -158,8 +163,8 @@ export function ReceiptModal({ isOpen, onClose, payment, organization }: Receipt
                                         <span className="text-[5px] font-black text-slate-400 uppercase tracking-widest">Auth_Sign</span>
                                     </div>
                                 </div>
-                                <div className="w-10 h-10 bg-white p-0.5 rounded-lg border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
-                                    <QRCodeSVG value={payment.receipt_number} size={36} level="H" includeMargin={false} />
+                                 <div className="w-10 h-10 bg-white p-0.5 rounded-lg border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+                                    <QRCodeSVG value={payment.receipt_number || 'VOID'} size={36} level="H" includeMargin={false} />
                                 </div>
                             </div>
                         </div>
@@ -195,7 +200,7 @@ export function ReceiptModal({ isOpen, onClose, payment, organization }: Receipt
             </div>
             
             {/* Print-only Global Styling - Hardened for all browsers */}
-            <style dangerouslySetInnerHTML={{ __html: `
+             <style dangerouslySetInnerHTML={{ __html: `
                 @media print {
                     @page { 
                         margin: 0; 
@@ -205,59 +210,47 @@ export function ReceiptModal({ isOpen, onClose, payment, organization }: Receipt
                         background: #fff !important;
                         margin: 0 !important;
                         padding: 0 !important;
-                        height: auto !important;
-                        width: 80mm !important;
-                        overflow: visible !important;
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
                     }
-                    body * { 
-                        visibility: hidden !important; 
-                        margin: 0 !important;
+                    /* Hide everything by default */
+                    body > * { 
+                        display: none !important; 
                     }
-                    #receipt-content, #receipt-content * { 
-                        visibility: visible !important; 
+                    /* Re-show ONLY the portal/modal container that has our receipt */
+                    body > div.fixed, body > .fixed, [role="dialog"], .print-only-container {
+                        display: block !important;
+                        background: none !important;
                     }
+                    /* Hide modal backgrounds/overlays */
+                    .backdrop-blur-xl, .bg-slate-900\/80 {
+                        display: none !important;
+                    }
+                    
                     #receipt-content {
                         position: absolute !important;
                         left: 0 !important;
                         top: 0 !important;
                         width: 80mm !important;
-                        min-height: 100% !important;
+                        display: block !important;
+                        visibility: visible !important;
                         margin: 0 !important;
                         padding: 0 !important;
                         box-shadow: none !important;
                         border: none !important;
                         background: #fff !important;
                         border-radius: 0 !important;
-                        display: block !important;
                     }
-                    .no-pdf, button, .print-hidden { 
+                    #receipt-content * {
+                        visibility: visible !important;
+                    }
+                    .no-pdf, button, .print:hidden { 
                         display: none !important; 
-                        height: 0 !important;
-                        width: 0 !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
                     }
-                    /* Force colors for thermal print reliability */
+                    /* Thermal Print Optimization */
                     .text-primary { color: #000 !important; }
                     .bg-gradient-premium { 
                         background: #000 !important; 
                         color: #fff !important; 
                         -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                    }
-                    .bg-background, .bg-surface { 
-                        background: #fff !important; 
-                        color: #000 !important;
-                    }
-                    .border-surface-border {
-                        border-color: #000 !important; /* Higher contrast for thermal */
-                        border-style: dashed !important;
-                    }
-                    * {
-                        -webkit-transition: none !important;
-                        transition: none !important;
                     }
                 }
             `}} />

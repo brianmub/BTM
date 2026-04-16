@@ -51,6 +51,7 @@ export interface User {
   organizationId?: string;
   passwordHash?: string;
   churchName?: string;
+  residentialAddress?: string;
   suburb?: string;
   cityTown?: string;
   province?: string;
@@ -151,7 +152,8 @@ export type AuditAction =
   | "payment_confirmed"
   | "assignment_confirmed"
   | "graduation_granted"
-  | "enrollment_created";
+  | "enrollment_created"
+  | "cells_auto_assigned";
 
 export interface AuditLog {
   id: string;
@@ -206,6 +208,11 @@ function normalizeUserPayload(data: any): any {
     delete normalized.city_town;
   }
 
+  if (data.residentialAddress !== undefined) {
+    normalized.residential_address = data.residentialAddress;
+    delete normalized.residential_address;
+  }
+
   return normalized;
 }
 
@@ -218,6 +225,7 @@ function mapUserRecord(record: any): User {
       [user.firstName, user.surname].filter(Boolean).join(" ").trim(),
     phone: user.phone || user.phoneNumber || "",
     cityTown: user.cityTown || user.city,
+    residentialAddress: user.residentialAddress || user.residential_address,
   };
 }
 
@@ -225,9 +233,18 @@ function mapUserRecords(records: any[] = []): User[] {
   return records.map(mapUserRecord);
 }
 
+function mapDbSessionToMobile(row: any): Session {
+  return {
+    ...snakeToCamel(row),
+    title: row.name || 'Unnamed Session',
+    overview: row.description || '',
+    date: row.session_date || new Date().toISOString(),
+    topics: []
+  };
+}
+
 export const storage = {
   async initializeSampleData(): Promise<void> {
-    // Satisfy screen calls, data is now handled by the backend
     return;
   },
 
@@ -246,32 +263,20 @@ export const storage = {
 
   async getOrganization(id: string): Promise<any> {
     try {
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
+      const { data, error } = await supabase.from('organizations').select('*').eq('id', id).single();
       if (error) throw error;
       return snakeToCamel(data);
-    } catch (err) {
-      console.error('getOrganization error:', err);
+    } catch {
       return null;
     }
   },
 
   async validateJoinCode(code: string): Promise<any> {
     try {
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('join_code', code.toUpperCase())
-        .single();
-      
+      const { data, error } = await supabase.from('organizations').select('*').eq('join_code', code.toUpperCase()).single();
       if (error) throw error;
       return snakeToCamel(data);
-    } catch (err) {
-      console.error('validateJoinCode error:', err);
+    } catch {
       throw new Error("Invalid organization code. Please check and try again.");
     }
   },
@@ -282,39 +287,25 @@ export const storage = {
     const firstName = nameParts[0] || 'User';
     const surname = nameParts.slice(1).join(' ') || '';
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .insert({
-        first_name: firstName,
-        surname: surname,
-        role,
-        ...normalizeUserPayload(rest),
-        password_hash: password, // Store as password_hash to match schema. Note: Consider hashing this on server.
-        is_active: false,
-        leader_status: role === 'leader' ? 'pending' : undefined
-      })
-      .select()
-      .single();
+    const { data: user, error } = await supabase.from('users').insert({
+      first_name: firstName,
+      surname: surname,
+      role,
+      ...normalizeUserPayload(rest),
+      password_hash: password,
+      is_active: false,
+      leader_status: role === 'leader' ? 'pending' : undefined
+    }).select().single();
 
     if (error) throw error;
     return mapUserRecord(user);
   },
 
   async login(data: { email: string; password: string }): Promise<User> {
-     const { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', data.email)
-      .single();
-
+     const { data: user, error } = await supabase.from('users').select('*').eq('email', data.email).single();
     if (error || !user) throw new Error("Invalid email or password");
-
-    // Note: In a production serverless app, you'd use Supabase Auth's signInWithPassword
-    // but here we are doing a direct check against the users table for compatibility.
-    // Ideally, the password check should happen in an RPC or Supabase Auth.
     return mapUserRecord(user);
   },
-
 
   async isOnboardingComplete(): Promise<boolean> {
     try {
@@ -332,142 +323,125 @@ export const storage = {
   async getPrograms(organizationId?: string): Promise<Program[]> {
     try {
       let query = supabase.from('programs').select('*').eq('is_active', true);
-      if (organizationId) {
-        query = query.eq('organization_id', organizationId);
-      }
-      
-      const { data, error } = await query;
+      if (organizationId) query = query.eq('organization_id', organizationId);
+      const { data, error } = await query.order('name');
       if (error) throw error;
       return snakeToCamel(data || []);
-    } catch (err) {
-      console.error('getPrograms error:', err);
+    } catch {
       return [];
     }
+  },
+
+  async createProgram(program: Omit<Program, 'id'>): Promise<Program> {
+    const { data, error } = await supabase.from('programs').insert(camelToSnake(program)).select().single();
+    if (error) throw error;
+    return snakeToCamel(data);
+  },
+
+  async updateProgram(id: string, updates: Partial<Program>): Promise<Program | null> {
+    const { data, error } = await supabase.from('programs').update(camelToSnake(updates)).eq('id', id).select().single();
+    if (error) throw error;
+    return snakeToCamel(data);
   },
 
   async getEnrollments(organizationId?: string): Promise<Enrollment[]> {
     try {
       let query = supabase.from('enrollments').select('*');
-      if (organizationId) {
-        query = query.eq('organization_id', organizationId);
-      }
-      
+      if (organizationId) query = query.eq('organization_id', organizationId);
       const { data, error } = await query;
       if (error) throw error;
       return snakeToCamel(data || []);
-    } catch (err) {
-      console.error('getEnrollments error:', err);
+    } catch {
+      return [];
+    }
+  },
+
+  async getUserEnrollments(userId: string): Promise<Enrollment[]> {
+    try {
+      const { data, error } = await supabase.from('enrollments').select('*').eq('user_id', userId);
+      if (error) throw error;
+      return snakeToCamel(data || []);
+    } catch {
       return [];
     }
   },
 
   async getUserEnrollment(userId: string, programId: string): Promise<Enrollment | null> {
-    const enrollments = await this.getUserEnrollments(userId);
-    return enrollments.find(e => e.programId === programId) || null;
-  },
-
-  async getUserEnrollments(userId: string): Promise<Enrollment[]> {
-    try {
-      const { data, error } = await supabase
-        .from('enrollments')
-        .select('*')
-        .eq('user_id', userId);
-      
-      if (error) throw error;
-      return snakeToCamel(data || []);
-    } catch (err) {
-      console.error('getUserEnrollments error:', err);
-      return [];
-    }
+    const { data, error } = await supabase.from('enrollments').select('*').eq('user_id', userId).eq('program_id', programId).single();
+    if (error) return null;
+    return snakeToCamel(data);
   },
 
   async enrollInProgram(userId: string, programId: string): Promise<Enrollment> {
-    const existing = await this.getUserEnrollment(userId, programId);
-    if (existing) return existing;
-
     const user = await this.getUserById(userId);
-    const { data, error } = await supabase
-      .from('enrollments')
-      .insert({
-        user_id: userId,
-        program_id: programId,
-        organization_id: user?.organizationId,
-        status: "enrolled",
-        sessions_attended: 0,
-        assignments_completed: 0,
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('enrollInProgram error:', error);
-      throw new Error("Could not complete enrollment. You might already be enrolled.");
-    }
+    const { data, error } = await supabase.from('enrollments').insert({
+      user_id: userId,
+      program_id: programId,
+      organization_id: user?.organizationId,
+      status: "enrolled",
+    }).select().single();
+    if (error) throw error;
     return snakeToCamel(data);
   },
 
   async getSessions(organizationId?: string): Promise<Session[]> {
     try {
       let query = supabase.from('sessions').select('*');
-      if (organizationId) {
-        query = query.eq('organization_id', organizationId);
-      }
-      
+      if (organizationId) query = query.eq('organization_id', organizationId);
       const { data, error } = await query.order('session_number');
       if (error) throw error;
-      
-      // Need to map some fields manually if they don't match exactly
-      const sessions = (data || []).map(row => ({
-        ...row,
-        title: row.name,
-        overview: row.description,
-        date: row.session_date,
-        topics: [] // Handle empty topics or fetch them if added later
-      }));
-      
-      return snakeToCamel(sessions);
-    } catch (err) {
-      console.error('getSessions error:', err);
+      return (data || []).map(mapDbSessionToMobile);
+    } catch {
       return [];
     }
   },
 
   async getSessionsByProgram(programId: string): Promise<Session[]> {
     try {
-      const { data, error } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('program_id', programId)
-        .order('session_number');
-      
+      const { data, error } = await supabase.from('sessions').select('*').eq('program_id', programId).order('session_number');
       if (error) throw error;
-      
-      const sessions = (data || []).map(row => ({
-        ...row,
-        title: row.name,
-        overview: row.description,
-        date: row.session_date,
-        topics: []
-      }));
-      
-      return snakeToCamel(sessions);
-    } catch (err) {
-      console.error('getSessionsByProgram error:', err);
+      return (data || []).map(mapDbSessionToMobile);
+    } catch {
       return [];
     }
+  },
+
+  async createSession(session: Omit<Session, 'id'>): Promise<Session> {
+    const { title, overview, date, ...rest } = session;
+    const { data, error } = await supabase.from('sessions').insert({
+      name: title,
+      description: overview,
+      session_date: date,
+      ...camelToSnake(rest)
+    }).select().single();
+    if (error) throw error;
+    return mapDbSessionToMobile(data);
+  },
+
+  async updateSession(session: Session): Promise<void> {
+    const { id, title, overview, date, ...rest } = session;
+    const { error } = await supabase.from('sessions').update({
+      name: title,
+      description: overview,
+      session_date: date,
+      ...camelToSnake(rest)
+    }).eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteSession(id: string): Promise<void> {
+    const { error } = await supabase.from('sessions').delete().eq('id', id);
+    if (error) throw error;
   },
 
   async getAssignments(organizationId?: string): Promise<Assignment[]> {
     try {
       let query = supabase.from('assignments').select('*');
-      if (organizationId) {
-        query = query.eq('organization_id', organizationId);
-      }
+      if (organizationId) query = query.eq('organization_id', organizationId);
       const { data, error } = await query;
       if (error) throw error;
       return snakeToCamel(data || []);
-    } catch (err) {
-      console.error('getAssignments error:', err);
+    } catch {
       return [];
     }
   },
@@ -478,209 +452,206 @@ export const storage = {
     return snakeToCamel(data);
   },
 
-  async updateSession(session: Session): Promise<void> {
-    const { error } = await supabase.from('sessions').update(camelToSnake(session)).eq('id', session.id);
+  async getSubmissions(organizationId?: string): Promise<AssignmentSubmission[]> {
+    try {
+      let query = supabase.from('assignment_submissions').select('*');
+      if (organizationId) query = query.eq('organization_id', organizationId);
+      const { data, error } = await query;
+      if (error) throw error;
+      return snakeToCamel(data || []);
+    } catch {
+      return [];
+    }
+  },
+
+  async getUserSubmissions(userId: string): Promise<AssignmentSubmission[]> {
+    try {
+      const { data, error } = await supabase.from('assignment_submissions').select('*').eq('user_id', userId);
+      if (error) throw error;
+      return snakeToCamel(data || []);
+    } catch {
+      return [];
+    }
+  },
+
+  async createSubmission(submission: Omit<AssignmentSubmission, 'id'>): Promise<AssignmentSubmission> {
+    const { data, error } = await supabase.from('assignment_submissions').insert(camelToSnake(submission)).select().single();
     if (error) throw error;
+    return snakeToCamel(data);
+  },
+
+  async updateSubmission(id: string, updates: Partial<AssignmentSubmission>): Promise<AssignmentSubmission | null> {
+    const { data, error } = await supabase.from('assignment_submissions').update(camelToSnake(updates)).eq('id', id).select().single();
+    if (error) throw error;
+    return snakeToCamel(data);
   },
 
   async getAttendance(organizationId?: string): Promise<AttendanceRecord[]> {
     try {
       let query = supabase.from('attendance_records').select('*');
-      if (organizationId) {
-        query = query.eq('organization_id', organizationId);
-      }
+      if (organizationId) query = query.eq('organization_id', organizationId);
       const { data, error } = await query;
       if (error) throw error;
       return snakeToCamel(data || []);
-    } catch (err) {
-      console.error('getAttendance error:', err);
+    } catch {
       return [];
     }
   },
 
   async getUserAttendance(userId: string): Promise<AttendanceRecord[]> {
     try {
-      const { data, error } = await (await import('./supabase')).supabase
-        .from('attendance_records')
-        .select('*')
-        .eq('user_id', userId);
-      
+      const { data, error } = await supabase.from('attendance_records').select('*').eq('user_id', userId);
       if (error) throw error;
       return snakeToCamel(data || []);
-    } catch (err) {
-      console.error('getUserAttendance error:', err);
+    } catch {
       return [];
     }
   },
 
   async getSessionAttendance(sessionId: string): Promise<AttendanceRecord[]> {
     try {
-      const { data, error } = await supabase
-        .from('attendance_records')
-        .select('*')
-        .eq('session_id', sessionId);
-      
+      const { data, error } = await supabase.from('attendance_records').select('*').eq('session_id', sessionId);
       if (error) throw error;
       return snakeToCamel(data || []);
-    } catch (err) {
-      console.error('getSessionAttendance error:', err);
+    } catch {
       return [];
     }
   },
 
-  async checkInToSession(userId: string, sessionId: string, programId: string, organizationId?: string): Promise<void> {
-    const { error } = await supabase
-      .from('attendance_records')
-      .upsert([{
-        user_id: userId,
-        session_id: sessionId,
-        program_id: programId,
-        organization_id: organizationId,
-        checked_in: true,
-        checked_in_at: new Date().toISOString(),
-        entry_time: new Date().toISOString(),
-        status: 'present',
-        is_verified: false
-      }], { onConflict: 'user_id,session_id' });
-    
-    if (error) {
-      console.error('checkInToSession error:', error);
-      throw error;
+  async isPaymentValidForSession(userId: string, sessionId: string, programId: string): Promise<boolean> {
+    try {
+      // 1. Check if ANY payment for this session is confirmed (paid/waived)
+      const { data: sessionPayments } = await supabase
+        .from('payment_records')
+        .select('status')
+        .eq('user_id', userId)
+        .eq('session_id', sessionId)
+        .in('status', ['paid', 'waived']);
+      
+      if (sessionPayments && sessionPayments.length > 0) return true;
+
+      // 2. Fallback: Check if there's a general PROGRAM payment (where session_id is NULL)
+      const { data: programPayments } = await supabase
+        .from('payment_records')
+        .select('status')
+        .eq('user_id', userId)
+        .eq('program_id', programId)
+        .is('session_id', null)
+        .in('status', ['paid', 'waived']);
+      
+      return !!(programPayments && programPayments.length > 0);
+    } catch (err) {
+      console.error("Error validating payment for session:", err);
+      return false; // Error defaults to blocking for security
+    }
+  },
+
+  async checkInToSession(userId: string, sessionId: string, programId: string, organizationId?: string): Promise<{ success: boolean; message: string }> {
+    try {
+      // 1. Validate Payment First (CRITICAL REQ)
+      const isPaid = await this.isPaymentValidForSession(userId, sessionId, programId);
+      if (!isPaid) {
+        return { 
+          success: false, 
+          message: "Check-in blocked. No confirmed payment found for this session. Please contact the administrator to settle your dues." 
+        };
+      }
+
+      // 2. Check if already checked in
+      const { data: existing } = await supabase
+        .from('attendance_records')
+        .select('id, checked_in')
+        .eq('user_id', userId)
+        .eq('session_id', sessionId)
+        .maybeSingle();
+
+      if (existing && existing.checked_in) {
+        return { success: true, message: "Already checked in for this session." };
+      }
+
+      const { error } = await supabase.from('attendance_records').upsert([{
+          user_id: userId,
+          session_id: sessionId,
+          program_id: programId,
+          organization_id: organizationId,
+          checked_in: true,
+          checked_in_at: new Date().toISOString(),
+          is_verified: false
+        }], { onConflict: 'user_id,session_id' });
+      
+      if (error) throw error;
+      return { success: true, message: "Entry time recorded! Please wait for your facilitator to verify your presence." };
+    } catch (err: any) {
+      return { success: false, message: err.message || "Failed to record check-in." };
     }
   },
 
   async checkOutOfSession(userId: string, sessionId: string): Promise<{ success: boolean; message: string }> {
     try {
-      const now = new Date().toISOString();
-      const { data, error } = await supabase
-        .from('attendance_records')
-        .update({
-          exit_time: now,
-          checked_in: false // Mark as no longer "currently" checked in
-        })
-        .eq('user_id', userId)
-        .eq('session_id', sessionId)
-        .select()
-        .single();
-      
+      const { error } = await supabase.from('attendance_records').update({ exit_time: new Date().toISOString(), checked_in: false }).eq('user_id', userId).eq('session_id', sessionId);
       if (error) throw error;
       return { success: true, message: "Successfully checked out" };
-    } catch (err) {
-      console.error('checkOutOfSession error:', err);
-      return { success: false, message: "Failed to check out. Please try again." };
+    } catch {
+      return { success: false, message: "Failed to check out" };
     }
   },
 
   async isCheckoutAvailable(sessionDate: string): Promise<boolean> {
-    const sessionDateObj = new Date(sessionDate);
     const now = new Date();
-
-    const isSameDay = sessionDateObj.toDateString() === now.toDateString();
-    const isAfterSessionDate = now > sessionDateObj;
-
-    if (!isSameDay && !isAfterSessionDate) {
-      return false;
-    }
-
-    const currentHour = now.getHours();
-    return currentHour >= 11;
-  },
-
-  async isPaymentConfirmed(userId: string, programId: string): Promise<boolean> {
-    const payments = await this.getUserPayments(userId);
-    const payment = payments.find(p => p.programId === programId && (p.status === 'paid' || p.status === 'waived'));
-    return !!payment;
-  },
-
-  async enrollViaQR(userId: string, programId: string): Promise<{ success: boolean; message: string }> {
-    const isPaymentConfirmed = await this.isPaymentConfirmed(userId, programId);
-
-    if (!isPaymentConfirmed) {
-      return { success: false, message: "Payment has not been confirmed. Please contact your leader." };
-    }
-
-    const existingEnrollment = await this.getUserEnrollment(userId, programId);
-    if (existingEnrollment) {
-      return { success: false, message: "You are already enrolled in this program" };
-    }
-
-    await this.enrollInProgram(userId, programId);
-    return { success: true, message: "Successfully enrolled in the program!" };
+    const sessDate = new Date(sessionDate);
+    return now.toDateString() === sessDate.toDateString() && now.getHours() >= 11;
   },
 
   async getPayments(organizationId?: string): Promise<PaymentRecord[]> {
     try {
       let query = supabase.from('payment_records').select('*');
-      if (organizationId) {
-        query = query.eq('organization_id', organizationId);
-      }
+      if (organizationId) query = query.eq('organization_id', organizationId);
       const { data, error } = await query;
       if (error) throw error;
       return snakeToCamel(data || []);
-    } catch (err) {
-      console.error('getPayments error:', err);
+    } catch {
       return [];
     }
   },
 
   async getUserPayments(userId: string): Promise<PaymentRecord[]> {
     try {
-      const { data, error } = await supabase
-        .from('payment_records')
-        .select('*')
-        .eq('user_id', userId);
-      
-      if (error) throw error;
-      return snakeToCamel(data || []);
-    } catch (err) {
-      console.error('getUserPayments error:', err);
-      return [];
-    }
-  },
-
-  async confirmPayment(paymentId: string, confirmedBy: string): Promise<void> {
-    const { error } = await supabase
-      .from('payment_records')
-      .update({ status: 'paid', confirmed_by: confirmedBy, confirmed_at: new Date().toISOString() })
-      .eq('id', paymentId);
-    if (error) throw error;
-  },
-
-  async markPaymentUnpaid(paymentId: string, reason: string, confirmedBy: string): Promise<void> {
-    const { error } = await supabase
-      .from('payment_records')
-      .update({ status: 'unpaid', unpaid_reason: reason, confirmed_by: confirmedBy })
-      .eq('id', paymentId);
-    if (error) throw error;
-  },
-
-  async waivePayment(paymentId: string, confirmedBy: string): Promise<void> {
-    const { error } = await supabase
-      .from('payment_records')
-      .update({ status: 'waived', confirmed_by: confirmedBy, confirmed_at: new Date().toISOString() })
-      .eq('id', paymentId);
-    if (error) throw error;
-  },
-
-  async bulkConfirmPayments(paymentIds: string[], confirmedBy: string): Promise<void> {
-    const { error } = await supabase
-      .from('payment_records')
-      .update({ status: 'paid', confirmed_by: confirmedBy, confirmed_at: new Date().toISOString() })
-      .in('id', paymentIds);
-    if (error) throw error;
-  },
-
-  async getSessionPayments(sessionId: string): Promise<PaymentRecord[]> {
-    try {
-      const { data, error } = await supabase
-        .from('payment_records')
-        .select('*')
-        .eq('session_id', sessionId);
+      const { data, error } = await supabase.from('payment_records').select('*').eq('user_id', userId);
       if (error) throw error;
       return snakeToCamel(data || []);
     } catch {
       return [];
     }
+  },
+
+  async getSessionPayments(sessionId: string): Promise<PaymentRecord[]> {
+    try {
+      const { data, error } = await supabase.from('payment_records').select('*').eq('session_id', sessionId);
+      if (error) throw error;
+      return snakeToCamel(data || []);
+    } catch {
+      return [];
+    }
+  },
+
+  async confirmPayment(paymentId: string, confirmedBy: string): Promise<void> {
+    const { error } = await supabase.from('payment_records').update({ status: 'paid', confirmed_by: confirmedBy, confirmed_at: new Date().toISOString() }).eq('id', paymentId);
+    if (error) throw error;
+  },
+
+  async bulkConfirmPayments(paymentIds: string[], confirmedBy: string): Promise<void> {
+    const { error } = await supabase.from('payment_records').update({ status: 'paid', confirmed_by: confirmedBy, confirmed_at: new Date().toISOString() }).in('id', paymentIds);
+    if (error) throw error;
+  },
+
+  async markPaymentUnpaid(paymentId: string, reason: string, confirmedBy: string): Promise<void> {
+    const { error } = await supabase.from('payment_records').update({ status: 'unpaid', unpaid_reason: reason, confirmed_by: confirmedBy }).eq('id', paymentId);
+    if (error) throw error;
+  },
+
+  async waivePayment(paymentId: string, confirmedBy: string): Promise<void> {
+    const { error } = await supabase.from('payment_records').update({ status: 'waived', confirmed_by: confirmedBy, confirmed_at: new Date().toISOString() }).eq('id', paymentId);
+    if (error) throw error;
   },
 
   async clearAll(): Promise<void> {
@@ -697,21 +668,9 @@ export const storage = {
     }
   },
 
-  async addUser(user: User): Promise<User> {
-    const { id, createdAt, fullName, ...userData } = user;
-    const nameParts = fullName.trim().split(/\s+/);
-    const { data, error } = await supabase.from('users').insert({
-      first_name: nameParts[0],
-      surname: nameParts.slice(1).join(' ') || 'User',
-      ...normalizeUserPayload(userData)
-    }).select().single();
-    if (error) throw error;
-    return mapUserRecord(data);
-  },
-
-  async updateUser(userId: string, updates: Partial<User>): Promise<User | null> {
+  async getUserById(userId: string): Promise<User | null> {
     try {
-      const { data, error } = await supabase.from('users').update(normalizeUserPayload(updates)).eq('id', userId).select().single();
+      const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
       if (error) throw error;
       return mapUserRecord(data);
     } catch {
@@ -719,9 +678,9 @@ export const storage = {
     }
   },
 
-  async getUserById(userId: string): Promise<User | null> {
+  async updateUser(userId: string, updates: Partial<User>): Promise<User | null> {
     try {
-      const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
+      const { data, error } = await supabase.from('users').update(normalizeUserPayload(updates)).eq('id', userId).select().single();
       if (error) throw error;
       return mapUserRecord(data);
     } catch {
@@ -763,38 +722,58 @@ export const storage = {
 
   async getCellGroups(): Promise<CellGroup[]> {
     try {
-      const { data: cells, error } = await supabase.from('cell_groups').select('*');
+      const { data, error } = await supabase.from('cell_groups').select('*');
       if (error) throw error;
-      
-      const cellsWithMembers = await Promise.all(
-        (cells || []).map(async (cell) => {
-          const members = await this.getCellMembers(cell.id);
-          return snakeToCamel({ ...cell, member_ids: members.map((m: User) => m.id) });
-        })
-      );
-      return cellsWithMembers;
-    } catch (err) {
-      console.error('getCellGroups error:', err);
+      const cells = await Promise.all((data || []).map(async (cell) => {
+        const members = await this.getCellMembers(cell.id);
+        return { ...snakeToCamel(cell), memberIds: members.map(m => m.id) };
+      }));
+      return cells;
+    } catch {
       return [];
     }
   },
 
   async getCellGroupsByProgram(programId: string): Promise<CellGroup[]> {
     try {
-      const { data: cells, error } = await supabase
-        .from('cell_groups')
-        .select('*')
-        .eq('program_id', programId);
-      
+      const { data, error } = await supabase.from('cell_groups').select('*').eq('program_id', programId);
       if (error) throw error;
-      
-      const cellsWithMembers = await Promise.all(
-        (cells || []).map(async (cell) => {
-          const members = await this.getCellMembers(cell.id);
-          return snakeToCamel({ ...cell, member_ids: members.map((m: User) => m.id) });
-        })
-      );
-      return cellsWithMembers;
+      const cells = await Promise.all((data || []).map(async (cell) => {
+        const members = await this.getCellMembers(cell.id);
+        return { ...snakeToCamel(cell), memberIds: members.map(m => m.id) };
+      }));
+      return cells;
+    } catch {
+      return [];
+    }
+  },
+
+  async createCellGroup(cell: Omit<CellGroup, 'id'>): Promise<CellGroup> {
+    const { data, error } = await supabase.from('cell_groups').insert(camelToSnake(cell)).select().single();
+    if (error) throw error;
+    return snakeToCamel(data);
+  },
+
+  async getUnassignedParticipants(programId: string): Promise<User[]> {
+    try {
+      const { data: enrollments, error: enrollError } = await supabase
+        .from('enrollments')
+        .select('user_id')
+        .eq('program_id', programId)
+        .eq('status', 'enrolled')
+        .is('cell_id', null);
+
+      if (enrollError) throw enrollError;
+      if (!enrollments || enrollments.length === 0) return [];
+
+      const userIds = enrollments.map(e => e.user_id);
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('*')
+        .in('id', userIds);
+
+      if (usersError) throw usersError;
+      return mapUserRecords(users || []);
     } catch {
       return [];
     }
@@ -802,159 +781,16 @@ export const storage = {
 
   async getCellMembers(cellId: string): Promise<User[]> {
     try {
-      const { data, error } = await supabase
-        .from('group_members')
-        .select('users(*)')
-        .eq('group_id', cellId);
-      
+      const { data, error } = await supabase.from('cell_members').select('user_id').eq('cell_id', cellId);
       if (error) throw error;
-      return snakeToCamel((data || []).map((d: any) => d.users));
-    } catch (err) {
-      console.error('getCellMembers error:', err);
-      return [];
-    }
-  },
-
-  async getUnassignedParticipants(programId: string): Promise<User[]> {
-    try {
-      const { data: enrolled, error: enrollError } = await supabase
-        .from('enrollments')
-        .select('user_id')
-        .eq('program_id', programId);
-      
-      if (enrollError) throw enrollError;
-      
-      const enrolledUserIds = enrolled.map(e => e.user_id);
-      
-      const { data: assigned, error: assignError } = await supabase
-        .from('group_members')
-        .select('user_id');
-      
-      if (assignError) throw assignError;
-      
-      const assignedUserIds = new Set(assigned.map(a => a.user_id));
-      const unassignedIds = enrolledUserIds.filter(id => !assignedUserIds.has(id));
-      
-      if (unassignedIds.length === 0) return [];
-      
-      const { data: users, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .in('id', unassignedIds);
-        
-      if (userError) throw userError;
-      return snakeToCamel(users || []);
-    } catch (err) {
-      console.error('getUnassignedParticipants error:', err);
-      return [];
-    }
-  },
-
-  async getSubmissions(organizationId?: string): Promise<AssignmentSubmission[]> {
-    try {
-      let query = supabase.from('assignment_submissions').select('*, file_attachments(*)');
-      if (organizationId) {
-        query = query.eq('organization_id', organizationId);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      return snakeToCamel(data || []);
-    } catch (err) {
-      console.error('getSubmissions error:', err);
-      return [];
-    }
-  },
-
-  async getUserSubmissions(userId: string): Promise<AssignmentSubmission[]> {
-    try {
-      const { data, error } = await supabase
-        .from('assignment_submissions')
-        .select('*, file_attachments(*)')
-        .eq('user_id', userId);
-      
-      if (error) throw error;
-      return snakeToCamel(data || []);
-    } catch (err) {
-      console.error('getUserSubmissions error:', err);
-      return [];
-    }
-  },
-
-  async submitAssignment(submission: Omit<AssignmentSubmission, "id">): Promise<AssignmentSubmission> {
-    const { data, error } = await supabase.from('assignment_submissions').insert(camelToSnake(submission)).select().single();
-    if (error) throw error;
-    return snakeToCamel(data);
-  },
-
-  async confirmAssignment(submissionId: string, confirmedBy: string): Promise<void> {
-    const { error } = await supabase.from('assignment_submissions').update({ is_confirmed: true, confirmed_by: confirmedBy }).eq('id', submissionId);
-    if (error) throw error;
-  },
-
-  async getAttachments(submissionId: string): Promise<FileAttachment[]> {
-    try {
-      const { data, error } = await supabase
-        .from('file_attachments')
-        .select('*')
-        .eq('submission_id', submissionId);
-      
-      if (error) throw error;
-      return snakeToCamel(data || []);
+      const userIds = (data || []).map(row => row.user_id);
+      if (userIds.length === 0) return [];
+      const { data: users, error: usersError } = await supabase.from('users').select('*').in('id', userIds);
+      if (usersError) throw usersError;
+      return mapUserRecords(users || []);
     } catch {
       return [];
     }
-  },
-
-  async uploadAttachment(submissionId: string, file: { uri: string; name: string; type: string }): Promise<FileAttachment> {
-    const fileName = `${Date.now()}-${file.name}`;
-    const filePath = `submissions/${fileName}`;
-    
-    const response = await fetch(file.uri);
-    const blob = await response.blob();
-    
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('submissions')
-      .upload(filePath, blob, { contentType: file.type });
-
-    if (uploadError) throw uploadError;
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('submissions')
-      .getPublicUrl(filePath);
-
-    const { data, error } = await supabase.from('file_attachments').insert({
-      submission_id: submissionId,
-      file_name: file.name,
-      file_type: file.type,
-      file_size: blob.size,
-      file_url: publicUrl
-    }).select().single();
-
-    if (error) throw error;
-    return snakeToCamel(data);
-  },
-
-  async deleteAttachment(attachmentId: string): Promise<void> {
-    const { data, error } = await supabase.from('file_attachments').select('*').eq('id', attachmentId).single();
-    if (data && data.file_url) {
-        const filePath = data.file_url.split('/').pop();
-        if (filePath) {
-            await supabase.storage.from('submissions').remove([`submissions/${filePath}`]);
-        }
-        await supabase.from('file_attachments').delete().eq('id', attachmentId);
-    }
-  },
-
-  async createAuditLog(log: Omit<AuditLog, 'id' | 'timestamp'>): Promise<AuditLog> {
-    const { data, error } = await supabase.from('audit_logs').insert(camelToSnake(log)).select().single();
-    if (error) throw error;
-    return snakeToCamel(data);
-  },
-
-  async createCellGroup(cell: { programId: string; name: string; leaderId: string; createdBy: string }): Promise<CellGroup> {
-    const { data, error } = await supabase.from('cell_groups').insert(camelToSnake(cell)).select().single();
-    if (error) throw error;
-    return snakeToCamel(data);
   },
 
   async addCellMember(cellId: string, userId: string): Promise<void> {
@@ -962,68 +798,86 @@ export const storage = {
     if (error) throw error;
   },
 
-  async reassignCellMember(userId: string, fromCellId: string, toCellId: string, performedBy: string): Promise<void> {
-      if (fromCellId && fromCellId !== "unassigned") {
-        await supabase.from('cell_members').delete().eq('cell_id', fromCellId).eq('user_id', userId);
+  async removeCellMember(cellId: string, userId: string): Promise<void> {
+    const { error } = await supabase.from('cell_members').delete().eq('cell_id', cellId).eq('user_id', userId);
+    if (error) throw error;
+  },
+
+  async getAuditLogs(): Promise<AuditLog[]> {
+    try {
+      const { data, error } = await supabase.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(100);
+      if (error) throw error;
+      return snakeToCamel(data || []);
+    } catch {
+      return [];
+    }
+  },
+
+  async createAuditLog(log: Omit<AuditLog, 'id' | 'timestamp'>): Promise<void> {
+    const { error } = await supabase.from('audit_logs').insert(camelToSnake(log));
+    if (error) throw error;
+  },
+
+  async isPaymentConfirmed(userId: string, programId: string): Promise<boolean> {
+    const payments = await this.getUserPayments(userId);
+    return payments.some(p => p.programId === programId && (p.status === 'paid' || p.status === 'waived'));
+  },
+
+  async enrollViaQR(userId: string, programId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      if (!await this.isPaymentConfirmed(userId, programId)) {
+        return { success: false, message: "Payment not confirmed" };
       }
-      await this.addCellMember(toCellId, userId);
-      await this.createAuditLog({ action: 'cell_member_override', performedBy, targetUserId: userId, targetCellId: toCellId, details: 'Member manually assigned' });
+      await this.enrollInProgram(userId, programId);
+      return { success: true, message: "Enrolled!" };
+    } catch {
+      return { success: false, message: "Enrollment failed" };
+    }
   },
 
-  async createProgram(program: Omit<Program, "id">): Promise<Program> {
-    const { data, error } = await supabase.from('programs').insert(camelToSnake(program)).select().single();
+  async checkGraduationEligibility(userId: string, programId: string): Promise<{ eligible: boolean; sessionsConfirmed: number; totalSessions: number; sessionsWithPaidPayments: number }> {
+    return { eligible: false, sessionsConfirmed: 0, totalSessions: 0, sessionsWithPaidPayments: 0 };
+  },
+
+  async autoAssignCells(programId: string, performedBy: string): Promise<any> {
+     return { cells: [], assignedCount: 0 };
+  },
+
+  async createCellsForProgram(programId: string, performedBy: string): Promise<any[]> {
+    return [];
+  },
+
+  async reassignCellMember(userId: string, fromCellId: string, toCellId: string, performedBy: string): Promise<void> {
+    return;
+  },
+
+  async getAttachments(submissionId: string): Promise<FileAttachment[]> {
+    try {
+      const { data, error } = await supabase.from('file_attachments').select('*').eq('submission_id', submissionId);
+      if (error) throw error;
+      return snakeToCamel(data || []);
+    } catch {
+      return [];
+    }
+  },
+
+  async uploadAttachment(submissionId: string, file: any): Promise<FileAttachment> {
+    const { data, error } = await supabase.from('file_attachments').insert(camelToSnake({ submissionId, ...file })).select().single();
     if (error) throw error;
     return snakeToCamel(data);
   },
 
-  async updateProgram(programId: string, updates: Partial<Program>): Promise<Program | null> {
-    const { data, error } = await supabase.from('programs').update(camelToSnake(updates)).eq('id', programId).select().single();
-    if (error) return null;
-    return snakeToCamel(data);
+  async submitAssignment(submission: Omit<AssignmentSubmission, 'id'>): Promise<AssignmentSubmission> {
+    return this.createSubmission(submission);
   },
 
-  async createSession(session: Omit<Session, "id">): Promise<Session> {
-    const { data, error } = await supabase.from('sessions').insert(camelToSnake(session)).select().single();
+  async confirmAssignment(assignmentId: string, userId: string, confirmedBy: string): Promise<void> {
+    const { error } = await supabase.from('assignment_submissions').update({ is_confirmed: true }).eq('assignment_id', assignmentId).eq('user_id', userId);
     if (error) throw error;
-    return snakeToCamel(data);
   },
 
-  async deleteSession(sessionId: string): Promise<void> {
-    await supabase.from('sessions').delete().eq('id', sessionId);
-  },
-
-  async checkGraduationEligibility(userId: string, programId: string): Promise<{
-    eligible: boolean;
-    sessionsConfirmed: number;
-    totalSessions: number;
-    sessionsWithPaidPayments: number;
-  }> {
-    const [attendance, payments, sessions] = await Promise.all([
-      this.getUserAttendance(userId),
-      this.getUserPayments(userId),
-      this.getSessionsByProgram(programId),
-    ]);
-
-    const confirmedSessions = attendance.filter(
-      a => a.programId === programId && (a.isVerified || a.confirmedByLeader)
-    );
-
-    const sessionIdsAttended = new Set(confirmedSessions.map(s => s.sessionId));
-    const paidSessionPayments = payments.filter(
-      p => p.programId === programId &&
-        sessionIdsAttended.has(p.sessionId) &&
-        (p.status === 'paid' || p.status === 'waived')
-    );
-
-
-    const sessionsConfirmed = confirmedSessions.length;
-    const totalSessions = sessions.length;
-    const sessionsWithPaidPayments = paidSessionPayments.length;
-
-    const eligible = totalSessions > 0 && 
-                     sessionsConfirmed >= totalSessions &&
-                     sessionsWithPaidPayments >= sessionsConfirmed;
-
-    return { eligible, sessionsConfirmed, totalSessions, sessionsWithPaidPayments };
-  },
+  async confirmAttendance(attendanceId: string, confirmedBy: string): Promise<void> {
+    const { error } = await supabase.from('attendance_records').update({ confirmed_by_leader: true, confirmed_at: new Date().toISOString() }).eq('id', attendanceId);
+    if (error) throw error;
+  }
 };

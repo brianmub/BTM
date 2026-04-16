@@ -1,21 +1,8 @@
-import React, { useState, useEffect, createContext } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, createContext } from 'react';
 import { supabase } from '@/services/supabase';
 import { User } from '@supabase/supabase-js';
 
-export interface AuthContextType {
-    user: User | null;
-    profile: any | null;
-    profiles: any[];
-    loading: boolean;
-    refreshProfile: () => Promise<void>;
-    signOut: () => Promise<void>;
-    impersonateUser: (profile: any) => void;
-    stopImpersonating: () => void;
-    isImpersonating: boolean;
-    originalProfile: any | null;
-}
-
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext, AuthContextType } from './AuthContextObject';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
@@ -24,7 +11,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [impersonatingProfile, setImpersonatingProfile] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchProfile = async (userId: string) => {
+    const fetchProfile = useCallback(async (userId: string) => {
         console.log('AuthContext: fetchProfile starting for', userId);
         try {
             const { data, error } = await supabase
@@ -46,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (err) {
             console.error('AuthContext: fetchProfile exception:', err);
         }
-    };
+    }, [supabase]);
 
     useEffect(() => {
         let mounted = true;
@@ -108,38 +95,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
     }, []);
 
-    const signOut = async () => {
+    const signOut = useCallback(async () => {
         await supabase.auth.signOut();
         setUser(null);
         setProfile(null);
         setProfiles([]);
-    };
+    }, []);
 
-    const refreshProfile = async () => {
+    const refreshProfile = useCallback(async () => {
         if (user) await fetchProfile(user.id);
-    };
+    }, [user, fetchProfile]);
 
-    const impersonateUser = (targetProfile: any) => {
+    const impersonateUser = useCallback((targetProfile: any) => {
         setImpersonatingProfile(targetProfile);
-    };
+    }, []);
 
-    const stopImpersonating = () => {
+    const stopImpersonating = useCallback(() => {
         setImpersonatingProfile(null);
-    };
+    }, []);
+
+    const contextValue = useMemo(() => ({
+        user,
+        profile: impersonatingProfile || profile,
+        profiles,
+        loading,
+        refreshProfile,
+        signOut,
+        impersonateUser,
+        stopImpersonating,
+        isImpersonating: !!impersonatingProfile,
+        originalProfile: profile
+    }), [
+        user, 
+        impersonatingProfile, 
+        profile, 
+        profiles, 
+        loading, 
+        refreshProfile, 
+        signOut, 
+        impersonateUser, 
+        stopImpersonating
+    ]);
 
     return (
-        <AuthContext.Provider value={{
-            user,
-            profile: impersonatingProfile || profile,
-            profiles,
-            loading,
-            refreshProfile,
-            signOut,
-            impersonateUser,
-            stopImpersonating,
-            isImpersonating: !!impersonatingProfile,
-            originalProfile: profile
-        }}>
+        <AuthContext.Provider value={contextValue}>
             {loading ? (
                 <div className="fixed inset-0 bg-slate-950 flex items-center justify-center z-[100] text-white">
                     <div className="flex flex-col items-center gap-6">

@@ -33,6 +33,18 @@ export default function AdminParticipantsScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const calculateAge = (dob: string | undefined) => {
+    if (!dob) return null;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const loadData = useCallback(async () => {
     const [users, enrollments, attendance, programs] = await Promise.all([
       storage.getAllUsers(),
@@ -103,7 +115,13 @@ export default function AdminParticipantsScreen() {
             </ThemedText>
           </View>
           <View style={styles.info}>
-            <ThemedText type="h4">{item.user.fullName}</ThemedText>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ThemedText type="h4">{item.user.fullName}</ThemedText>
+              <ThemedText type="small" style={{ color: theme.link, fontWeight: '700', marginLeft: Spacing.sm }}>
+                {calculateAge(item.user.dob) ? `${calculateAge(item.user.dob)}Y` : ''} 
+                {item.user.gender ? ` | ${item.user.gender.toUpperCase()}` : ''}
+              </ThemedText>
+            </View>
             <ThemedText type="small" style={{ color: theme.textSecondary }}>
               {item.user.email}
             </ThemedText>

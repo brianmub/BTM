@@ -144,11 +144,7 @@ export default function QRScannerScreen({ navigation, route }: Props) {
           if (!checkinSessionId || !checkinProgramId || !user.organizationId) {
             response = { success: false, message: "Invalid check-in QR: Missing session or organization data" };
           } else {
-            await storage.checkInToSession(user.id, checkinSessionId, checkinProgramId, user.organizationId);
-            response = { 
-              success: true, 
-              message: "Entry time recorded! Please wait for your facilitator to verify your presence in the digital register." 
-            };
+            response = await storage.checkInToSession(user.id, checkinSessionId, checkinProgramId, user.organizationId);
           }
           break;
 

@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { GlassBox } from '@/components/ui/Card';
 import {
-    Loader2, Users, CalendarPlus, History, ClipboardList,
+    Loader2, Users, CalendarPlus, ClipboardList,
     Calendar, X, MapPin, Clock, Plus, UsersRound, CheckCircle2, UserPlus, Trash2, Search, Settings, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -287,33 +287,13 @@ export function CellGroupDashboard() {
                                 </div>
 
                                 <div className="flex flex-col gap-3">
-                                    <div className="flex gap-3">
-                                        {group.open_meeting_id ? (
-                                            <Button
-                                                variant="premium"
-                                                className="flex-1 h-11 text-[10px] font-black uppercase tracking-widest"
-                                                onClick={() => navigate(`${basePath}/${group.open_meeting_id}`)}
-                                            >
-                                                <ClipboardList className="w-4 h-4 mr-2" />
-                                                Resume Register
-                                            </Button>
-                                        ) : (
-                                            <Button
-                                                variant="ghost"
-                                                className="w-full text-primary h-10 text-[9px] font-black uppercase tracking-widest hover:bg-primary/5"
-                                                onClick={() => setManageGroup(group)}
-                                            >
-                                                <UsersRound className="w-4 h-4 mr-2" /> Manage Members
-                                            </Button>
-                                        )}
                                         <Button
-                                            variant="outline"
-                                            className="h-11 px-4 border-surface-border bg-background text-[10px] font-black uppercase tracking-widest"
-                                            onClick={() => navigate(`${basePath}/${group.id}/history`)}
+                                            variant="ghost"
+                                            className="w-full text-primary h-10 text-[9px] font-black uppercase tracking-widest hover:bg-primary/5"
+                                            onClick={() => setManageGroup(group)}
                                         >
-                                            <History className="w-4 h-4" />
+                                            <UsersRound className="w-4 h-4 mr-2" /> Manage Members
                                         </Button>
-                                    </div>
 
 
                                 </div>
@@ -389,13 +369,25 @@ function ManageMembersModal({ group, onClose, onSave }: { group: CellGroup, onCl
         fetchMembers();
     }, []);
 
+    const calculateAge = (dob: string | null) => {
+        if (!dob) return null;
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    };
+
     const fetchMembers = async () => {
         setLoading(true);
         try {
             // 1. Get current members of THIS group
             const { data: currentMembers } = await supabase
                 .from('group_members')
-                .select(`id, user_id, users (id, first_name, surname, email)`)
+                .select(`id, user_id, users (id, first_name, surname, email, dob, gender)`)
                 .eq('group_id', group.id);
 
             setMembers(currentMembers || []);
@@ -403,7 +395,7 @@ function ManageMembersModal({ group, onClose, onSave }: { group: CellGroup, onCl
             // 2. Get ALL participants in the organization
             const { data: allUsers } = await supabase
                 .from('users')
-                .select('id, first_name, surname, email, role')
+                .select('id, first_name, surname, email, role, dob, gender')
                 .eq('organization_id', organization!.id)
                 .eq('role', 'participant');
 
@@ -527,7 +519,13 @@ function ManageMembersModal({ group, onClose, onSave }: { group: CellGroup, onCl
                                             {(m.users?.first_name?.[0] || '') + (m.users?.surname?.[0] || '')}
                                         </div>
                                         <div className="flex-1">
-                                            <p className="text-xs font-black text-foreground uppercase">{m.users?.first_name} {m.users?.surname}</p>
+                                            <p className="text-xs font-black text-foreground uppercase">
+                                                {m.users?.first_name} {m.users?.surname}
+                                                <span className="ml-2 text-[9px] text-primary/60 font-black">
+                                                    {calculateAge(m.users?.dob) ? `${calculateAge(m.users?.dob)}Y` : ''} 
+                                                    {m.users?.gender ? ` | ${m.users.gender.toUpperCase()}` : ''}
+                                                </span>
+                                            </p>
                                             <p className="text-[9px] font-black text-slate-600 truncate">{m.users?.email}</p>
                                         </div>
                                         <Button variant="ghost" size="sm" className="text-rose-400 hover:text-rose-300 h-8 px-2" onClick={() => removeFromGroup(m.id)}>
@@ -587,6 +585,16 @@ function ManageMembersModal({ group, onClose, onSave }: { group: CellGroup, onCl
                                                     <p className={`text-[11px] font-black uppercase truncate ${isAlreadyInGroup ? 'text-slate-500 line-through' : 'text-foreground'}`}>
                                                         {u.first_name} {u.surname}
                                                     </p>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md ${isAlreadyInGroup ? 'bg-slate-500/10 text-slate-500' : 'bg-primary/10 text-primary'}`}>
+                                                            {calculateAge(u.dob) !== null ? `Age: ${calculateAge(u.dob)}` : 'Age: N/A'}
+                                                        </span>
+                                                        {u.gender && (
+                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                                • {u.gender}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     {isAlreadyInGroup && (
                                                         <p className="text-[8px] font-black text-rose-400 uppercase tracking-widest leading-none mt-0.5">
                                                             Already in: {u.alreadyInGroup}

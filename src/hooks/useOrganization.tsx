@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { TenantContext } from '@/context/TenantContext';
+import { TenantContext } from '@/context/TenantContextObject';
 
 export { TenantProvider } from '@/context/TenantContext';
 

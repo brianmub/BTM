@@ -176,6 +176,8 @@ export function CellMeetingRegister() {
 
         if (!member) {
             setScanResult({ success: false, name: 'Unknown participant' });
+        } else if (member.attendance_status === 'present') {
+            setScanResult({ success: true, name: `${member.first_name} ${member.surname} (Already recorded)` });
         } else {
             await markAttendance(userId, 'present', 'qr');
             setScanResult({ success: true, name: `${member.first_name} ${member.surname}` });

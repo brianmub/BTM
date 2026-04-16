@@ -179,6 +179,17 @@ export default function ProfileScreen() {
         </View>
         <View style={[styles.infoRow, { borderTopColor: theme.border, borderTopWidth: 1 }]}>
           <View style={[styles.infoIcon, { backgroundColor: theme.backgroundSecondary }]}>
+            <Feather name="map" size={16} color={theme.textSecondary} />
+          </View>
+          <View style={styles.infoContent}>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              Address
+            </ThemedText>
+            <ThemedText type="body">{user?.residentialAddress || "-"}</ThemedText>
+          </View>
+        </View>
+        <View style={[styles.infoRow, { borderTopColor: theme.border, borderTopWidth: 1 }]}>
+          <View style={[styles.infoIcon, { backgroundColor: theme.backgroundSecondary }]}>
             <Feather name="globe" size={16} color={theme.textSecondary} />
           </View>
           <View style={styles.infoContent}>

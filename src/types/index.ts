@@ -43,7 +43,16 @@ export interface UserProfile {
     surname: string;
     middle_name?: string;
     salutation?: string;
+    gender?: 'male' | 'female';
+    marital_status?: 'single' | 'married' | 'widowed' | 'divorced';
+    dob?: string;
     phone_number?: string;
+    church_name?: string;
+    residential_address?: string;
+    suburb?: string;
+    city_town?: string;
+    province?: string;
+    country?: string;
     profile_photo_url?: string;
     is_active: boolean;
     created_at: string;

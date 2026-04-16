@@ -8,6 +8,7 @@ import {
     ScrollView,
     Pressable,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -39,11 +40,13 @@ export default function SignupScreen({ navigation }: Props) {
     const [gender, setGender] = useState<"male" | "female" | null>(null);
     const [maritalStatus, setMaritalStatus] = useState<"married" | "unmarried" | null>(null);
     const [role, setRole] = useState<UserRole | null>(null);
+    const [residentialAddress, setResidentialAddress] = useState("");
+    const [showDatePicker, setShowDatePicker] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSignup = async () => {
-        if (!fullName.trim() || !phone.trim() || !email.trim() || !dob.trim() || !password) {
+        if (!fullName.trim() || !phone.trim() || !email.trim() || !dob.trim() || !password || !residentialAddress.trim()) {
             error("Please fill in all fields");
             return;
         }
@@ -65,6 +68,7 @@ export default function SignupScreen({ navigation }: Props) {
                 phone: phone.trim(),
                 email: email.trim(),
                 dob: dob.trim(),
+                residentialAddress: residentialAddress.trim(),
                 password,
                 gender,
                 maritalStatus,
@@ -179,12 +183,41 @@ export default function SignupScreen({ navigation }: Props) {
                     />
 
                     <ThemedText type="h4" style={styles.label}>Date of Birth</ThemedText>
+                    <Pressable
+                        onPress={() => setShowDatePicker(true)}
+                        style={[
+                            styles.input,
+                            { backgroundColor: theme.backgroundSecondary, borderColor: theme.border, justifyContent: 'center' },
+                        ]}
+                    >
+                        <ThemedText style={{ color: dob ? theme.text : theme.textSecondary }}>
+                            {dob || "YYYY-MM-DD"}
+                        </ThemedText>
+                    </Pressable>
+                    {showDatePicker && (
+                        <DateTimePicker
+                            value={dob ? new Date(dob) : new Date(2000, 0, 1)}
+                            mode="date"
+                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                            onChange={(event, selectedDate) => {
+                                setShowDatePicker(Platform.OS === 'ios');
+                                if (selectedDate) {
+                                    const year = selectedDate.getFullYear();
+                                    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                                    const day = String(selectedDate.getDate()).padStart(2, '0');
+                                    setDob(`${year}-${month}-${day}`);
+                                }
+                            }}
+                            maximumDate={new Date()}
+                        />
+                    )}
+
+                    <ThemedText type="h4" style={styles.label}>Residential Address</ThemedText>
                     <TextInput
-                        value={dob}
-                        onChangeText={setDob}
-                        placeholder="YYYY-MM-DD"
+                        value={residentialAddress}
+                        onChangeText={setResidentialAddress}
+                        placeholder="House number, street name"
                         placeholderTextColor={theme.textSecondary}
-                        keyboardType="numbers-and-punctuation"
                         style={[
                             styles.input,
                             { backgroundColor: theme.backgroundSecondary, color: theme.text, borderColor: theme.border },

@@ -81,7 +81,10 @@ export const profileService = {
         return data;
     },
 
-    async getAttendanceLogs(organizationId: string, limit: number = 100) {
+    async getAttendanceLogs(organizationId: string, page: number = 0, pageSize: number = 20) {
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+
         const { data, error } = await supabase
             .from('attendance_records')
             .select(`
@@ -103,7 +106,7 @@ export const profileService = {
             `)
             .eq('organization_id', organizationId)
             .order('checked_in_at', { ascending: false })
-            .limit(limit);
+            .range(from, to);
 
         if (error) throw error;
 

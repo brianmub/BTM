@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { View, StyleSheet, TextInput, Pressable, ActivityIndicator } from "react-native";
+import { View, StyleSheet, TextInput, Pressable, ActivityIndicator, Platform } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
@@ -55,6 +56,7 @@ interface FormData {
   gender: Gender | null;
   maritalStatus: MaritalStatus | null;
   churchName: string;
+  residentialAddress: string;
   suburb: string;
   cityTown: string;
   province: string;
@@ -115,11 +117,13 @@ export default function RegistrationScreen({ navigation, route }: Props) {
     gender: authUser?.gender || null,
     maritalStatus: authUser?.maritalStatus || null,
     churchName: authUser?.churchName || "",
+    residentialAddress: authUser?.residentialAddress || "",
     suburb: authUser?.suburb || "",
     cityTown: authUser?.cityTown || "",
     province: authUser?.province || "",
     country: authUser?.country || "Zimbabwe",
   });
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [churchSearch, setChurchSearch] = useState("");
   const [showChurchDropdown, setShowChurchDropdown] = useState(false);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
@@ -142,6 +146,7 @@ export default function RegistrationScreen({ navigation, route }: Props) {
     gender: "Gender",
     maritalStatus: "Marital status",
     churchName: "Church / ministry",
+    residentialAddress: "Residential address",
     suburb: "Suburb",
     cityTown: "City / town",
     province: "Province",
@@ -158,6 +163,7 @@ export default function RegistrationScreen({ navigation, route }: Props) {
     "gender",
     "maritalStatus",
     "churchName",
+    "residentialAddress",
     "suburb",
     "cityTown",
     "province",
@@ -186,6 +192,7 @@ export default function RegistrationScreen({ navigation, route }: Props) {
     form.gender !== null &&
     form.maritalStatus !== null &&
     form.churchName.trim().length > 0 &&
+    form.residentialAddress.trim().length > 0 &&
     form.suburb.trim().length > 0 &&
     form.cityTown.trim().length > 0 &&
     form.province.trim().length > 0 &&
@@ -270,6 +277,7 @@ export default function RegistrationScreen({ navigation, route }: Props) {
         role: role,
         organizationId: route.params.organizationId,
         churchName: form.churchName.trim(),
+        residentialAddress: form.residentialAddress.trim(),
         suburb: form.suburb.trim(),
         cityTown: form.cityTown.trim(),
         province: form.province.trim(),
@@ -453,28 +461,60 @@ export default function RegistrationScreen({ navigation, route }: Props) {
             <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>
               Date of Birth
             </ThemedText>
-            <TextInput
-              style={[styles.input, getInputStyle("dob")]}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={theme.textSecondary}
-              value={form.dob}
-              onChangeText={(text) => setForm({ ...form, dob: text })}
-              onFocus={() => setFocusedField("dob")}
-              onBlur={() => {
-                setFocusedField(null);
-                markTouched("dob");
-              }}
-              keyboardType="numbers-and-punctuation"
-            />
+            <Pressable
+              onPress={() => setShowDatePicker(true)}
+              style={[styles.input, getInputStyle("dob"), { justifyContent: 'center' }]}
+            >
+              <ThemedText style={{ color: form.dob ? theme.text : theme.textSecondary }}>
+                {form.dob || "Select your date of birth"}
+              </ThemedText>
+            </Pressable>
+            {showDatePicker && (
+              <DateTimePicker
+                value={form.dob ? new Date(form.dob) : new Date(2000, 0, 1)}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(Platform.OS === 'ios');
+                  if (selectedDate) {
+                    const year = selectedDate.getFullYear();
+                    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(selectedDate.getDate()).padStart(2, '0');
+                    setForm({ ...form, dob: `${year}-${month}-${day}` });
+                    markTouched("dob");
+                  }
+                }}
+                maximumDate={new Date()}
+              />
+            )}
             {getFieldHint("dob") ? (
               <ThemedText type="small" style={[styles.helperText, { color: theme.warning }]}>
                 {getFieldHint("dob")}
               </ThemedText>
-            ) : (
+            ) : null}
+          </Animated.View>
+
+          <Animated.View entering={FadeInUp.delay(258).duration(500)} style={[styles.inputCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>
+              Residential Address
+            </ThemedText>
+            <TextInput
+              style={[styles.input, getInputStyle("residentialAddress")]}
+              placeholder="House number, street name"
+              placeholderTextColor={theme.textSecondary}
+              value={form.residentialAddress}
+              onChangeText={(text) => setForm({ ...form, residentialAddress: text })}
+              onFocus={() => setFocusedField("residentialAddress")}
+              onBlur={() => {
+                setFocusedField(null);
+                markTouched("residentialAddress");
+              }}
+            />
+            {getFieldHint("residentialAddress") ? (
               <ThemedText type="small" style={[styles.helperText, { color: theme.textSecondary }]}>
-                Example: 1998-08-24
+                {getFieldHint("residentialAddress")}
               </ThemedText>
-            )}
+            ) : null}
           </Animated.View>
 
           <Animated.View entering={FadeInUp.delay(260).duration(500)} style={[styles.inputCard, { zIndex: 10, backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
@@ -860,8 +900,8 @@ export default function RegistrationScreen({ navigation, route }: Props) {
             )}
           </Button>
         </Animated.View>
-      </KeyboardAwareScrollViewCompat>
-    </View>
+      </KeyboardAwareScrollViewCompat >
+    </View >
   );
 }
 

@@ -15,6 +15,9 @@ interface Participant {
     surname: string;
     email: string;
     role: string;
+    dob?: string;
+    church_name?: string;
+    residential_address?: string;
     enrollments: any[];
 }
 
@@ -46,7 +49,7 @@ export function EnrollmentManager() {
             // 1. Get ALL Users in Organization
             const { data: usersData, error: usersError } = await supabase
                 .from('users')
-                .select('id, first_name, surname, email, role')
+                .select('id, first_name, surname, email, role, dob, church_name, residential_address')
                 .eq('organization_id', organization!.id);
 
             if (usersError) throw usersError;
@@ -87,6 +90,22 @@ export function EnrollmentManager() {
             console.error('Error fetching participant data:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const calculateAge = (dob: string | null) => {
+        if (!dob) return null;
+        try {
+            const birthDate = new Date(dob);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            return age;
+        } catch (e) {
+            return null;
         }
     };
 
@@ -156,6 +175,7 @@ export function EnrollmentManager() {
                             <thead>
                                 <tr className="border-b border-surface-border">
                                     <th className="text-left py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Participant</th>
+                                    <th className="text-left py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Biodata</th>
                                     <th className="text-left py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Programs</th>
                                     <th className="text-center py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Role</th>
                                     <th className="text-right py-4 px-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Actions</th>
@@ -174,6 +194,21 @@ export function EnrollmentManager() {
                                                     <p className="text-[13px] font-black text-foreground uppercase tracking-tight leading-none mb-1">{p.first_name} {p.surname}</p>
                                                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{p.email}</p>
                                                 </div>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-2">
+                                            <div className="flex flex-col gap-1.5">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-black text-foreground uppercase tracking-widest">
+                                                        {calculateAge(p.dob) !== null ? `Age: ${calculateAge(p.dob)}` : 'Age: N/A'}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">
+                                                        • {p.church_name || 'No Church'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.1em] max-w-[140px] truncate" title={p.residential_address}>
+                                                    {p.residential_address || 'Address N/A'}
+                                                </p>
                                             </div>
                                         </td>
                                         <td className="py-4 px-2">
@@ -474,204 +509,5 @@ function ReceivePaymentModal({ enrollment, profile, onClose, onSuccess }: { enro
         </div>
     );
 }
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
-走
+
   
