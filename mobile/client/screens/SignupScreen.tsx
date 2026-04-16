@@ -38,7 +38,7 @@ export default function SignupScreen({ navigation }: Props) {
     const [dob, setDob] = useState("");
     const [password, setPassword] = useState("");
     const [gender, setGender] = useState<"male" | "female" | null>(null);
-    const [maritalStatus, setMaritalStatus] = useState<"married" | "unmarried" | null>(null);
+    const [maritalStatus, setMaritalStatus] = useState<"single" | "married" | "divorced" | "widowed" | null>(null);
     const [role, setRole] = useState<UserRole | null>(null);
     const [residentialAddress, setResidentialAddress] = useState("");
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -258,8 +258,12 @@ export default function SignupScreen({ navigation }: Props) {
 
                     <ThemedText type="h4" style={styles.label}>Marital Status</ThemedText>
                     <View style={styles.optionsRow}>
+                        {renderOptionButton("Single", maritalStatus === "single", "user", () => setMaritalStatus("single"))}
                         {renderOptionButton("Married", maritalStatus === "married", "heart", () => setMaritalStatus("married"))}
-                        {renderOptionButton("Unmarried", maritalStatus === "unmarried", "user", () => setMaritalStatus("unmarried"))}
+                    </View>
+                    <View style={styles.optionsRow}>
+                        {renderOptionButton("Divorced", maritalStatus === "divorced", "users", () => setMaritalStatus("divorced"))}
+                        {renderOptionButton("Widowed", maritalStatus === "widowed", "user-minus", () => setMaritalStatus("widowed"))}
                     </View>
 
                     <ThemedText type="h4" style={styles.label}>Role</ThemedText>

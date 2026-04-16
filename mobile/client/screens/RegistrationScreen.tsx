@@ -1,15 +1,25 @@
-import React, { useMemo, useState } from "react";
-import { View, StyleSheet, TextInput, Pressable, ActivityIndicator, Platform } from "react-native";
+import React, { useMemo, useRef, useState } from "react";
+import {
+  View,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  KeyboardAvoidingView,
+  Modal,
+  FlatList,
+} from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
-import Animated, { FadeInUp } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp, FadeIn, useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 
 import { useToast } from "@/contexts/ToastContext";
-import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -17,81 +27,116 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { OnboardingStackParamList } from "@/navigation/OnboardingStackNavigator";
 import { UserRole, Gender, MaritalStatus } from "@/lib/storage";
+import { storage as dataStorage } from "@/lib/storage";
 import { ZIM_CHURCHES } from "@/constants/churches";
 
-const ZIM_PROVINCES = [
-  "Bulawayo",
-  "Harare",
-  "Manicaland",
-  "Mashonaland Central",
-  "Mashonaland East",
-  "Mashonaland West",
-  "Masvingo",
-  "Matabeleland North",
-  "Matabeleland South",
-  "Midlands"
+// ─── Country Codes ───────────────────────────────────────────────────────────
+const COUNTRY_CODES = [
+  { flag: "🇿🇼", code: "+263", country: "Zimbabwe" },
+  { flag: "🇿🇦", code: "+27",  country: "South Africa" },
+  { flag: "🇿🇲", code: "+260", country: "Zambia" },
+  { flag: "🇧🇼", code: "+267", country: "Botswana" },
+  { flag: "🇲🇿", code: "+258", country: "Mozambique" },
+  { flag: "🇳🇦", code: "+264", country: "Namibia" },
+  { flag: "🇹🇿", code: "+255", country: "Tanzania" },
+  { flag: "🇰🇪", code: "+254", country: "Kenya" },
+  { flag: "🇳🇬", code: "+234", country: "Nigeria" },
+  { flag: "🇬🇧", code: "+44",  country: "United Kingdom" },
+  { flag: "🇺🇸", code: "+1",   country: "United States" },
+  { flag: "🇦🇺", code: "+61",  country: "Australia" },
+  { flag: "🇨🇦", code: "+1",   country: "Canada" },
+  { flag: "🇩🇪", code: "+49",  country: "Germany" },
+  { flag: "🇫🇷", code: "+33",  country: "France" },
+  { flag: "🇮🇳", code: "+91",  country: "India" },
+  { flag: "🇨🇳", code: "+86",  country: "China" },
+  { flag: "🇧🇷", code: "+55",  country: "Brazil" },
+  { flag: "🇦🇪", code: "+971", country: "UAE" },
+  { flag: "🇸🇬", code: "+65",  country: "Singapore" },
 ];
 
-const ZIM_CITIES = [
-  "Harare", "Bulawayo", "Chitungwiza", "Mutare", "Epworth", "Gweru",
-  "Kwekwe", "Kadoma", "Masvingo", "Chinhoyi", "Norton", "Marondera",
-  "Ruwa", "Chegutu", "Zvishavane", "Bindura", "Beitbridge", "Redcliff",
-  "Victoria Falls", "Hwange", "Gwanda", "Kariba", "Karoi", "Gokwe"
+// ─── Countries list for Step 3 ───────────────────────────────────────────────
+const COUNTRIES = [
+  "Zimbabwe", "South Africa", "Zambia", "Botswana", "Mozambique",
+  "Namibia", "Tanzania", "Kenya", "Nigeria", "Ghana", "Uganda",
+  "Rwanda", "Ethiopia", "Malawi", "Eswatini", "Lesotho",
+  "United Kingdom", "United States", "Australia", "Canada",
+  "Germany", "France", "Netherlands", "New Zealand", "India",
+  "China", "UAE", "Singapore", "Brazil", "Portugal",
 ];
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 type Props = {
   navigation: NativeStackNavigationProp<OnboardingStackParamList, "Registration">;
   route: RouteProp<OnboardingStackParamList, "Registration">;
 };
 
-import { storage as dataStorage } from "@/lib/storage";
-
 interface FormData {
   fullName: string;
-  phone: string;
   email: string;
-  dob: string;
   password: string;
   confirmPassword: string;
+  dob: string;
   gender: Gender | null;
   maritalStatus: MaritalStatus | null;
   churchName: string;
+  countryCode: string;
+  phone: string;
   residentialAddress: string;
   suburb: string;
   cityTown: string;
-  province: string;
   country: string;
 }
 
 type FieldKey = keyof FormData;
 
-function SelectButton({
+// ─── Password strength ────────────────────────────────────────────────────────
+function getPasswordStrength(pw: string): { label: string; color: string; pct: number } {
+  if (!pw) return { label: "", color: "#2A2A2A", pct: 0 };
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  if (score <= 1) return { label: "Weak", color: "#DA291C", pct: 20 };
+  if (score === 2) return { label: "Fair", color: "#F59E0B", pct: 45 };
+  if (score === 3) return { label: "Good", color: "#3B82F6", pct: 68 };
+  return { label: "Strong", color: "#22C55E", pct: 100 };
+}
+
+// ─── Tap-friendly option button ───────────────────────────────────────────────
+function OptionButton({
   label,
+  icon,
   isSelected,
   onPress,
 }: {
   label: string;
+  icon?: string;
   isSelected: boolean;
   onPress: () => void;
 }) {
   const { theme } = useTheme();
-
   return (
     <Pressable
       onPress={onPress}
       style={[
-        styles.selectButton,
+        styles.optionBtn,
         {
-          backgroundColor: isSelected ? theme.primary : "transparent",
-          borderColor: isSelected ? theme.primary : theme.border,
+          backgroundColor: isSelected ? "#DA291C" : theme.backgroundSecondary,
+          borderColor: isSelected ? "#DA291C" : theme.border,
         },
       ]}
     >
+      {icon ? (
+        <ThemedText style={{ fontSize: 18, marginBottom: 4 }}>{icon}</ThemedText>
+      ) : null}
       <ThemedText
-        type="body"
+        type="small"
         style={{
-          color: "#FFFFFF",
-          fontWeight: isSelected ? "600" : "400",
+          color: isSelected ? "#FFFFFF" : theme.textSecondary,
+          fontWeight: isSelected ? "700" : "500",
+          textAlign: "center",
         }}
       >
         {label}
@@ -100,165 +145,206 @@ function SelectButton({
   );
 }
 
+// ─── Field wrapper ────────────────────────────────────────────────────────────
+function FieldCard({
+  label,
+  required,
+  error,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string | null;
+  children: React.ReactNode;
+}) {
+  const { theme } = useTheme();
+  return (
+    <View style={styles.fieldCard}>
+      <View style={styles.labelRow}>
+        <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          {label}
+        </ThemedText>
+        {required && (
+          <ThemedText style={[styles.requiredDot, { color: "#DA291C" }]}> *</ThemedText>
+        )}
+      </View>
+      {children}
+      {error ? (
+        <Animated.View entering={FadeInDown.duration(200)} style={styles.errorRow}>
+          <Feather name="alert-circle" size={12} color="#DA291C" />
+          <ThemedText style={[styles.errorText, { color: "#DA291C" }]}>{error}</ThemedText>
+        </Animated.View>
+      ) : null}
+    </View>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function RegistrationScreen({ navigation, route }: Props) {
   const { role } = route.params;
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { login, user: authUser } = useAuth();
-  const { error, success } = useToast();
+  const { error: toastError, success: toastSuccess } = useToast();
+
+  const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showCountryCodePicker, setShowCountryCodePicker] = useState(false);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [showChurchDropdown, setShowChurchDropdown] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
+  const [churchSearch, setChurchSearch] = useState("");
+  const [touched, setTouched] = useState<Partial<Record<FieldKey, boolean>>>({});
+  const [attemptedNext, setAttemptedNext] = useState(false);
+
+  const scrollRef = useRef<ScrollView>(null);
+
   const [form, setForm] = useState<FormData>({
     fullName: authUser?.fullName || "",
-    phone: authUser?.phone || "",
     email: authUser?.email || "",
-    dob: authUser?.dob || "",
     password: "",
     confirmPassword: "",
+    dob: authUser?.dob || "",
     gender: authUser?.gender || null,
     maritalStatus: authUser?.maritalStatus || null,
     churchName: authUser?.churchName || "",
+    countryCode: "+263",
+    phone: authUser?.phone || "",
     residentialAddress: authUser?.residentialAddress || "",
     suburb: authUser?.suburb || "",
     cityTown: authUser?.cityTown || "",
-    province: authUser?.province || "",
     country: authUser?.country || "Zimbabwe",
   });
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [churchSearch, setChurchSearch] = useState("");
-  const [showChurchDropdown, setShowChurchDropdown] = useState(false);
-  const [showCityDropdown, setShowCityDropdown] = useState(false);
-  const [citySearch, setCitySearch] = useState("");
-  const [showProvinceDropdown, setShowProvinceDropdown] = useState(false);
-  const [provinceSearch, setProvinceSearch] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [focusedField, setFocusedField] = useState<FieldKey | null>(null);
-  const [touchedFields, setTouchedFields] = useState<Partial<Record<FieldKey, boolean>>>({});
-  const [submitAttempted, setSubmitAttempted] = useState(false);
 
-  const requiredFieldLabels: Record<FieldKey, string> = {
-    fullName: "Full name",
-    phone: "Phone number",
-    email: "Email address",
-    dob: "Date of birth",
-    password: "Password",
-    confirmPassword: "Confirm password",
-    gender: "Gender",
-    maritalStatus: "Marital status",
-    churchName: "Church / ministry",
-    residentialAddress: "Residential address",
-    suburb: "Suburb",
-    cityTown: "City / town",
-    province: "Province",
-    country: "Country",
+  const update = (key: FieldKey, value: any) => setForm((f) => ({ ...f, [key]: value }));
+  const touch = (key: FieldKey) => setTouched((t) => ({ ...t, [key]: true }));
+
+  // ── Validation ──────────────────────────────────────────────────────────────
+  const emailValid = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+
+  const fieldError = (key: FieldKey): string | null => {
+    const shouldShow = touched[key] || attemptedNext;
+    if (!shouldShow) return null;
+    const v = form[key];
+    switch (key) {
+      case "fullName":
+        return !String(v).trim() ? "Full name is required." : null;
+      case "email":
+        if (!String(v).trim()) return "Email address is required.";
+        if (!emailValid(String(v))) return "Enter a valid email address.";
+        return null;
+      case "password":
+        if (!String(v)) return "Password is required.";
+        if (String(v).length < 6) return "Password must be at least 6 characters.";
+        return null;
+      case "confirmPassword":
+        if (!String(v)) return "Please confirm your password.";
+        if (String(v) !== form.password) return "Passwords do not match.";
+        return null;
+      case "dob":
+        return !String(v) ? "Date of birth is required." : null;
+      case "gender":
+        return v === null ? "Please select your gender." : null;
+      case "maritalStatus":
+        return v === null ? "Please select marital status." : null;
+      case "churchName":
+        return !String(v).trim() ? "Church or Ministry name is required." : null;
+      case "phone":
+        return !String(v).trim() ? "Phone number is required." : null;
+      case "residentialAddress":
+        return !String(v).trim() ? "Residential address is required." : null;
+      case "suburb":
+        return !String(v).trim() ? "Suburb is required." : null;
+      case "cityTown":
+        return !String(v).trim() ? "City / Town is required." : null;
+      case "country":
+        return !String(v).trim() ? "Country is required." : null;
+      default:
+        return null;
+    }
   };
 
-  const requiredFields: FieldKey[] = [
-    "fullName",
-    "phone",
-    "email",
-    "dob",
-    "password",
-    "confirmPassword",
-    "gender",
-    "maritalStatus",
-    "churchName",
-    "residentialAddress",
-    "suburb",
-    "cityTown",
-    "province",
-    "country",
-  ];
+  const step1Fields: FieldKey[] = ["fullName", "email", "password", "confirmPassword"];
+  const step2Fields: FieldKey[] = ["dob", "gender", "maritalStatus", "churchName", "phone"];
+  const step3Fields: FieldKey[] = ["residentialAddress", "suburb", "cityTown", "country"];
 
-  const completedRequiredFields = useMemo(
-    () =>
-      requiredFields.filter((field) => {
-        const value = form[field];
-        if (typeof value === "string") {
-          return value.trim().length > 0;
-        }
-        return value !== null;
-      }).length,
-    [form],
-  );
-
-  const isFormValid =
-    form.fullName.trim().length > 0 &&
-    form.phone.trim().length > 0 &&
-    form.email.trim().length > 0 &&
-    form.dob.trim().length > 0 &&
+  const isStep1Valid =
+    !!form.fullName.trim() &&
+    emailValid(form.email) &&
     form.password.length >= 6 &&
-    form.password === form.confirmPassword &&
+    form.password === form.confirmPassword;
+
+  const isStep2Valid =
+    !!form.dob &&
     form.gender !== null &&
     form.maritalStatus !== null &&
-    form.churchName.trim().length > 0 &&
-    form.residentialAddress.trim().length > 0 &&
-    form.suburb.trim().length > 0 &&
-    form.cityTown.trim().length > 0 &&
-    form.province.trim().length > 0 &&
-    form.country.trim().length > 0;
+    !!form.churchName.trim() &&
+    !!form.phone.trim();
 
-  const markTouched = (field: FieldKey) => {
-    setTouchedFields((current) => ({ ...current, [field]: true }));
+  const isStep3Valid =
+    !!form.residentialAddress.trim() &&
+    !!form.suburb.trim() &&
+    !!form.cityTown.trim() &&
+    !!form.country.trim();
+
+  // ── Progress ────────────────────────────────────────────────────────────────
+  const totalFields = [...step1Fields, ...step2Fields, ...step3Fields];
+  const completedCount = useMemo(() => {
+    return totalFields.filter((k) => {
+      const v = form[k];
+      if (v === null) return false;
+      return String(v).trim().length > 0;
+    }).length;
+  }, [form]);
+
+  const progressPct = (completedCount / totalFields.length) * 100;
+
+  // ── Navigation between steps ─────────────────────────────────────────────────
+  const goNext = () => {
+    setAttemptedNext(true);
+    const currentFields = step === 1 ? step1Fields : step === 2 ? step2Fields : step3Fields;
+    // touch all current step fields
+    setTouched((t) => {
+      const next = { ...t };
+      currentFields.forEach((k) => { next[k] = true; });
+      return next;
+    });
+
+    const valid = step === 1 ? isStep1Valid : step === 2 ? isStep2Valid : isStep3Valid;
+    if (!valid) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      return;
+    }
+    Haptics.selectionAsync();
+    setAttemptedNext(false);
+    setStep((s) => s + 1);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
-  const isFieldInvalid = (field: FieldKey): boolean => {
-    const value = form[field];
-
-    switch (field) {
-      case "email":
-        return typeof value === "string" && value.trim().length > 0 && !value.includes("@");
-      case "dob":
-        return typeof value === "string" && value.trim().length > 0 && !/^\d{4}-\d{2}-\d{2}$/.test(value.trim());
-      case "password":
-        return typeof value === "string" && value.length > 0 && value.length < 6;
-      case "confirmPassword":
-        return typeof value === "string" && value.length > 0 && value !== form.password;
-      default:
-        if (typeof value === "string") {
-          return value.trim().length === 0;
-        }
-        return value === null;
+  const goBack = () => {
+    if (step === 1) {
+      navigation.goBack();
+    } else {
+      setStep((s) => s - 1);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
     }
   };
 
-  const shouldShowFieldHint = (field: FieldKey) =>
-    (submitAttempted || touchedFields[field]) && isFieldInvalid(field);
-
-  const getFieldHint = (field: FieldKey): string | null => {
-    if (!shouldShowFieldHint(field)) {
-      return null;
-    }
-
-    switch (field) {
-      case "email":
-        return "Use a valid email address so your account can be recovered later.";
-      case "dob":
-        return "Enter your birth date in YYYY-MM-DD format.";
-      case "password":
-        return "Choose a password with at least 6 characters.";
-      case "confirmPassword":
-        return "The password confirmation needs to match exactly.";
-      default:
-        return `${requiredFieldLabels[field]} is required.`;
-    }
-  };
-
-  const getInputStyle = (field: FieldKey) => ({
-    borderColor: focusedField === field ? theme.gold : theme.border,
-    backgroundColor: focusedField === field ? "rgba(255, 215, 0, 0.08)" : theme.backgroundSecondary,
-    color: theme.text,
-  });
-
+  // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
-    setSubmitAttempted(true);
-    if (!isFormValid) {
-      const firstMissingField = requiredFields.find((field) => isFieldInvalid(field));
-      error(
-        firstMissingField
-          ? `${requiredFieldLabels[firstMissingField]} still needs attention.`
-          : "Please fill in all required fields.",
-      );
+    setAttemptedNext(true);
+    setTouched((t) => {
+      const next = { ...t };
+      step3Fields.forEach((k) => { next[k] = true; });
+      return next;
+    });
+
+    if (!isStep3Valid) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
 
@@ -266,11 +352,12 @@ export default function RegistrationScreen({ navigation, route }: Props) {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     try {
+      const fullPhone = `${form.countryCode}${form.phone.trim()}`;
       const createdUser = await dataStorage.signup({
         fullName: form.fullName.trim(),
-        phone: form.phone.trim(),
+        phone: fullPhone,
         email: form.email.trim(),
-        dob: form.dob.trim(),
+        dob: form.dob,
         password: form.password,
         gender: form.gender!,
         maritalStatus: form.maritalStatus!,
@@ -280,768 +367,916 @@ export default function RegistrationScreen({ navigation, route }: Props) {
         residentialAddress: form.residentialAddress.trim(),
         suburb: form.suburb.trim(),
         cityTown: form.cityTown.trim(),
-        province: form.province.trim(),
+        province: "",
         country: form.country.trim(),
       });
 
-      success("Registration successful!");
-
-      // Mark onboarding complete on the backend & update the user object
       const updatedUser = { ...createdUser, isOnboardingComplete: true };
       await dataStorage.updateUser(createdUser.id, { isOnboardingComplete: true });
       await dataStorage.setUser(updatedUser);
 
-      // Log in with the already-complete user so completeOnboarding isn't needed
-      await login(updatedUser);
+      setShowSuccess(true);
+
+      setTimeout(async () => {
+        toastSuccess("Welcome! Registration successful 🎉");
+        await login(updatedUser);
+      }, 2200);
     } catch (err: any) {
       console.error("Registration error:", err);
-      error(err?.message || "Failed to create your account.");
+      toastError(err?.message || "Failed to create your account.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  // ── Strength bar ─────────────────────────────────────────────────────────────
+  const strength = getPasswordStrength(form.password);
 
-  const getRoleTitle = (r: UserRole): string => {
-    switch (r) {
-      case "participant":
-        return "Participant";
-      case "leader":
-        return "Cell Leader";
-      case "facilitator":
-        return "Facilitator";
-      default:
-        return "Participant";
-    }
-  };
+  // ── Filtered countries ───────────────────────────────────────────────────────
+  const filteredCountries = COUNTRIES.filter((c) =>
+    c.toLowerCase().includes(countrySearch.toLowerCase())
+  );
 
-  const getRoleIcon = (r: UserRole): keyof typeof Feather.glyphMap => {
-    switch (r) {
-      case "participant":
-        return "user";
-      case "leader":
-        return "users";
-      case "facilitator":
-        return "edit-3";
-      default:
-        return "user";
-    }
-  };
+  // ── Selected country code obj ─────────────────────────────────────────────────
+  const selectedCC = COUNTRY_CODES.find((c) => c.code === form.countryCode) || COUNTRY_CODES[0];
 
-  return (
-    <View style={styles.container}>
-      <KeyboardAwareScrollViewCompat
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.xl },
-        ]}
-      >
-        <Animated.View entering={FadeInUp.delay(50).duration(500)}>
-          <View style={styles.header}>
-            <Pressable
-              onPress={() => navigation.goBack()}
-              style={[styles.backButton, { backgroundColor: theme.backgroundSecondary }]}
-            >
-              <Feather name="arrow-left" size={24} color={theme.text} />
-            </Pressable>
-            <ThemedText type="h2" style={{ color: theme.text }}>
-              Register
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SUCCESS SCREEN
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (showSuccess) {
+    return (
+      <View style={[styles.successScreen, { backgroundColor: "#0D0D0D" }]}>
+        <Animated.View entering={FadeIn.duration(600)} style={styles.successContent}>
+          <Animated.View entering={FadeInDown.delay(200).duration(600)} style={[styles.successCircle, { backgroundColor: "rgba(34,197,94,0.15)" }]}>
+            <Feather name="check" size={56} color="#22C55E" />
+          </Animated.View>
+          <Animated.View entering={FadeInDown.delay(400).duration(600)}>
+            <ThemedText type="h1" style={[styles.successTitle, { color: "#FFFFFF" }]}>
+              You're In! 🎉
             </ThemedText>
-            <View style={styles.placeholder} />
-          </View>
+            <ThemedText type="body" style={[styles.successSub, { color: "#A0A0A0" }]}>
+              Your account has been created successfully.{"\n"}Welcome to the family!
+            </ThemedText>
+          </Animated.View>
+          <Animated.View entering={FadeInDown.delay(600).duration(600)}>
+            <ActivityIndicator color="#DA291C" size="large" style={{ marginTop: 32 }} />
+            <ThemedText type="small" style={{ color: "#A0A0A0", textAlign: "center", marginTop: 12 }}>
+              Taking you in…
+            </ThemedText>
+          </Animated.View>
         </Animated.View>
+      </View>
+    );
+  }
 
-        <Animated.View entering={FadeInUp.delay(90).duration(500)} style={[styles.introCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-          <View style={styles.introTopRow}>
-            <View style={[styles.rolePill, { backgroundColor: "rgba(255, 215, 0, 0.10)", borderColor: "rgba(255, 215, 0, 0.24)" }]}>
-              <Feather name={getRoleIcon(role)} size={14} color={theme.gold} />
-              <ThemedText type="small" style={{ color: theme.text, fontWeight: "700" }}>
-                {getRoleTitle(role)}
-              </ThemedText>
-            </View>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
-              {completedRequiredFields}/{requiredFields.length} complete
-            </ThemedText>
-          </View>
+  // ─────────────────────────────────────────────────────────────────────────────
+  // MAIN FORM
+  // ─────────────────────────────────────────────────────────────────────────────
+  return (
+    <KeyboardAvoidingView
+      style={[styles.root, { backgroundColor: "#0D0D0D" }]}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+    >
+      {/* ── Header ── */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <Pressable onPress={goBack} style={[styles.backBtn, { backgroundColor: theme.backgroundSecondary }]}>
+          <Feather name="arrow-left" size={22} color={theme.text} />
+        </Pressable>
+        <View style={styles.headerCenter}>
           <ThemedText type="h4" style={{ color: theme.text }}>
-            Tell us a little about you
+            {step === 1 ? "Account Details" : step === 2 ? "Personal Info" : "Location"}
           </ThemedText>
           <ThemedText type="small" style={{ color: theme.textSecondary }}>
-            Fill in the essentials below. We will guide you if anything still needs attention.
+            Step {step} of 3
           </ThemedText>
-          <View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  backgroundColor: theme.gold,
-                  width: `${(completedRequiredFields / requiredFields.length) * 100}%`,
-                },
-              ]}
-            />
-          </View>
-        </Animated.View>
+        </View>
+        {/* Overall field completion badge */}
+        <View style={[styles.completeBadge, { backgroundColor: theme.backgroundSecondary }]}>
+          <ThemedText type="small" style={{ color: "#DA291C", fontWeight: "700" }}>
+            {Math.round(progressPct)}%
+          </ThemedText>
+        </View>
+      </View>
 
-        <View style={styles.form}>
-          <Animated.View entering={FadeInUp.delay(150).duration(500)} style={[styles.inputCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>
-              Full Name
-            </ThemedText>
-            <TextInput
-              style={[styles.input, getInputStyle("fullName")]}
-              placeholder="Enter your full name"
-              placeholderTextColor={theme.textSecondary}
-              value={form.fullName}
-              onChangeText={(text) => setForm({ ...form, fullName: text })}
-              onFocus={() => setFocusedField("fullName")}
-              onBlur={() => {
-                setFocusedField(null);
-                markTouched("fullName");
-              }}
-              autoCapitalize="words"
-            />
-            {getFieldHint("fullName") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.textSecondary }]}>
-                {getFieldHint("fullName")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.delay(200).duration(500)} style={[styles.inputCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>
-              Phone Number
-            </ThemedText>
-            <TextInput
-              style={[styles.input, getInputStyle("phone")]}
-              placeholder="Enter your phone number"
-              placeholderTextColor={theme.textSecondary}
-              value={form.phone}
-              onChangeText={(text) => setForm({ ...form, phone: text })}
-              onFocus={() => setFocusedField("phone")}
-              onBlur={() => {
-                setFocusedField(null);
-                markTouched("phone");
-              }}
-              keyboardType="phone-pad"
-            />
-            {getFieldHint("phone") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.textSecondary }]}>
-                {getFieldHint("phone")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.delay(250).duration(500)} style={[styles.inputCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>
-              Email Address
-            </ThemedText>
-            <TextInput
-              style={[styles.input, getInputStyle("email")]}
-              placeholder="Enter your email"
-              placeholderTextColor={theme.textSecondary}
-              value={form.email}
-              onChangeText={(text) => setForm({ ...form, email: text })}
-              onFocus={() => setFocusedField("email")}
-              onBlur={() => {
-                setFocusedField(null);
-                markTouched("email");
-              }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            {getFieldHint("email") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.warning }]}>
-                {getFieldHint("email")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.delay(255).duration(500)} style={[styles.inputCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>
-              Date of Birth
-            </ThemedText>
-            <Pressable
-              onPress={() => setShowDatePicker(true)}
-              style={[styles.input, getInputStyle("dob"), { justifyContent: 'center' }]}
-            >
-              <ThemedText style={{ color: form.dob ? theme.text : theme.textSecondary }}>
-                {form.dob || "Select your date of birth"}
-              </ThemedText>
-            </Pressable>
-            {showDatePicker && (
-              <DateTimePicker
-                value={form.dob ? new Date(form.dob) : new Date(2000, 0, 1)}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(Platform.OS === 'ios');
-                  if (selectedDate) {
-                    const year = selectedDate.getFullYear();
-                    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(selectedDate.getDate()).padStart(2, '0');
-                    setForm({ ...form, dob: `${year}-${month}-${day}` });
-                    markTouched("dob");
-                  }
-                }}
-                maximumDate={new Date()}
-              />
-            )}
-            {getFieldHint("dob") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.warning }]}>
-                {getFieldHint("dob")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.delay(258).duration(500)} style={[styles.inputCard, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>
-              Residential Address
-            </ThemedText>
-            <TextInput
-              style={[styles.input, getInputStyle("residentialAddress")]}
-              placeholder="House number, street name"
-              placeholderTextColor={theme.textSecondary}
-              value={form.residentialAddress}
-              onChangeText={(text) => setForm({ ...form, residentialAddress: text })}
-              onFocus={() => setFocusedField("residentialAddress")}
-              onBlur={() => {
-                setFocusedField(null);
-                markTouched("residentialAddress");
-              }}
-            />
-            {getFieldHint("residentialAddress") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.textSecondary }]}>
-                {getFieldHint("residentialAddress")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.delay(260).duration(500)} style={[styles.inputCard, { zIndex: 10, backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>
-              Church / Ministry
-            </ThemedText>
-            <View>
-              <TextInput
-                style={[styles.input, getInputStyle("churchName")]}
-                placeholder="Search or enter church name"
-                placeholderTextColor={theme.textSecondary}
-                value={form.churchName}
-                onChangeText={(text) => {
-                  setForm({ ...form, churchName: text });
-                  setChurchSearch(text);
-                  setShowChurchDropdown(true);
-                }}
-                onFocus={() => {
-                  setFocusedField("churchName");
-                  setShowChurchDropdown(true);
-                }}
-                onBlur={() => {
-                  setFocusedField(null);
-                  markTouched("churchName");
-                  setTimeout(() => setShowChurchDropdown(false), 200);
-                }}
-              />
-              {showChurchDropdown && churchSearch.length > 0 && ZIM_CHURCHES.filter(c => c.toLowerCase().includes(churchSearch.toLowerCase())).length > 0 && (
-                <View style={[styles.dropdown, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-                  <View style={{ maxHeight: 200, overflow: 'hidden' }}>
-                    <Animated.View entering={FadeInUp.duration(300)}>
-                      {ZIM_CHURCHES.filter(c => c.toLowerCase().includes(churchSearch.toLowerCase())).slice(0, 5).map((church, idx) => (
-                        <Pressable
-                          key={idx}
-                          onPress={() => {
-                            setForm({ ...form, churchName: church });
-                            setChurchSearch("");
-                            setShowChurchDropdown(false);
-                          }}
-                          style={({ pressed }) => [
-                            styles.dropdownItem,
-                            {
-                              backgroundColor: pressed ? theme.border : "transparent",
-                              borderBottomColor: theme.border,
-                            }
-                          ]}
-                        >
-                          <ThemedText style={[styles.dropdownText, { color: theme.text }]}>{church}</ThemedText>
-                        </Pressable>
-                      ))}
-                    </Animated.View>
-                  </View>
+      {/* ── Step Tab Bar + Progress ── */}
+      <View style={{ paddingHorizontal: Spacing.xl, paddingBottom: Spacing.md }}>
+        {/* Step tabs */}
+        <View style={styles.stepTabs}>
+          {["Account", "Personal", "Location"].map((label, idx) => {
+            const num = idx + 1;
+            const active = step === num;
+            const done = step > num;
+            return (
+              <View key={label} style={styles.stepTabItem}>
+                <View
+                  style={[
+                    styles.stepDot,
+                    {
+                      backgroundColor: done ? "#22C55E" : active ? "#DA291C" : theme.border,
+                      borderColor: done ? "#22C55E" : active ? "#DA291C" : theme.border,
+                    },
+                  ]}
+                >
+                  {done ? (
+                    <Feather name="check" size={11} color="#FFF" />
+                  ) : (
+                    <ThemedText style={{ color: "#FFF", fontSize: 10, fontWeight: "700" }}>
+                      {num}
+                    </ThemedText>
+                  )}
                 </View>
-              )}
-            </View>
-            {getFieldHint("churchName") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.textSecondary }]}>
-                {getFieldHint("churchName")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.delay(275).duration(500)} style={[styles.inputCard, { zIndex: 1, backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>
-              Password (min 6 chars)
-            </ThemedText>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={[styles.input, getInputStyle("password"), { flex: 1 }]}
-                placeholder="Enter your password"
-                placeholderTextColor={theme.textSecondary}
-                value={form.password}
-                onChangeText={(text) => setForm({ ...form, password: text })}
-                onFocus={() => setFocusedField("password")}
-                onBlur={() => {
-                  setFocusedField(null);
-                  markTouched("password");
-                }}
-                secureTextEntry={!showPassword}
-              />
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
-              >
-                <Feather
-                  name={showPassword ? "eye-off" : "eye"}
-                  size={20}
-                  color={theme.textSecondary}
-                />
-              </Pressable>
-            </View>
-            {getFieldHint("password") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.warning }]}>
-                {getFieldHint("password")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.delay(300).duration(500)} style={[styles.inputCard, { zIndex: 1, backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>
-              Confirm Password
-            </ThemedText>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={[styles.input, getInputStyle("confirmPassword"), { flex: 1 }]}
-                placeholder="Confirm your password"
-                placeholderTextColor={theme.textSecondary}
-                value={form.confirmPassword}
-                onChangeText={(text) => setForm({ ...form, confirmPassword: text })}
-                onFocus={() => setFocusedField("confirmPassword")}
-                onBlur={() => {
-                  setFocusedField(null);
-                  markTouched("confirmPassword");
-                }}
-                secureTextEntry={!showConfirmPassword}
-              />
-              <Pressable
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={styles.eyeIcon}
-              >
-                <Feather
-                  name={showConfirmPassword ? "eye-off" : "eye"}
-                  size={20}
-                  color={theme.textSecondary}
-                />
-              </Pressable>
-            </View>
-            {form.confirmPassword.length > 0 && form.password === form.confirmPassword ? (
-              <View style={styles.helperRow}>
-                <Feather name="check-circle" size={14} color={theme.success} />
-                <ThemedText type="small" style={[styles.helperTextInline, { color: theme.success }]}>
-                  Passwords match
+                <ThemedText
+                  type="small"
+                  style={{
+                    color: active ? "#DA291C" : done ? "#22C55E" : theme.textSecondary,
+                    fontWeight: active || done ? "700" : "400",
+                    fontSize: 11,
+                    marginTop: 4,
+                  }}
+                >
+                  {label}
                 </ThemedText>
               </View>
-            ) : getFieldHint("confirmPassword") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.warning }]}>
-                {getFieldHint("confirmPassword")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
+            );
+          })}
+        </View>
 
-          <Animated.View entering={FadeInUp.delay(325).duration(500)} style={[styles.inputCard, { zIndex: 1, backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>
-              Gender
+        {/* Progress bar */}
+        <View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
+          <Animated.View
+            style={[
+              styles.progressFill,
+              {
+                backgroundColor: "#DA291C",
+                width: `${progressPct}%` as any,
+              },
+            ]}
+          />
+        </View>
+      </View>
+
+      {/* ── Scrollable Form Body ── */}
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + 120 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ═══════════════════════════════════════════════════
+            STEP 1 — Account Details
+        ═══════════════════════════════════════════════════ */}
+        {step === 1 && (
+          <Animated.View entering={FadeInDown.duration(400)} style={styles.stepBody}>
+            <ThemedText type="h3" style={[styles.stepTitle, { color: theme.text }]}>
+              Create your account
             </ThemedText>
-            <View style={styles.selectRow}>
-              <SelectButton
-                label="Male"
-                isSelected={form.gender === "male"}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setForm({ ...form, gender: "male" });
-                }}
-              />
-              <SelectButton
-                label="Female"
-                isSelected={form.gender === "female"}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setForm({ ...form, gender: "female" });
-                }}
-              />
-            </View>
-            {getFieldHint("gender") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.textSecondary }]}>
-                {getFieldHint("gender")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.delay(350).duration(500)} style={[styles.inputCard, { zIndex: 1, backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>
-              Marital Status
+            <ThemedText type="small" style={[styles.stepSub, { color: theme.textSecondary }]}>
+              Your login credentials — keep your password safe!
             </ThemedText>
-            <View style={styles.selectRow}>
-              <SelectButton
-                label="Married"
-                isSelected={form.maritalStatus === "married"}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setForm({ ...form, maritalStatus: "married" });
-                }}
-              />
-              <SelectButton
-                label="Unmarried"
-                isSelected={form.maritalStatus === "unmarried"}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setForm({ ...form, maritalStatus: "unmarried" });
-                }}
-              />
-            </View>
-            {getFieldHint("maritalStatus") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.textSecondary }]}>
-                {getFieldHint("maritalStatus")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
 
-          <Animated.View entering={FadeInUp.delay(360).duration(500)} style={[styles.inputCard, { zIndex: 3, backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>Country</ThemedText>
-            <TextInput
-              style={[styles.input, getInputStyle("country")]}
-              placeholder="e.g. Zimbabwe"
-              placeholderTextColor={theme.textSecondary}
-              value={form.country}
-              onChangeText={(text) => setForm({ ...form, country: text })}
-              onFocus={() => setFocusedField("country")}
-              onBlur={() => {
-                setFocusedField(null);
-                markTouched("country");
-              }}
-            />
-            {getFieldHint("country") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.textSecondary }]}>
-                {getFieldHint("country")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.delay(370).duration(500)} style={[styles.inputCard, { zIndex: 10, backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>City/Town</ThemedText>
-            <View>
+            {/* Full Name */}
+            <FieldCard label="Full Name" required error={fieldError("fullName")}>
               <TextInput
-                style={[styles.input, getInputStyle("cityTown")]}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.backgroundSecondary,
+                    color: theme.text,
+                    borderColor: fieldError("fullName") ? "#DA291C" : theme.border,
+                  },
+                ]}
+                placeholder="e.g. Tendai Moyo"
+                placeholderTextColor={theme.textSecondary}
+                value={form.fullName}
+                onChangeText={(t) => update("fullName", t)}
+                onBlur={() => touch("fullName")}
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
+            </FieldCard>
+
+            {/* Email */}
+            <FieldCard label="Email Address" required error={fieldError("email")}>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.backgroundSecondary,
+                    color: theme.text,
+                    borderColor: fieldError("email") ? "#DA291C" : theme.border,
+                  },
+                ]}
+                placeholder="your@email.com"
+                placeholderTextColor={theme.textSecondary}
+                value={form.email}
+                onChangeText={(t) => update("email", t)}
+                onBlur={() => touch("email")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </FieldCard>
+
+            {/* Password */}
+            <FieldCard label="Password" required error={fieldError("password")}>
+              <View style={styles.pwRow}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.pwInput,
+                    {
+                      backgroundColor: theme.backgroundSecondary,
+                      color: theme.text,
+                      borderColor: fieldError("password") ? "#DA291C" : theme.border,
+                    },
+                  ]}
+                  placeholder="Min. 6 characters"
+                  placeholderTextColor={theme.textSecondary}
+                  value={form.password}
+                  onChangeText={(t) => update("password", t)}
+                  onBlur={() => touch("password")}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <Pressable onPress={() => setShowPassword((v) => !v)} style={styles.eyeBtn}>
+                  <Feather name={showPassword ? "eye-off" : "eye"} size={18} color={theme.textSecondary} />
+                </Pressable>
+              </View>
+              {/* Strength meter */}
+              {form.password.length > 0 && (
+                <Animated.View entering={FadeInDown.duration(200)} style={styles.strengthBlock}>
+                  <View style={[styles.strengthTrack, { backgroundColor: theme.border }]}>
+                    <View
+                      style={[
+                        styles.strengthFill,
+                        { width: `${strength.pct}%` as any, backgroundColor: strength.color },
+                      ]}
+                    />
+                  </View>
+                  <ThemedText style={[styles.strengthLabel, { color: strength.color }]}>
+                    {strength.label}
+                  </ThemedText>
+                </Animated.View>
+              )}
+            </FieldCard>
+
+            {/* Confirm Password */}
+            <FieldCard label="Confirm Password" required error={fieldError("confirmPassword")}>
+              <View style={styles.pwRow}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.pwInput,
+                    {
+                      backgroundColor: theme.backgroundSecondary,
+                      color: theme.text,
+                      borderColor: fieldError("confirmPassword")
+                        ? "#DA291C"
+                        : form.confirmPassword && form.confirmPassword === form.password
+                        ? "#22C55E"
+                        : theme.border,
+                    },
+                  ]}
+                  placeholder="Re-enter your password"
+                  placeholderTextColor={theme.textSecondary}
+                  value={form.confirmPassword}
+                  onChangeText={(t) => update("confirmPassword", t)}
+                  onBlur={() => touch("confirmPassword")}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                />
+                <Pressable onPress={() => setShowConfirmPassword((v) => !v)} style={styles.eyeBtn}>
+                  <Feather name={showConfirmPassword ? "eye-off" : "eye"} size={18} color={theme.textSecondary} />
+                </Pressable>
+              </View>
+              {form.confirmPassword.length > 0 && form.confirmPassword === form.password && (
+                <Animated.View entering={FadeInDown.duration(200)} style={styles.matchRow}>
+                  <Feather name="check-circle" size={13} color="#22C55E" />
+                  <ThemedText style={[styles.matchText, { color: "#22C55E" }]}>Passwords match</ThemedText>
+                </Animated.View>
+              )}
+            </FieldCard>
+          </Animated.View>
+        )}
+
+        {/* ═══════════════════════════════════════════════════
+            STEP 2 — Personal Info
+        ═══════════════════════════════════════════════════ */}
+        {step === 2 && (
+          <Animated.View entering={FadeInDown.duration(400)} style={styles.stepBody}>
+            <ThemedText type="h3" style={[styles.stepTitle, { color: theme.text }]}>
+              About you
+            </ThemedText>
+            <ThemedText type="small" style={[styles.stepSub, { color: theme.textSecondary }]}>
+              Help us get to know you better.
+            </ThemedText>
+
+            {/* Date of Birth */}
+            <FieldCard label="Date of Birth" required error={fieldError("dob")}>
+              <Pressable
+                onPress={() => setShowDatePicker(true)}
+                style={[
+                  styles.input,
+                  styles.selectorBtn,
+                  {
+                    backgroundColor: theme.backgroundSecondary,
+                    borderColor: fieldError("dob") ? "#DA291C" : theme.border,
+                  },
+                ]}
+              >
+                <Feather name="calendar" size={16} color={form.dob ? theme.text : theme.textSecondary} style={{ marginRight: 8 }} />
+                <ThemedText style={{ color: form.dob ? theme.text : theme.textSecondary, fontSize: 15 }}>
+                  {form.dob || "Select date of birth"}
+                </ThemedText>
+              </Pressable>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={form.dob ? new Date(form.dob) : new Date(2000, 0, 1)}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  onChange={(event, date) => {
+                    setShowDatePicker(Platform.OS === "ios");
+                    if (date) {
+                      const formatted = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+                      update("dob", formatted);
+                      touch("dob");
+                    }
+                  }}
+                  maximumDate={new Date()}
+                />
+              )}
+            </FieldCard>
+
+            {/* Gender */}
+            <FieldCard label="Gender" required error={fieldError("gender")}>
+              <View style={styles.optionRow}>
+                <OptionButton
+                  label="Male"
+                  icon="👨"
+                  isSelected={form.gender === "male"}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    update("gender", "male");
+                    touch("gender");
+                  }}
+                />
+                <OptionButton
+                  label="Female"
+                  icon="👩"
+                  isSelected={form.gender === "female"}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    update("gender", "female");
+                    touch("gender");
+                  }}
+                />
+              </View>
+            </FieldCard>
+
+            {/* Marital Status */}
+            <FieldCard label="Marital Status" required error={fieldError("maritalStatus")}>
+              <View style={{ gap: Spacing.sm }}>
+                <View style={styles.optionRow}>
+                  {["single", "married"].map((ms) => {
+                    return (
+                      <OptionButton
+                        key={ms}
+                        label={`${ms === "married" ? "💍" : "🧍"} ${ms.charAt(0).toUpperCase() + ms.slice(1)}`}
+                        isSelected={form.maritalStatus === ms as MaritalStatus}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          update("maritalStatus", ms as MaritalStatus);
+                          touch("maritalStatus");
+                        }}
+                      />
+                    );
+                  })}
+                </View>
+                <View style={styles.optionRow}>
+                  {["divorced", "widowed"].map((ms) => {
+                    return (
+                      <OptionButton
+                        key={ms}
+                        label={`${ms === "divorced" ? "💔" : "🕊️"} ${ms.charAt(0).toUpperCase() + ms.slice(1)}`}
+                        isSelected={form.maritalStatus === ms as MaritalStatus}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          update("maritalStatus", ms as MaritalStatus);
+                          touch("maritalStatus");
+                        }}
+                      />
+                    );
+                  })}
+                </View>
+              </View>
+            </FieldCard>
+
+            {/* Church Name */}
+            <FieldCard label="Your Church" required error={fieldError("churchName")}>
+              <View style={{ zIndex: 10 }}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme.backgroundSecondary,
+                      color: theme.text,
+                      borderColor: fieldError("churchName") ? "#DA291C" : theme.border,
+                    },
+                  ]}
+                  placeholder="e.g. Celebration Church"
+                  placeholderTextColor={theme.textSecondary}
+                  value={form.churchName}
+                  onChangeText={(t) => {
+                    update("churchName", t);
+                    setChurchSearch(t);
+                    setShowChurchDropdown(true);
+                  }}
+                  onFocus={() => setShowChurchDropdown(true)}
+                  onBlur={() => {
+                    touch("churchName");
+                    setTimeout(() => setShowChurchDropdown(false), 200);
+                  }}
+                  autoCapitalize="words"
+                />
+                {showChurchDropdown && churchSearch.length > 0 && ZIM_CHURCHES.filter(c => c.toLowerCase().includes(churchSearch.toLowerCase())).length > 0 && (
+                  <View style={[styles.dropdown, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+                    <View style={{ maxHeight: 200, overflow: 'hidden' }}>
+                      <Animated.View entering={FadeInUp.duration(300)}>
+                        {ZIM_CHURCHES.filter(c => c.toLowerCase().includes(churchSearch.toLowerCase())).slice(0, 5).map((church, idx) => (
+                          <Pressable
+                            key={idx}
+                            onPress={() => {
+                              update("churchName", church);
+                              setChurchSearch("");
+                              setShowChurchDropdown(false);
+                            }}
+                            style={({ pressed }) => [
+                              styles.dropdownItem,
+                              {
+                                backgroundColor: pressed ? theme.border : "transparent",
+                                borderBottomColor: theme.border,
+                              }
+                            ]}
+                          >
+                            <ThemedText style={{ color: theme.text }}>{church}</ThemedText>
+                          </Pressable>
+                        ))}
+                      </Animated.View>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </FieldCard>
+
+            {/* Phone Number */}
+            <FieldCard label="Phone Number" required error={fieldError("phone")}>
+              <View style={styles.phoneRow}>
+                {/* Country code picker trigger */}
+                <Pressable
+                  onPress={() => setShowCountryCodePicker(true)}
+                  style={[
+                    styles.countryCodeBtn,
+                    {
+                      backgroundColor: theme.backgroundSecondary,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <ThemedText style={{ fontSize: 18 }}>{selectedCC.flag}</ThemedText>
+                  <ThemedText style={{ color: theme.text, fontSize: 13, fontWeight: "600", marginLeft: 4 }}>
+                    {selectedCC.code}
+                  </ThemedText>
+                  <Feather name="chevron-down" size={14} color={theme.textSecondary} style={{ marginLeft: 2 }} />
+                </Pressable>
+                {/* Phone input */}
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.phoneInput,
+                    {
+                      backgroundColor: theme.backgroundSecondary,
+                      color: theme.text,
+                      borderColor: fieldError("phone") ? "#DA291C" : theme.border,
+                    },
+                  ]}
+                  placeholder="712 345 678"
+                  placeholderTextColor={theme.textSecondary}
+                  value={form.phone}
+                  onChangeText={(t) => update("phone", t)}
+                  onBlur={() => touch("phone")}
+                  keyboardType="phone-pad"
+                />
+              </View>
+            </FieldCard>
+          </Animated.View>
+        )}
+
+        {/* ═══════════════════════════════════════════════════
+            STEP 3 — Location
+        ═══════════════════════════════════════════════════ */}
+        {step === 3 && (
+          <Animated.View entering={FadeInDown.duration(400)} style={styles.stepBody}>
+            <ThemedText type="h3" style={[styles.stepTitle, { color: theme.text }]}>
+              Where are you based?
+            </ThemedText>
+            <ThemedText type="small" style={[styles.stepSub, { color: theme.textSecondary }]}>
+              Your residential details help us connect you with local groups.
+            </ThemedText>
+
+            {/* Residential Address */}
+            <FieldCard label="Residential Address" required error={fieldError("residentialAddress")}>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.backgroundSecondary,
+                    color: theme.text,
+                    borderColor: fieldError("residentialAddress") ? "#DA291C" : theme.border,
+                  },
+                ]}
+                placeholder="House no. & street name"
+                placeholderTextColor={theme.textSecondary}
+                value={form.residentialAddress}
+                onChangeText={(t) => update("residentialAddress", t)}
+                onBlur={() => touch("residentialAddress")}
+                autoCapitalize="words"
+              />
+            </FieldCard>
+
+            {/* Suburb */}
+            <FieldCard label="Suburb" required error={fieldError("suburb")}>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.backgroundSecondary,
+                    color: theme.text,
+                    borderColor: fieldError("suburb") ? "#DA291C" : theme.border,
+                  },
+                ]}
+                placeholder="e.g. Mabelreign"
+                placeholderTextColor={theme.textSecondary}
+                value={form.suburb}
+                onChangeText={(t) => update("suburb", t)}
+                onBlur={() => touch("suburb")}
+                autoCapitalize="words"
+              />
+            </FieldCard>
+
+            {/* City / Town */}
+            <FieldCard label="City / Town" required error={fieldError("cityTown")}>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.backgroundSecondary,
+                    color: theme.text,
+                    borderColor: fieldError("cityTown") ? "#DA291C" : theme.border,
+                  },
+                ]}
                 placeholder="e.g. Harare"
                 placeholderTextColor={theme.textSecondary}
                 value={form.cityTown}
-                onChangeText={(text) => {
-                  setForm({ ...form, cityTown: text });
-                  setCitySearch(text);
-                  setShowCityDropdown(true);
-                }}
-                onFocus={() => {
-                  setFocusedField("cityTown");
-                  setShowCityDropdown(true);
-                }}
-                onBlur={() => {
-                  setFocusedField(null);
-                  markTouched("cityTown");
-                  setTimeout(() => setShowCityDropdown(false), 200);
-                }}
+                onChangeText={(t) => update("cityTown", t)}
+                onBlur={() => touch("cityTown")}
+                autoCapitalize="words"
               />
-              {showCityDropdown && ZIM_CITIES.filter(c => c.toLowerCase().includes(citySearch.toLowerCase())).length > 0 && (
-                <View style={[styles.dropdown, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-                  <View style={{ maxHeight: 150, overflow: 'hidden' }}>
-                    <Animated.View entering={FadeInUp.duration(300)}>
-                      {ZIM_CITIES.filter(c => c.toLowerCase().includes(citySearch.toLowerCase())).slice(0, 5).map((city, idx) => (
-                        <Pressable
-                          key={idx}
-                          onPress={() => {
-                            setForm({ ...form, cityTown: city });
-                            setCitySearch("");
-                            setShowCityDropdown(false);
-                          }}
-                          style={({ pressed }) => [
-                            styles.dropdownItem,
-                            {
-                              backgroundColor: pressed ? theme.border : "transparent",
-                              borderBottomColor: theme.border,
-                            }
-                          ]}
-                        >
-                          <ThemedText style={[styles.dropdownText, { color: theme.text }]}>{city}</ThemedText>
-                        </Pressable>
-                      ))}
-                    </Animated.View>
-                  </View>
-                </View>
-              )}
-            </View>
-            {getFieldHint("cityTown") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.textSecondary }]}>
-                {getFieldHint("cityTown")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
+            </FieldCard>
 
-          <Animated.View entering={FadeInUp.delay(375).duration(500)} style={[styles.inputCard, { zIndex: 9, backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>Province</ThemedText>
-            <View>
-              <TextInput
-                style={[styles.input, getInputStyle("province")]}
-                placeholder="e.g. Mashonaland East"
-                placeholderTextColor={theme.textSecondary}
-                value={form.province}
-                onChangeText={(text) => {
-                  setForm({ ...form, province: text });
-                  setProvinceSearch(text);
-                  setShowProvinceDropdown(true);
-                }}
-                onFocus={() => {
-                  setFocusedField("province");
-                  setShowProvinceDropdown(true);
-                }}
-                onBlur={() => {
-                  setFocusedField(null);
-                  markTouched("province");
-                  setTimeout(() => setShowProvinceDropdown(false), 200);
-                }}
-              />
-              {showProvinceDropdown && ZIM_PROVINCES.filter(p => p.toLowerCase().includes(provinceSearch.toLowerCase())).length > 0 && (
-                <View style={[styles.dropdown, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-                  <View style={{ maxHeight: 150, overflow: 'hidden' }}>
-                    <Animated.View entering={FadeInUp.duration(300)}>
-                      {ZIM_PROVINCES.filter(p => p.toLowerCase().includes(provinceSearch.toLowerCase())).slice(0, 5).map((province, idx) => (
-                        <Pressable
-                          key={idx}
-                          onPress={() => {
-                            setForm({ ...form, province: province });
-                            setProvinceSearch("");
-                            setShowProvinceDropdown(false);
-                          }}
-                          style={({ pressed }) => [
-                            styles.dropdownItem,
-                            {
-                              backgroundColor: pressed ? theme.border : "transparent",
-                              borderBottomColor: theme.border,
-                            }
-                          ]}
-                        >
-                          <ThemedText style={[styles.dropdownText, { color: theme.text }]}>{province}</ThemedText>
-                        </Pressable>
-                      ))}
-                    </Animated.View>
-                  </View>
-                </View>
-              )}
-            </View>
-            {getFieldHint("province") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.textSecondary }]}>
-                {getFieldHint("province")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.delay(380).duration(500)} style={[styles.inputCard, { zIndex: 1, backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>Suburb</ThemedText>
-            <TextInput
-              style={[styles.input, getInputStyle("suburb")]}
-              placeholder="e.g. Mabelreign"
-              placeholderTextColor={theme.textSecondary}
-              value={form.suburb}
-              onChangeText={(text) => setForm({ ...form, suburb: text })}
-              onFocus={() => setFocusedField("suburb")}
-              onBlur={() => {
-                setFocusedField(null);
-                markTouched("suburb");
-              }}
-            />
-            {getFieldHint("suburb") ? (
-              <ThemedText type="small" style={[styles.helperText, { color: theme.textSecondary }]}>
-                {getFieldHint("suburb")}
-              </ThemedText>
-            ) : null}
-          </Animated.View>
-
-          {role === "leader" ? (
-            <Animated.View entering={FadeInUp.delay(400).duration(500)}>
-              <View style={styles.pendingNotice}>
-                <Feather name="info" size={18} color="#FFD700" />
-                <ThemedText
-                  type="small"
-                  style={{ color: theme.textSecondary, marginLeft: Spacing.sm, flex: 1 }}
-                >
-                  Your Cell Leader registration will require approval from an administrator.
+            {/* Country */}
+            <FieldCard label="Country" required error={fieldError("country")}>
+              <Pressable
+                onPress={() => { setCountrySearch(""); setShowCountryPicker(true); }}
+                style={[
+                  styles.input,
+                  styles.selectorBtn,
+                  {
+                    backgroundColor: theme.backgroundSecondary,
+                    borderColor: fieldError("country") ? "#DA291C" : theme.border,
+                  },
+                ]}
+              >
+                <Feather name="globe" size={16} color={form.country ? theme.text : theme.textSecondary} style={{ marginRight: 8 }} />
+                <ThemedText style={{ color: form.country ? theme.text : theme.textSecondary, flex: 1, fontSize: 15 }}>
+                  {form.country || "Select country"}
                 </ThemedText>
-              </View>
-            </Animated.View>
-          ) : null}
-        </View>
+                <Feather name="chevron-down" size={16} color={theme.textSecondary} />
+              </Pressable>
+            </FieldCard>
 
-        <Animated.View entering={FadeInUp.delay(450).duration(500)} style={styles.buttonContainer}>
-          <Button
+            {/* Leader notice */}
+            {role === "leader" && (
+              <Animated.View entering={FadeInDown.duration(400)}>
+                <View style={[styles.noticeBox, { backgroundColor: "rgba(255,215,0,0.08)", borderColor: "rgba(255,215,0,0.22)" }]}>
+                  <Feather name="info" size={16} color="#FFD700" />
+                  <ThemedText type="small" style={{ color: theme.textSecondary, flex: 1, marginLeft: 8 }}>
+                    Cell Leader registrations require administrator approval.
+                  </ThemedText>
+                </View>
+              </Animated.View>
+            )}
+          </Animated.View>
+        )}
+      </ScrollView>
+
+      {/* ── Bottom Action Button ── */}
+      <View
+        style={[
+          styles.bottomBar,
+          {
+            backgroundColor: "#0D0D0D",
+            paddingBottom: insets.bottom + 16,
+            borderTopColor: theme.border,
+          },
+        ]}
+      >
+        {step < 3 ? (
+          <Pressable
+            onPress={goNext}
+            style={[styles.actionBtn, { backgroundColor: "#DA291C" }]}
+          >
+            <ThemedText style={styles.actionBtnText}>Continue</ThemedText>
+            <Feather name="arrow-right" size={18} color="#FFF" style={{ marginLeft: 8 }} />
+          </Pressable>
+        ) : (
+          <Pressable
             onPress={handleSubmit}
-            disabled={!isFormValid || isLoading}
-            style={styles.button}
+            disabled={isLoading}
+            style={[styles.actionBtn, { backgroundColor: isLoading ? "#8B1A13" : "#DA291C", opacity: isLoading ? 0.85 : 1 }]}
           >
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              "Complete Registration"
+              <>
+                <Feather name="user-check" size={18} color="#FFF" style={{ marginRight: 8 }} />
+                <ThemedText style={styles.actionBtnText}>Complete Registration</ThemedText>
+              </>
             )}
-          </Button>
-        </Animated.View>
-      </KeyboardAwareScrollViewCompat >
-    </View >
+          </Pressable>
+        )}
+      </View>
+
+      {/* ── Country Code Picker Modal ── */}
+      <Modal
+        visible={showCountryCodePicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCountryCodePicker(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowCountryCodePicker(false)} />
+        <View style={[styles.modalSheet, { backgroundColor: theme.backgroundSecondary }]}>
+          <View style={[styles.modalHandle, { backgroundColor: theme.border }]} />
+          <ThemedText type="h4" style={{ color: theme.text, marginBottom: 16 }}>
+            Select Country Code
+          </ThemedText>
+          <FlatList
+            data={COUNTRY_CODES}
+            keyExtractor={(item, i) => `${item.code}-${i}`}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => {
+                  update("countryCode", item.code);
+                  setShowCountryCodePicker(false);
+                }}
+                style={[
+                  styles.modalItem,
+                  {
+                    backgroundColor: form.countryCode === item.code ? "rgba(218,41,28,0.12)" : "transparent",
+                    borderBottomColor: theme.border,
+                  },
+                ]}
+              >
+                <ThemedText style={{ fontSize: 22, marginRight: 12 }}>{item.flag}</ThemedText>
+                <View style={{ flex: 1 }}>
+                  <ThemedText style={{ color: theme.text, fontWeight: "600" }}>{item.country}</ThemedText>
+                  <ThemedText style={{ color: theme.textSecondary, fontSize: 13 }}>{item.code}</ThemedText>
+                </View>
+                {form.countryCode === item.code && (
+                  <Feather name="check" size={18} color="#DA291C" />
+                )}
+              </Pressable>
+            )}
+            style={{ maxHeight: 380 }}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
+      </Modal>
+
+      {/* ── Country Picker Modal ── */}
+      <Modal
+        visible={showCountryPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCountryPicker(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowCountryPicker(false)} />
+        <View style={[styles.modalSheet, { backgroundColor: theme.backgroundSecondary }]}>
+          <View style={[styles.modalHandle, { backgroundColor: theme.border }]} />
+          <ThemedText type="h4" style={{ color: theme.text, marginBottom: 12 }}>
+            Select Country
+          </ThemedText>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: "#0D0D0D",
+                color: theme.text,
+                borderColor: theme.border,
+                marginBottom: 12,
+              },
+            ]}
+            placeholder="Search country…"
+            placeholderTextColor={theme.textSecondary}
+            value={countrySearch}
+            onChangeText={setCountrySearch}
+            autoCapitalize="words"
+          />
+          <FlatList
+            data={filteredCountries}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => {
+                  update("country", item);
+                  touch("country");
+                  setShowCountryPicker(false);
+                }}
+                style={[
+                  styles.modalItem,
+                  {
+                    backgroundColor: form.country === item ? "rgba(218,41,28,0.12)" : "transparent",
+                    borderBottomColor: theme.border,
+                  },
+                ]}
+              >
+                <ThemedText style={{ color: theme.text, flex: 1 }}>{item}</ThemedText>
+                {form.country === item && <Feather name="check" size={18} color="#DA291C" />}
+              </Pressable>
+            )}
+            style={{ maxHeight: 360 }}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
+      </Modal>
+    </KeyboardAvoidingView>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0D0D0D",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
+  root: { flex: 1 },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: Spacing.xl,
-  },
-  introCard: {
-    borderWidth: 1,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    marginBottom: Spacing.xl,
+    paddingBottom: Spacing.md,
     gap: Spacing.sm,
   },
-  introTopRow: {
-    flexDirection: "row",
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
   },
-  rolePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
+  headerCenter: { flex: 1, alignItems: "center" },
+  completeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    minWidth: 46,
+    alignItems: "center",
   },
+
+  // Step tabs
+  stepTabs: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: Spacing.md,
+  },
+  stepTabItem: { alignItems: "center", flex: 1 },
+  stepDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+  },
+
+  // Progress
   progressTrack: {
-    height: 6,
+    height: 4,
     borderRadius: BorderRadius.full,
     overflow: "hidden",
-    marginTop: Spacing.xs,
   },
   progressFill: {
     height: "100%",
     borderRadius: BorderRadius.full,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing["2xl"],
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  placeholder: {
-    width: 44,
-  },
-  form: {
-    gap: Spacing.md,
-  },
-  inputCard: {
-    borderWidth: 1,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    gap: Spacing.xs,
-  },
-  label: {
-    fontWeight: "600",
+
+  // Scroll
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: Spacing.xl },
+
+  // Step body
+  stepBody: { paddingTop: Spacing.sm },
+  stepTitle: { marginBottom: Spacing.xs },
+  stepSub: { marginBottom: Spacing.xl },
+
+  // Fields
+  fieldCard: { marginBottom: Spacing.lg },
+  labelRow: { flexDirection: "row", alignItems: "center", marginBottom: Spacing.sm },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-    fontSize: 11,
-    marginLeft: Spacing.xs,
+    letterSpacing: 0.6,
   },
+  requiredDot: { fontSize: 14, fontWeight: "700" },
+
   input: {
-    height: 48,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.xs,
+    height: 50,
     borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.md,
     fontSize: 15,
   },
-  helperText: {
-    marginTop: 2,
-    marginLeft: Spacing.xs,
+
+  errorRow: { flexDirection: "row", alignItems: "center", marginTop: 6, gap: 5 },
+  errorText: { fontSize: 12, fontWeight: "500" },
+
+  // Password
+  pwRow: { flexDirection: "row", alignItems: "center" },
+  pwInput: { flex: 1 },
+  eyeBtn: {
+    position: "absolute",
+    right: 14,
+    height: "100%",
+    justifyContent: "center",
+    paddingLeft: 6,
   },
-  helperRow: {
+  strengthBlock: { flexDirection: "row", alignItems: "center", marginTop: 8, gap: 10 },
+  strengthTrack: { flex: 1, height: 4, borderRadius: BorderRadius.full, overflow: "hidden" },
+  strengthFill: { height: "100%", borderRadius: BorderRadius.full },
+  strengthLabel: { fontSize: 12, fontWeight: "700", minWidth: 46 },
+  matchRow: { flexDirection: "row", alignItems: "center", marginTop: 6, gap: 5 },
+  matchText: { fontSize: 12, fontWeight: "600" },
+
+  // Selector button (date, country)
+  selectorBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.xs,
-    marginTop: 2,
-    marginLeft: Spacing.xs,
   },
-  helperTextInline: {
-    marginTop: 0,
-  },
-  selectRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-  },
-  selectButton: {
+
+  // Options
+  optionRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },
+  optionBtn: {
     flex: 1,
-    height: 48,
+    minWidth: 80,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: BorderRadius.xs,
-    borderWidth: 1,
   },
-  pendingNotice: {
+
+  // Phone
+  phoneRow: { flexDirection: "row", gap: Spacing.sm },
+  countryCodeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.sm,
+    height: 50,
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    gap: 2,
+  },
+  phoneInput: { flex: 1 },
+
+  // Notice box
+  noticeBox: {
     flexDirection: "row",
     alignItems: "flex-start",
     padding: Spacing.lg,
-    borderRadius: BorderRadius.xs,
-    marginTop: Spacing.sm,
-    backgroundColor: "rgba(255, 215, 0, 0.1)",
+    borderRadius: BorderRadius.sm,
     borderWidth: 1,
-    borderColor: "rgba(255, 215, 0, 0.2)",
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
   },
-  buttonContainer: {
-    marginTop: Spacing["3xl"],
-  },
-  button: {
-    width: "100%",
-    height: 56,
-  },
-  passwordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  eyeIcon: {
-    position: "absolute",
-    right: Spacing.lg,
-    height: "100%",
-    justifyContent: "center",
-  },
+
+  // Dropdown
   dropdown: {
     position: "absolute",
-    top: 60,
+    top: 54,
     left: 0,
     right: 0,
     borderRadius: BorderRadius.xs,
@@ -1057,7 +1292,83 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     borderBottomWidth: 1,
   },
-  dropdownText: {
-    fontSize: 14,
+
+  // Bottom bar
+  bottomBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+  },
+  actionBtn: {
+    height: 54,
+    borderRadius: BorderRadius.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionBtnText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  modalSheet: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: Spacing.xl,
+    paddingBottom: 36,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: Spacing.lg,
+  },
+  modalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+
+  // Success
+  successScreen: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  successContent: {
+    alignItems: "center",
+    paddingHorizontal: Spacing["3xl"],
+    gap: Spacing.xl,
+  },
+  successCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  successTitle: {
+    textAlign: "center",
+    marginBottom: Spacing.sm,
+  },
+  successSub: {
+    textAlign: "center",
+    lineHeight: 22,
   },
 });

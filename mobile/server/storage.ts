@@ -9,7 +9,7 @@ export interface User {
   email: string;
   password_hash?: string;
   gender: 'male' | 'female';
-  marital_status: 'married' | 'unmarried';
+  marital_status: 'single' | 'married' | 'divorced' | 'widowed';
   role: string; // Flexible role
   leader_status?: 'pending' | 'approved' | 'rejected';
   cell_id?: string;
@@ -617,7 +617,7 @@ export const storage = {
       .filter((u): u is User => u !== undefined);
 
     const married = participants.filter(p => p.marital_status === 'married');
-    const unmarried = participants.filter(p => p.marital_status === 'unmarried');
+    const unmarried = participants.filter(p => p.marital_status !== 'married');
 
     const minCellSize = program.min_cell_size || 5;
     const maxCellSize = program.max_cell_size || 12;

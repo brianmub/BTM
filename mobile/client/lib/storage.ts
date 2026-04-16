@@ -7,7 +7,7 @@ const STORAGE_KEYS = {
 };
 
 export type UserRole = "participant" | "leader" | "facilitator" | "admin" | "sysadmin";
-export type MaritalStatus = "married" | "unmarried";
+export type MaritalStatus = "single" | "married" | "divorced" | "widowed";
 export type Gender = "male" | "female";
 export type EnrollmentStatus = "enrolled" | "assigned" | "graduated" | "incomplete" | "pending";
 export type LeaderStatus = "pending" | "approved" | "rejected";
