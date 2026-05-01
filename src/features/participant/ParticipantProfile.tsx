@@ -6,12 +6,28 @@ import { LogOut, User, Mail, Phone, Shield, Home, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function ParticipantProfile() {
-    const { profile, signOut } = useAuth();
+    const { profile, signOut, deleteAccount } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = async () => {
         await signOut();
         navigate('/')
+    };
+
+    const handleDeleteAccount = async () => {
+        const confirmed = window.confirm(
+            "Are you sure you want to delete your account? \n\n" +
+            "This will permanently remove your profile and all your data. This action cannot be undone."
+        );
+        
+        if (confirmed) {
+            try {
+                await deleteAccount();
+                navigate('/');
+            } catch (error: any) {
+                alert(error.message || "Failed to delete account.");
+            }
+        }
     };
 
     return (
@@ -109,6 +125,13 @@ export function ParticipantProfile() {
                 >
                     <LogOut className="w-4 h-4 mr-2" /> Log Out
                 </Button>
+
+                <button
+                    onClick={handleDeleteAccount}
+                    className="w-full text-center text-[10px] font-black uppercase tracking-[0.2em] text-red-500/60 hover:text-red-500 transition-colors py-2"
+                >
+                    Delete Account
+                </button>
             </div>
 
             <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-10">

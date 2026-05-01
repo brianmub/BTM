@@ -214,6 +214,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to update user" });
     }
   });
+  
+  app.delete("/api/users/:id", async (req: Request<IdParams>, res: Response) => {
+    try {
+      await storage.deleteUser(req.params.id);
+      res.json({ success: true, message: "Account and associated data deleted successfully" });
+    } catch (error) {
+      console.error("Delete error:", error);
+      res.status(500).json({ error: "Failed to delete account" });
+    }
+  });
 
   app.get("/api/users/pending-leaders", async (_req: Request, res: Response) => {
     try {

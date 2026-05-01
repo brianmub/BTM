@@ -23,7 +23,7 @@ export default function AccountSettingsScreen() {
   const headerHeight = useHeaderHeight();
   const navigation = useNavigation();
   const { theme } = useTheme();
-  const { user, updateUser: updateAuthUser } = useAuth();
+  const { user, updateUser: updateAuthUser, deleteAccount } = useAuth();
 
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -72,6 +72,31 @@ export default function AccountSettingsScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This action is irreversible and all your data will be permanently removed.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setSaving(true);
+              await deleteAccount();
+              // AuthContext should handle redirection as user becomes null
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete account. Please try again.');
+            } finally {
+              setSaving(false);
+            }
+          }
+        },
+      ]
+    );
   };
 
   return (
@@ -325,6 +350,25 @@ export default function AccountSettingsScreen() {
           <Button onPress={handleSave} disabled={saving} style={{ marginTop: Spacing.xl }}>
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
+
+          <Button 
+            onPress={handleDeleteAccount} 
+            disabled={saving} 
+            variant="outline"
+            style={{ 
+              marginTop: Spacing.lg, 
+              borderColor: '#ef4444', 
+              borderWidth: 1 
+            }}
+          >
+            <ThemedText style={{ color: '#ef4444', fontWeight: 'bold' }}>
+              Delete Account
+            </ThemedText>
+          </Button>
+          
+          <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: 'center', marginTop: Spacing.md }}>
+            Permanently remove your account and all associated data
+          </ThemedText>
         </Animated.View>
       </KeyboardAwareScrollViewCompat>
     </ThemedView>

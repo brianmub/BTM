@@ -114,6 +114,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setImpersonatingProfile(null);
     }, []);
 
+    const deleteAccount = useCallback(async () => {
+        if (!profile?.id) return;
+        
+        try {
+            // 1. Call backend to delete user data (DB records + physical files)
+            const response = await fetch(`/api/users/${profile.id}`, {
+                method: 'DELETE',
+            });
+            
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Failed to delete account');
+            }
+            
+            // 2. Sign out from Supabase Auth
+            await signOut();
+        } catch (err) {
+            console.error('Error deleting account:', err);
+            throw err;
+        }
+    }, [profile, signOut]);
+
     const contextValue = useMemo(() => ({
         user,
         profile: impersonatingProfile || profile,
@@ -123,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         impersonateUser,
         stopImpersonating,
+        deleteAccount,
         isImpersonating: !!impersonatingProfile,
         originalProfile: profile
     }), [
@@ -134,7 +157,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshProfile, 
         signOut, 
         impersonateUser, 
-        stopImpersonating
+        stopImpersonating,
+        deleteAccount
     ]);
 
     return (

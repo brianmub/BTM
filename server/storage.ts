@@ -226,6 +226,61 @@ export const storage = {
     };
   },
 
+  async deleteUser(id: string): Promise<void> {
+    try {
+      // 1. Get all submissions by this user to find related file attachments
+      const { data: submissions } = await supabase.from('assignment_submissions').select('id').eq('user_id', id);
+      
+      if (submissions && submissions.length > 0) {
+        const submissionIds = submissions.map(s => s.id);
+        
+        // 2. Get all attachments for these submissions
+        const { data: attachments } = await supabase.from('file_attachments').select('file_url').in('submission_id', submissionIds);
+        
+        if (attachments && attachments.length > 0) {
+          const fs = await import('node:fs');
+          const path = await import('node:path');
+          const uploadsDir = path.join(process.cwd(), "uploads");
+
+          for (const attachment of attachments) {
+            try {
+              // Extract filename from URL (assuming format: http://.../uploads/filename)
+              const filename = attachment.file_url.split('/').pop();
+              if (filename) {
+                const filePath = path.join(uploadsDir, filename);
+                if (fs.existsSync(filePath)) {
+                  fs.unlinkSync(filePath);
+                }
+              }
+            } catch (fileErr) {
+              console.error('Error deleting file:', fileErr);
+            }
+          }
+        }
+        
+        // 3. Delete attachments from DB
+        await supabase.from('file_attachments').delete().in('submission_id', submissionIds);
+      }
+
+      // 4. Delete related data to ensure clean removal
+      await supabase.from('attendance_records').delete().eq('user_id', id);
+      await supabase.from('payment_records').delete().eq('user_id', id);
+      await supabase.from('assignment_submissions').delete().eq('user_id', id);
+      await supabase.from('enrollments').delete().eq('user_id', id);
+      await supabase.from('cell_members').delete().eq('user_id', id);
+      
+      // Also handle audit logs where user is the target
+      await supabase.from('audit_logs').delete().eq('target_user_id', id);
+      
+      // Finally delete the user
+      const { error } = await supabase.from('users').delete().eq('id', id);
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error in deleteUser:', err);
+      throw err;
+    }
+  },
+
   async getPendingLeaders(): Promise<User[]> {
     const { data, error } = await supabase.from('users').select('*').eq('role', 'leader').eq('leader_status', 'pending');
     if (error) throw error;

@@ -93,7 +93,7 @@ export function EnrollmentManager() {
         }
     };
 
-    const calculateAge = (dob: string | null) => {
+    const calculateAge = (dob: string | null | undefined) => {
         if (!dob) return null;
         try {
             const birthDate = new Date(dob);

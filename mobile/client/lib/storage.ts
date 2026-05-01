@@ -654,6 +654,39 @@ export const storage = {
     if (error) throw error;
   },
 
+  async deleteAccount(userId: string): Promise<void> {
+    try {
+      // 1. Get submissions to find file attachments
+      const { data: submissions } = await supabase.from('assignment_submissions').select('id').eq('user_id', userId);
+      
+      if (submissions && submissions.length > 0) {
+        const submissionIds = submissions.map(s => s.id);
+        // Note: We can't delete local files on the server from the mobile client directly,
+        // but deleting from the DB will orphan them. The server-side deleteUser handles physical removal.
+        // However, if we delete via Supabase client, we should at least clean up the DB relations.
+        await supabase.from('file_attachments').delete().in('submission_id', submissionIds);
+      }
+
+      // 2. Delete related data
+      await supabase.from('attendance_records').delete().eq('user_id', userId);
+      await supabase.from('payment_records').delete().eq('user_id', userId);
+      await supabase.from('assignment_submissions').delete().eq('user_id', userId);
+      await supabase.from('enrollments').delete().eq('user_id', userId);
+      await supabase.from('cell_members').delete().eq('user_id', userId);
+      await supabase.from('audit_logs').delete().eq('target_user_id', userId);
+      
+      // 3. Finally delete the user
+      const { error } = await supabase.from('users').delete().eq('id', userId);
+      if (error) throw error;
+      
+      // 4. Clear local storage
+      await this.clearAll();
+    } catch (err) {
+      console.error('Error in deleteAccount:', err);
+      throw err;
+    }
+  },
+
   async clearAll(): Promise<void> {
     await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
   },

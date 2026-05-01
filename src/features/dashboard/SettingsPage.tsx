@@ -29,7 +29,7 @@ export function SettingsPage() {
     const navigate = useNavigate();
     const initialTab = searchParams.get('tab') || 'organization';
     const [activeTab, setActiveTab] = useState(initialTab);
-    const { user, profile, signOut } = useAuth();
+    const { user, profile, signOut, deleteAccount } = useAuth();
     const { organization } = useOrganization();
 
     const [loading, setLoading] = useState(false);
@@ -89,6 +89,26 @@ export function SettingsPage() {
         if (orgForm.joinCode) {
             navigator.clipboard.writeText(orgForm.joinCode);
             alert('Organization code copied to clipboard!');
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        const confirmed = window.confirm(
+            "CRITICAL ACTION: Are you sure you want to delete your account? \n\n" +
+            "This will permanently remove your profile, assignment submissions, attendance records, and all associated data. " +
+            "This action cannot be undone."
+        );
+        
+        if (confirmed) {
+            try {
+                setLoading(true);
+                await deleteAccount();
+                navigate('/');
+            } catch (error: any) {
+                alert(error.message || "Failed to delete account.");
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
@@ -209,6 +229,21 @@ export function SettingsPage() {
                                     </span>
                                     <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Enhanced Security</span>
                                 </Button>
+                            </div>
+
+                            <div className="pt-10 border-t border-rose-500/10">
+                                <h4 className="text-[11px] font-black text-rose-500 uppercase tracking-[0.2em] mb-4">Danger Zone</h4>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-6 leading-relaxed">
+                                    Once you delete your account, there is no going back. Please be certain.
+                                </p>
+                                <button
+                                    onClick={handleDeleteAccount}
+                                    disabled={loading}
+                                    className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500 hover:text-rose-400 transition-colors flex items-center gap-2 group"
+                                >
+                                    <Shield className="w-3 h-3 group-hover:animate-pulse" />
+                                    <span>Delete My Entire Account & Data</span>
+                                </button>
                             </div>
                         </Card>
                     )}

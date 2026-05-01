@@ -242,6 +242,7 @@ export function LandingPage() {
                         <h2 className="text-2xl font-united italic text-slate-900 tracking-widest">KINGDOMCONNECT</h2>
                     </div>
                     <div className="flex justify-center space-x-12 mb-12 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+                        <a href="/data-deletion" className="hover:text-primary transition-colors">Data Deletion</a>
                         <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
                         <a href="#" className="hover:text-slate-900 transition-colors">Terms of Service</a>
                         <a href="#" className="hover:text-primary transition-colors">Contact Support</a>

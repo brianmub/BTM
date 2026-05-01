@@ -23,6 +23,7 @@ import { SettingsPage } from '@/features/dashboard/SettingsPage';
 import { PlatformDashboard } from '@/features/admin/PlatformDashboard';
 import { OrgLandingPage } from '@/features/public/OrgLandingPage';
 import { ParticipantRegister } from '@/features/public/ParticipantRegister';
+import { DataDeletion } from '@/features/public/DataDeletion';
 import { AcceptInvite } from '@/features/auth/AcceptInvite';
 import { RequireRole } from '@/components/auth/RequireRole';
 import { ParticipantLayout } from '@/components/layout/ParticipantLayout';
@@ -50,6 +51,7 @@ function App() {
                         <Route path="/forgot-password" element={<ForgotPassword />} />
                         <Route path="/invite/:token" element={<AcceptInvite />} />
                         <Route path="/register" element={<ParticipantRegister />} />
+                        <Route path="/data-deletion" element={<DataDeletion />} />
 
                         {/* Public Portal */}
                         <Route path="/portal/:orgSlug" element={<OrgLandingPage />} />

@@ -9,6 +9,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,6 +76,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const deleteAccount = async () => {
+    if (!user) return;
+    try {
+      await storage.deleteAccount(user.id);
+      setUser(null);
+      setIsOnboardingComplete(false);
+    } catch (error) {
+      console.error("Failed to delete account:", error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -85,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         completeOnboarding,
         updateUser,
+        deleteAccount,
       }}
     >
       {children}

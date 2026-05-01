@@ -10,6 +10,7 @@ export interface AuthContextType {
     signOut: () => Promise<void>;
     impersonateUser: (profile: any) => void;
     stopImpersonating: () => void;
+    deleteAccount: () => Promise<void>;
     isImpersonating: boolean;
     originalProfile: any | null;
 }
