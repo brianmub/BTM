@@ -31,7 +31,7 @@ export function DataDeletion() {
                         </div>
                         <h1 className="text-4xl md:text-5xl font-black text-slate-950 uppercase tracking-tight mb-6">
                             Account & Data <span className="text-primary">Deletion</span>
-                        </div>
+                        </h1>
                         <p className="text-slate-500 text-lg font-medium max-w-2xl mx-auto leading-relaxed">
                             At KingdomConnect, we believe you should have full control over your personal information. 
                             This page provides instructions on how to request the deletion of your account and associated data.

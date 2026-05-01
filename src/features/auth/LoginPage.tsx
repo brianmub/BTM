@@ -184,17 +184,6 @@ export function LoginPage() {
                     </form>
                 </GlassBox>
 
-                <div className="mt-12 text-center">
-                    <p className="text-sm text-slate-500 font-bold uppercase tracking-widest">
-                        Don't have an account?
-                        <span
-                            className="text-foreground hover:text-primary ml-2 cursor-pointer transition-colors border-b border-primary/50 pb-0.5"
-                            onClick={() => navigate('/signup')}
-                        >
-                            Start 30-Day Trial
-                        </span>
-                    </p>
-                </div>
             </motion.div>
 
             {/* Bottom Accent */}
