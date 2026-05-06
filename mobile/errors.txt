@@ -1,0 +1,13 @@
+﻿app/login.tsx(5,10): error TS2305: Module '"../services/authService"' has no exported member 'signIn'.
+lib/supabase.ts(5,10): error TS2305: Module '"./types"' has no exported member 'Database'.
+services/assignmentService.ts(1,26): error TS2307: Cannot find module './supabase' or its corresponding type declarations.
+services/assignmentService.ts(30,42): error TS7006: Parameter 's' implicitly has an 'any' type.
+services/authService.ts(1,26): error TS2307: Cannot find module './supabase' or its corresponding type declarations.
+services/profileService.ts(1,26): error TS2307: Cannot find module './supabase' or its corresponding type declarations.
+services/profileService.ts(54,48): error TS7006: Parameter 'a' implicitly has an 'any' type.
+services/profileService.ts(57,64): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+services/profileService.ts(57,69): error TS7006: Parameter 'p' implicitly has an 'any' type.
+services/profileService.ts(145,50): error TS7006: Parameter 'a' implicitly has an 'any' type.
+services/programService.ts(1,26): error TS2307: Cannot find module './supabase' or its corresponding type declarations.
+services/rewardService.ts(1,26): error TS2307: Cannot find module './supabase' or its corresponding type declarations.
+services/sessionService.ts(1,26): error TS2307: Cannot find module './supabase' or its corresponding type declarations.
