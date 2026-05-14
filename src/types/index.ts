@@ -66,6 +66,8 @@ export interface Program {
     category?: string;
     start_date: string;
     end_date?: string;
+    enrollment_start_date?: string;
+    enrollment_end_date?: string;
     enrollment_fee: number;
     session_fee: number;
     currency: string;

@@ -199,9 +199,9 @@ CREATE POLICY "Allow all operations on audit_logs" ON audit_logs FOR ALL USING (
 -- Insert sample program data
 INSERT INTO programs (id, name, description, enrollment_start_date, enrollment_end_date, program_start_date, is_active, min_cell_size, max_cell_size)
 VALUES 
-  ('11111111-1111-1111-1111-111111111111', 'BeThatMan', 'An 8-session program designed for men to develop authentic manhood through biblical principles covering fathering, courage, faithfulness, and more.', '2026-01-01', '2026-02-15', '2026-02-28', true, 5, 12),
-  ('22222222-2222-2222-2222-222222222222', 'Foundations of Faith', 'An 8-week journey through core Christian beliefs and practices for new believers.', '2026-01-15', '2026-02-28', '2026-03-01', true, 5, 10),
-  ('33333333-3333-3333-3333-333333333333', 'Leadership Development', 'A 6-week intensive program focused on developing servant leadership skills.', '2026-02-01', '2026-03-15', '2026-03-22', true, 4, 8)
+  ('11111111-1111-1111-1111-111111111111', 'BeThatMan', 'An 8-session program designed for men to develop authentic manhood through biblical principles covering fathering, courage, faithfulness, and more.', '2026-01-01', '2026-12-31', '2026-02-28', true, 5, 12),
+  ('22222222-2222-2222-2222-222222222222', 'Foundations of Faith', 'An 8-week journey through core Christian beliefs and practices for new believers.', '2026-01-15', '2026-12-31', '2026-03-01', true, 5, 10),
+  ('33333333-3333-3333-3333-333333333333', 'Leadership Development', 'A 6-week intensive program focused on developing servant leadership skills.', '2026-02-01', '2026-12-31', '2026-03-22', true, 4, 8)
 ON CONFLICT DO NOTHING;
 
 -- Insert sample sessions for BeThatMan program

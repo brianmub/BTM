@@ -42,7 +42,9 @@ export default function AdminProgramsScreen() {
       const programSessions = sessions.filter(s => s.programId === program.id);
       const enrollmentStart = new Date(program.enrollmentStartDate);
       const enrollmentEnd = new Date(program.enrollmentEndDate);
-      const isEnrollmentOpen = now >= enrollmentStart && now <= enrollmentEnd;
+      const isEnrollmentOpen = (!program.enrollmentStartDate || !program.enrollmentEndDate || isNaN(enrollmentStart.getTime()) || isNaN(enrollmentEnd.getTime())) 
+        ? program.isActive 
+        : (now >= enrollmentStart && now <= enrollmentEnd);
 
       return {
         ...program,

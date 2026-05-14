@@ -26,6 +26,8 @@ export function CreateProgram() {
         qr_checkin_required: true,
         approval_required: false,
         max_participants: 0,
+        enrollment_start_date: new Date().toISOString().split('T')[0],
+        enrollment_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 30 days
     });
 
     const handleSave = async () => {
@@ -58,6 +60,8 @@ export function CreateProgram() {
                 max_participants: formData.max_participants,
                 currency: 'USD',
                 attendance_required_pct: 80,
+                enrollment_start_date: formData.enrollment_start_date,
+                enrollment_end_date: formData.enrollment_end_date,
                 // Nested features (this is where these toggles belong)
                 features: {
                     certificates_enabled: true,
@@ -158,6 +162,26 @@ export function CreateProgram() {
                                         value={formData.max_participants}
                                         onChange={(e) => setFormData({ ...formData, max_participants: parseInt(e.target.value) || 0 })}
                                         className="w-full px-6 py-4 rounded-2xl border border-surface-border bg-background text-foreground placeholder:text-slate-400 focus:bg-surface focus:border-primary/30 outline-none transition-all font-bold"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid md:grid-cols-2 gap-8">
+                                <div className="space-y-3">
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500">Enrollment Starts</label>
+                                    <input
+                                        type="date"
+                                        value={formData.enrollment_start_date}
+                                        onChange={(e) => setFormData({ ...formData, enrollment_start_date: e.target.value })}
+                                        className="w-full px-6 py-4 rounded-2xl border border-surface-border bg-background text-foreground focus:bg-surface focus:border-primary/30 outline-none transition-all font-bold"
+                                    />
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500">Enrollment Ends</label>
+                                    <input
+                                        type="date"
+                                        value={formData.enrollment_end_date}
+                                        onChange={(e) => setFormData({ ...formData, enrollment_end_date: e.target.value })}
+                                        className="w-full px-6 py-4 rounded-2xl border border-surface-border bg-background text-foreground focus:bg-surface focus:border-primary/30 outline-none transition-all font-bold"
                                     />
                                 </div>
                             </div>

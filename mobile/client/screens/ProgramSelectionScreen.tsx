@@ -47,9 +47,20 @@ export default function ProgramSelectionScreen({ navigation, route }: Props) {
   };
 
   const isEnrollmentOpen = (program: Program): boolean => {
+    // If dates are missing, default to open if the program is active
+    if (!program.enrollmentStartDate || !program.enrollmentEndDate) {
+      return program.isActive;
+    }
+
     const now = new Date();
     const start = new Date(program.enrollmentStartDate);
     const end = new Date(program.enrollmentEndDate);
+
+    // Check if dates are valid
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return program.isActive;
+    }
+
     return now >= start && now <= end;
   };
 
