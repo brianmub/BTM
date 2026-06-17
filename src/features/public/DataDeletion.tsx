@@ -1,7 +1,8 @@
 
+
 import { Navbar } from '@/components/layout/Navbar';
 import { motion } from 'framer-motion';
-import { Shield, Trash2, Mail, Smartphone, Globe, ArrowLeft } from 'lucide-react';
+import { Shield, Trash2, Mail, Clock, Sliders, HelpCircle, ArrowLeft, Info } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useNavigate } from 'react-router-dom';
 
@@ -33,81 +34,141 @@ export function DataDeletion() {
                             Account & Data <span className="text-primary">Deletion</span>
                         </h1>
                         <p className="text-slate-500 text-lg font-medium max-w-2xl mx-auto leading-relaxed">
-                            At KingdomConnect, we believe you should have full control over your personal information. 
-                            This page provides instructions on how to request the deletion of your account and associated data.
+                            If you would like to delete your Kingdom Connect / Be That Man account and associated personal data, you can request deletion at any time.
                         </p>
                     </motion.div>
 
                     <div className="grid gap-8">
-                        {/* Option 1: In-App */}
+                        {/* 1. How to Request Deletion */}
                         <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            whileInView={{ opacity: 1, x: 0 }}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             className="bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-12 shadow-sm hover:shadow-xl transition-all group"
                         >
                             <div className="flex flex-col md:flex-row gap-8 items-start">
                                 <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:rotate-6 transition-all duration-500">
-                                    <Smartphone className="w-8 h-8 text-primary group-hover:text-white transition-colors" />
+                                    <Mail className="w-8 h-8 text-primary group-hover:text-white transition-colors" />
                                 </div>
-                                <div className="flex-1">
-                                    <h3 className="text-2xl font-bold text-slate-950 mb-4 uppercase tracking-tight">Delete via Mobile App</h3>
+                                <div className="flex-1 w-full">
+                                    <h3 className="text-2xl font-bold text-slate-950 mb-4 uppercase tracking-tight">How to Request Deletion</h3>
                                     <p className="text-slate-500 font-medium mb-6 leading-relaxed">
-                                        The fastest way to delete your account is directly through the KingdomConnect mobile app.
+                                        Send an email to our support team to initiate the deletion process.
                                     </p>
-                                    <ol className="space-y-3 text-slate-600 font-medium text-sm">
-                                        <li className="flex gap-3">
-                                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold">1</span>
-                                            Open the App and go to <span className="font-bold text-slate-900">Settings</span>.
-                                        </li>
-                                        <li className="flex gap-3">
-                                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold">2</span>
-                                            Tap on <span className="font-bold text-slate-900">Account Settings</span> or <span className="font-bold text-slate-900">Profile</span>.
-                                        </li>
-                                        <li className="flex gap-3">
-                                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold">3</span>
-                                            Scroll to the bottom and tap <span className="font-bold text-rose-500">Delete Account</span>.
-                                        </li>
-                                        <li className="flex gap-3">
-                                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold">4</span>
-                                            Confirm the action in the popup dialog.
-                                        </li>
-                                    </ol>
-                                </div>
-                            </div>
-                        </motion.div>
-
-                        {/* Option 2: Web Portal */}
-                        <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true }}
-                            className="bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-12 shadow-sm hover:shadow-xl transition-all group"
-                        >
-                            <div className="flex flex-col md:flex-row gap-8 items-start">
-                                <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:rotate-6 transition-all duration-500">
-                                    <Globe className="w-8 h-8 text-primary group-hover:text-white transition-colors" />
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="text-2xl font-bold text-slate-950 mb-4 uppercase tracking-tight">Delete via Web Portal</h3>
-                                    <p className="text-slate-500 font-medium mb-6 leading-relaxed">
-                                        You can also log in to your account through our web portal to initiate deletion.
-                                    </p>
-                                    <Button 
-                                        variant="outline" 
-                                        className="mb-8 border-slate-200 hover:bg-slate-50 uppercase tracking-widest font-black text-[10px]"
-                                        onClick={() => navigate('/login')}
+                                    
+                                    <div 
+                                        className="bg-slate-50 border border-slate-200 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group cursor-pointer hover:bg-primary/5 hover:border-primary/20 transition-all mb-6" 
+                                        onClick={() => window.location.href = 'mailto:support@kingdomconnect.co.zw?subject=Account Deletion Request'}
                                     >
-                                        Log In to Portal
-                                    </Button>
-                                    <p className="text-sm text-slate-500 font-medium">
-                                        Once logged in, navigate to <span className="font-bold text-slate-900">Settings / Profile</span> and look for the <span className="font-bold text-rose-500">Delete Account</span> option in the Danger Zone.
-                                    </p>
+                                        <div>
+                                            <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Email Subject: "Account Deletion Request"</p>
+                                            <p className="text-slate-900 font-bold tracking-tight text-lg">support@kingdomconnect.co.zw</p>
+                                        </div>
+                                        <Button className="w-full sm:w-auto uppercase tracking-widest font-black text-[10px] py-3 px-6 rounded-xl">
+                                            Send Email
+                                        </Button>
+                                    </div>
+
+                                    <div className="border-t border-slate-100 pt-6">
+                                        <p className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3">Please include in your email:</p>
+                                        <ul className="space-y-2 text-slate-600 font-medium text-sm">
+                                            <li className="flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                                                <span>The <span className="font-bold text-slate-900">full name or username</span> associated with your account</span>
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                                                <span>The <span className="font-bold text-slate-900">email address or phone number</span> used to register</span>
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                                                <span>Which app you use: <span className="font-bold text-slate-900">Be That Man / Kingdom Connect</span></span>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
 
-                        {/* Option 3: Request via Email */}
+                        {/* 2. What Gets Deleted */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-12 shadow-sm hover:shadow-xl transition-all group"
+                        >
+                            <div className="flex flex-col md:flex-row gap-8 items-start">
+                                <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-rose-500 group-hover:rotate-6 transition-all duration-500">
+                                    <Trash2 className="w-8 h-8 text-rose-500 group-hover:text-white transition-colors" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-2xl font-bold text-slate-950 mb-4 uppercase tracking-tight">What Gets Deleted</h3>
+                                    <p className="text-slate-600 font-medium mb-6 leading-relaxed">
+                                        Once we verify your request, we will permanently delete:
+                                    </p>
+                                    <div className="grid sm:grid-cols-2 gap-4 mb-6">
+                                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                            <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">Profile Info</p>
+                                            <p className="text-slate-700 text-sm font-medium">Name, contact details, and profile photo.</p>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                            <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">Program Participation</p>
+                                            <p className="text-slate-700 text-sm font-medium">Cohort and discipleship program participation data.</p>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                            <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">Activity History</p>
+                                            <p className="text-slate-700 text-sm font-medium">Posts, comments, and progress within the app.</p>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                            <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">Other Personal Data</p>
+                                            <p className="text-slate-700 text-sm font-medium">Any other personal data associated with your account.</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6 flex gap-3 items-start">
+                                        <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                        <p className="text-amber-800 text-xs font-medium leading-relaxed">
+                                            <strong>Note on retention:</strong> Some information may be retained where required by law or for legitimate business purposes, such as records needed for fraud prevention, dispute resolution, or financial/legal record-keeping. Aggregated or anonymized data that no longer identifies you may also be retained for analytics purposes.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        <div className="grid md:grid-cols-2 gap-8">
+                            {/* 3. Processing Time */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl transition-all group"
+                            >
+                                <div className="w-12 h-12 bg-primary/5 rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:rotate-6 transition-all duration-500">
+                                    <Clock className="w-6 h-6 text-primary group-hover:text-white transition-colors" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-950 mb-3 uppercase tracking-tight">Processing Time</h3>
+                                <p className="text-slate-500 font-medium text-sm leading-relaxed">
+                                    We will process your deletion request within <strong>30 days</strong> of verification. You will receive a confirmation email once your account and data have been deleted.
+                                </p>
+                            </motion.div>
+
+                            {/* 4. Partial Deletion */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl transition-all group"
+                            >
+                                <div className="w-12 h-12 bg-primary/5 rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:rotate-6 transition-all duration-500">
+                                    <Sliders className="w-6 h-6 text-primary group-hover:text-white transition-colors" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-950 mb-3 uppercase tracking-tight">Partial Deletion</h3>
+                                <p className="text-slate-500 font-medium text-sm leading-relaxed">
+                                    If you would like only specific data deleted while keeping your account active, please specify this clearly in your email and we will do our best to accommodate your request.
+                                </p>
+                            </motion.div>
+                        </div>
+
+                        {/* 5. Questions */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
@@ -117,38 +178,26 @@ export function DataDeletion() {
                             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] rounded-full"></div>
                             <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
                                 <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/10">
-                                    <Mail className="w-8 h-8 text-primary" />
+                                    <HelpCircle className="w-8 h-8 text-primary" />
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="text-2xl font-bold text-white mb-4 uppercase tracking-tight">Request via Email</h3>
+                                    <h3 className="text-2xl font-bold text-white mb-4 uppercase tracking-tight">Questions</h3>
                                     <p className="text-slate-400 font-medium mb-6 leading-relaxed">
-                                        If you no longer have access to the app or portal, you can request deletion by contacting our support team.
+                                        If you have any questions about this process or about how your data is handled, please contact us.
                                     </p>
-                                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between group cursor-pointer hover:bg-white/10 transition-all" onClick={() => window.location.href = 'mailto:support@kingdomconnect.co.zw'}>
+                                    <div 
+                                        className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between group cursor-pointer hover:bg-white/10 transition-all" 
+                                        onClick={() => window.location.href = 'mailto:support@kingdomconnect.co.zw'}
+                                    >
                                         <div>
                                             <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Support Email</p>
                                             <p className="text-white font-bold tracking-tight">support@kingdomconnect.co.zw</p>
                                         </div>
                                         <Mail className="w-5 h-5 text-slate-500 group-hover:text-primary transition-colors" />
                                     </div>
-                                    <p className="mt-6 text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
-                                        Please include your registered email address and full name. Requests are typically processed within 48-72 hours.
-                                    </p>
                                 </div>
                             </div>
                         </motion.div>
-                    </div>
-
-                    {/* Irreversible Warning */}
-                    <div className="mt-16 p-8 bg-rose-50 border border-rose-100 rounded-[2rem] text-center">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-rose-100 text-rose-600 mb-4">
-                            <Trash2 className="w-6 h-6" />
-                        </div>
-                        <h4 className="text-lg font-black text-rose-900 uppercase tracking-tight mb-2">Important Notice</h4>
-                        <p className="text-rose-700/70 text-sm font-medium leading-relaxed max-w-xl mx-auto">
-                            Deleting your account is <span className="font-bold underline">permanent and irreversible</span>. 
-                            All your profile data, attendance history, assignment submissions, and payment records will be permanently removed from our active systems.
-                        </p>
                     </div>
 
                     <div className="mt-12 text-center">
@@ -167,3 +216,4 @@ export function DataDeletion() {
         </div>
     );
 }
+
