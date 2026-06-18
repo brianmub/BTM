@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { broadcastService } from '@/services/broadcastService';
+import { Broadcast } from '@/types';
 
 const BADGE_DEFINITIONS = [
     { id: 'first_step', label: 'First Step', icon: Target, color: 'text-amber-500', bg: 'bg-amber-500/10 border-amber-500/20', desc: 'Joined your first program' },
@@ -64,6 +66,7 @@ export function ParticipantDashboard() {
     const [badges, setBadges] = useState<string[]>([]);
     const [xp, setXp] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [announcements, setAnnouncements] = useState<Broadcast[]>([]);
 
     useEffect(() => {
         if (currentProfile) fetchDashboardData();
@@ -123,6 +126,18 @@ export function ParticipantDashboard() {
             }
             setBadges(earnedBadges);
             setXp(enrollCount * 50 + earnedBadges.length * 25);
+
+            // Fetch published announcements (type: 'news')
+            const orgId = organization?.id || currentProfile?.organization_id;
+            if (orgId) {
+                try {
+                    const broadcastData = await broadcastService.getPublishedBroadcasts(orgId);
+                    const newsItems = (broadcastData || []).filter(b => b.type === 'news');
+                    setAnnouncements(newsItems);
+                } catch (err) {
+                    console.error('Error fetching dynamic announcements:', err);
+                }
+            }
         } catch (err) {
             console.error('Error fetching dashboard data:', err);
         } finally {
@@ -359,9 +374,36 @@ export function ParticipantDashboard() {
                 {/* ── ANNOUNCEMENTS ── */}
                 <div className="space-y-3">
                     <h2 className="text-xs font-black text-foreground uppercase tracking-[0.2em] font-sans">Announcements</h2>
-                    <div className="p-4 bg-surface border border-surface-border rounded-2xl">
-                        <p className="text-xs text-slate-500 font-medium">No new announcements from your community.</p>
-                    </div>
+                    {announcements.length > 0 ? (
+                        <div className="space-y-3">
+                            {announcements.map((ann) => (
+                                <div 
+                                    key={ann.id} 
+                                    onClick={() => ann.media_url && window.open(ann.media_url, '_blank')}
+                                    className={`p-4 bg-surface border border-surface-border rounded-2xl space-y-2 transition-all ${ann.media_url ? 'hover:border-primary/30 cursor-pointer group' : ''}`}
+                                >
+                                    <div className="flex justify-between items-start gap-2">
+                                        <h3 className="text-xs font-black text-foreground uppercase tracking-tight group-hover:text-primary transition-colors">{ann.title}</h3>
+                                        <span className="text-[8px] font-bold text-slate-400 whitespace-nowrap">
+                                            {new Date(ann.published_at || ann.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    {ann.description && (
+                                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed whitespace-pre-wrap">{ann.description}</p>
+                                    )}
+                                    {ann.media_url && (
+                                        <div className="mt-2 rounded-xl overflow-hidden aspect-video bg-black/5 border border-surface-border relative">
+                                            <img src={ann.media_url} alt="" className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-4 bg-surface border border-surface-border rounded-2xl">
+                            <p className="text-[10px] text-slate-500 font-medium">No new announcements from your community.</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

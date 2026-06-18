@@ -33,9 +33,13 @@ export function DataDeletion() {
                         <h1 className="text-4xl md:text-5xl font-black text-slate-950 uppercase tracking-tight mb-6">
                             Account & Data <span className="text-primary">Deletion</span>
                         </h1>
-                        <p className="text-slate-500 text-lg font-medium max-w-2xl mx-auto leading-relaxed">
-                            If you would like to delete your Kingdom Connect / Be That Man account and associated personal data, you can request deletion at any time.
+                        <p className="text-slate-500 text-lg font-medium max-w-2xl mx-auto leading-relaxed mb-4">
+                            If you would like to delete your BE THAT MAN / Kingdom Connect account and associated personal data, you can request deletion at any time.
                         </p>
+                        <div className="inline-flex items-center gap-2 text-xs text-slate-500 bg-slate-100 border border-slate-200 px-4 py-2 rounded-full">
+                            <Info className="w-4 h-4 text-primary" />
+                            <span>This page applies to the <strong>BE THAT MAN</strong> app, developed by <strong>Etechzim</strong>, available on Google Play (package: <code>com.brianmub.btm</code>).</span>
+                        </div>
                     </motion.div>
 
                     <div className="grid gap-8">
@@ -58,11 +62,11 @@ export function DataDeletion() {
                                     
                                     <div 
                                         className="bg-slate-50 border border-slate-200 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group cursor-pointer hover:bg-primary/5 hover:border-primary/20 transition-all mb-6" 
-                                        onClick={() => window.location.href = 'mailto:support@kingdomconnect.co.zw?subject=Account Deletion Request'}
+                                        onClick={() => window.location.href = 'mailto:info@etechzim.co.zw?subject=Account Deletion Request'}
                                     >
                                         <div>
                                             <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Email Subject: "Account Deletion Request"</p>
-                                            <p className="text-slate-900 font-bold tracking-tight text-lg">support@kingdomconnect.co.zw</p>
+                                            <p className="text-slate-900 font-bold tracking-tight text-lg">info@etechzim.co.zw</p>
                                         </div>
                                         <Button className="w-full sm:w-auto uppercase tracking-widest font-black text-[10px] py-3 px-6 rounded-xl">
                                             Send Email
@@ -82,7 +86,7 @@ export function DataDeletion() {
                                             </li>
                                             <li className="flex items-center gap-2">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                                                <span>Which app you use: <span className="font-bold text-slate-900">Be That Man / Kingdom Connect</span></span>
+                                                <span>Which app you use: <span className="font-bold text-slate-900">BE THAT MAN / Kingdom Connect</span></span>
                                             </li>
                                         </ul>
                                     </div>
@@ -187,11 +191,11 @@ export function DataDeletion() {
                                     </p>
                                     <div 
                                         className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between group cursor-pointer hover:bg-white/10 transition-all" 
-                                        onClick={() => window.location.href = 'mailto:support@kingdomconnect.co.zw'}
+                                        onClick={() => window.location.href = 'mailto:info@etechzim.co.zw'}
                                     >
                                         <div>
                                             <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Support Email</p>
-                                            <p className="text-white font-bold tracking-tight">support@kingdomconnect.co.zw</p>
+                                            <p className="text-white font-bold tracking-tight">info@etechzim.co.zw</p>
                                         </div>
                                         <Mail className="w-5 h-5 text-slate-500 group-hover:text-primary transition-colors" />
                                     </div>
@@ -209,10 +213,10 @@ export function DataDeletion() {
             </section>
 
             <footer className="py-12 border-t border-slate-200 bg-white text-center">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em]">
-                    © 2026 Kingdom Connect Logistics. Data Privacy Compliance.
-                </p>
-            </footer>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em]">
+                                    © 2026 Etechzim. Data Privacy Compliance.
+                                </p>
+                            </footer>
         </div>
     );
 }

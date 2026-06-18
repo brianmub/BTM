@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import { Home, Compass, User, FileText, UsersRound, Banknote } from 'lucide-react';
+import { Home, Compass, User, FileText, UsersRound, Banknote, Video } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/hooks/useOrganization';
 import { cn } from '@/components/ui/Button';
@@ -25,6 +25,7 @@ export function ParticipantLayout({ children }: { children: React.ReactNode }) {
     // Bottom Navigation Items
     const navItems = [
         { name: 'Home', icon: <Home className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard` },
+        { name: 'Media', icon: <Video className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard/media` },
         { name: 'Discover', icon: <Compass className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard/browse` },
         { name: 'Payments', icon: <Banknote className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard/payments` },
         ...(isFacilitator ? [{ name: 'Groups', icon: <UsersRound className="w-6 h-6" />, path: `/portal/${orgSlug}/dashboard/cell-groups` }] : []),

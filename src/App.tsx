@@ -33,10 +33,12 @@ import { ParticipantProfile } from '@/features/participant/ParticipantProfile';
 import { ParticipantQR } from '@/features/participant/ParticipantQR';
 import { ParticipantProgramView } from '@/features/participant/ParticipantProgramView';
 import { ParticipantPayments } from '@/features/participant/ParticipantPayments';
+import { ParticipantMedia } from '@/features/participant/ParticipantMedia';
 import { CellGroupDashboard } from '@/features/cellgroups/CellGroupDashboard';
 import { CellMeetingRegister } from '@/features/cellgroups/CellMeetingRegister';
 import { AttendanceLogs } from '@/features/dashboard/AttendanceLogs';
 import { UserDirectory } from '@/features/dashboard/UserDirectory';
+import { BroadcastManager } from '@/features/broadcasts/BroadcastManager';
 
 function App() {
     return (
@@ -155,6 +157,12 @@ function App() {
                             </RequireRole>
                         } />
 
+                        <Route path="/dashboard/media" element={
+                            <RequireRole roles={['platform_admin', 'system_admin', 'program_admin']}>
+                                <DashboardLayout><BroadcastManager /></DashboardLayout>
+                            </RequireRole>
+                        } />
+
                         {/* Platform Command Center */}
                         <Route path="/platform/admin" element={
                             <RequireRole roles={['platform_admin']}>
@@ -181,6 +189,7 @@ function App() {
                         <Route path="/portal/:orgSlug/dashboard/qr" element={<ParticipantLayout><ParticipantQR /></ParticipantLayout>} />
                         <Route path="/portal/:orgSlug/dashboard/program/:programId" element={<ParticipantLayout><ParticipantProgramView /></ParticipantLayout>} />
                         <Route path="/portal/:orgSlug/dashboard/payments" element={<ParticipantLayout><ParticipantPayments /></ParticipantLayout>} />
+                        <Route path="/portal/:orgSlug/dashboard/media" element={<ParticipantLayout><ParticipantMedia /></ParticipantLayout>} />
 
                         {/* Cell Groups in mobile portal (admins + facilitators) */}
                         <Route path="/portal/:orgSlug/dashboard/cell-groups" element={<RequireRole roles={['system_admin', 'program_admin', 'facilitator']}><ParticipantLayout><CellGroupDashboard /></ParticipantLayout></RequireRole>} />

@@ -11,6 +11,7 @@ import {
     Search,
     TrendingUp,
     Sparkles,
+    Video,
     User,
     Users,
     UsersRound,
@@ -41,6 +42,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         { name: 'Statistics', icon: <TrendingUp className="w-5 h-5" />, path: '/dashboard/analytics', roles: ['system_admin', 'program_admin'] },
         { name: 'System Admin', icon: <ShieldAlert className="w-5 h-5" />, path: '/platform/admin', roles: ['platform_admin'] },
         { name: 'Attendance', icon: <Activity className="w-5 h-5" />, path: '/dashboard/attendance', roles: ['system_admin', 'program_admin', 'facilitator'] },
+        { name: 'Media', icon: <Video className="w-5 h-5" />, path: '/dashboard/media', roles: ['system_admin', 'program_admin'] },
         { name: 'Cell Groups', icon: <UsersRound className="w-5 h-5" />, path: '/dashboard/cell-groups', roles: ['system_admin', 'program_admin', 'facilitator'] },
         { name: 'Settings', icon: <Settings className="w-5 h-5" />, path: '/dashboard/settings', roles: ['system_admin', 'program_admin'] },
     ];

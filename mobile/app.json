@@ -27,6 +27,7 @@
       "favicon": "./assets/images/btm-favicon.png"
     },
     "plugins": [
+      "expo-router",
       [
         "expo-splash-screen",
         {

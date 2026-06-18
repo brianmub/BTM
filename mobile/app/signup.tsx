@@ -125,13 +125,6 @@ export default function SignUpScreen() {
                     <Text style={styles.loginLinkText}>Already have an account? <Text style={styles.loginLinkHighlight}>Sign In</Text></Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={styles.backLink}
-                    onPress={() => router.replace('/welcome')}
-                    disabled={loading}
-                >
-                    <Text style={styles.backLinkText}>← Back to Welcome Feed</Text>
-                </TouchableOpacity>
             </View>
         </ScrollView>
     );
@@ -212,14 +205,5 @@ const styles = StyleSheet.create({
     loginLinkHighlight: {
         color: theme.colors.primary,
         fontWeight: 'bold',
-    },
-    backLink: {
-        marginTop: theme.spacing.md,
-        alignItems: 'center',
-    },
-    backLinkText: {
-        color: theme.colors.textMuted,
-        fontSize: 14,
-        textDecorationLine: 'underline',
     }
 });

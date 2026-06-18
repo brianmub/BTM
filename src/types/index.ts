@@ -142,3 +142,16 @@ export interface CellAttendance {
     marked_at: string;
     marked_by?: string;
 }
+
+export interface Broadcast {
+    id: string;
+    organization_id: string;
+    type: 'podcast' | 'news' | 'story';
+    title: string;
+    description?: string;
+    media_url?: string;
+    thumbnail_url?: string;
+    is_published: boolean;
+    published_at?: string;
+    created_at: string;
+}
