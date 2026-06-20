@@ -95,3 +95,9 @@ dist-ssr/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Keystores & keys
+*.key
+*.p12
+*.keystore
+*.jks
