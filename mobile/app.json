@@ -47,8 +47,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "e7b6de5b-b56a-4a2c-85bd-cf1096801607"
-      }
-    }
+        "projectId": "bca81ba9-1683-4e77-b336-f95a4622bde3"
+      },
+      "router": {}
+    },
+    "owner": "brianmub"
   }
 }
